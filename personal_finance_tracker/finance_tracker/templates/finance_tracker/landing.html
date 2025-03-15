@@ -2,8 +2,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="login-container" style="width: 200px; margin: auto;">
-    <h2>Login</h2>
-    <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+<div class="container-scroller" style="background-color: bisque;">
+    <div class="container-fluid page-body-wrapper full-page-wrapper">
+        <div class="content-wrapper d-flex align-items-center auth px-0">
+            <div class="row w-100 mx-0">
+                <div class="col-lg-4 mx-auto">
+                    <div class="auth-form-light text-left py-5 px-4 px-sm-5">
+                        <h2 class="text-center">Welcome to Your Personal Finance Tracker</h2>
+                        <div class="text-center mt-4">
+                            <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

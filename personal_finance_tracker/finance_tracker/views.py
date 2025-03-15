@@ -8,7 +8,7 @@ def landing(request):
 
 @login_required
 def dashboard(request):
-    return render(request, 'finance_tracker/src/index.html')
+    return render(request, 'finance_tracker/index.html')
 
 
 
