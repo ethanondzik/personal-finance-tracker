@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="register-container">
+    <h2>Register</h2>
+    <form method="post" action="{% url 'register' %}">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="id_username">{{ form.username.label }}</label>
+        {{ form.username }}
+    </div>
+    <div class="form-group">
+        <label for="id_password1">{{ form.password1.label }}</label>
+        {{ form.password1 }}
+    </div>
+    <div class="form-group">
+        <label for="id_password2">{{ form.password2.label }}</label>
+        {{ form.password2 }}
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+    {% if form.errors %}
+    <div class="form-errors">
+        <ul>
+        {% for field in form %}
+            {% for error in field.errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
