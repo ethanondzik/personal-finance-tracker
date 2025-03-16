@@ -1,44 +1,60 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="register-container">
-    <h2>Register</h2>
-    <form method="post" action="{% url 'register' %}">
-    {% csrf_token %}
-    <div class="form-group">
-        <label for="id_username">{{ form.username.label }}</label>
-        {{ form.username }}
-        {% if form.username.errors %}
-        <div class="invalid-feedback d-block">
-            {% for error in form.username.errors %}
-            <p>{{ error }}</p>
-            {% endfor %}
+
+<div class="container-scroller" style="background-color: bisque;">
+    <div class="container-fluid page-body-wrapper full-page-wrapper">
+        <div class="content-wrapper d-flex align-items-center auth px-0">
+            <div class="row w-100 mx-0">
+                <div class="col-lg-4 mx-auto">
+                    <div class="auth-form-light text-left py-5 px-4 px-sm-5">
+                        <h2 class="text-center">Register your account to get started.</h2>
+                        <div class="text-center mt-4">
+                            <div class="register-container">
+                                <form method="post" action="{% url 'register' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="id_username">{{ form.username.label }}</label>
+                                    {{ form.username }}
+                                    {% if form.username.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.username.errors %}
+                                        <p>{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_password1">{{ form.password1.label }}</label>
+                                    {{ form.password1 }}
+                                    {% if form.password1.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.password1.errors %}
+                                        <p>{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_password2">{{ form.password2.label }}</label>
+                                    {{ form.password2 }}
+                                    {% if form.password2.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.password2.errors %}
+                                        <p>{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <button type="submit" class="btn btn-primary">Register</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        {% endif %}
     </div>
-    <div class="form-group">
-        <label for="id_password1">{{ form.password1.label }}</label>
-        {{ form.password1 }}
-        {% if form.password1.errors %}
-        <div class="invalid-feedback d-block">
-            {% for error in form.password1.errors %}
-            <p>{{ error }}</p>
-            {% endfor %}
-        </div>
-        {% endif %}
-    </div>
-    <div class="form-group">
-        <label for="id_password2">{{ form.password2.label }}</label>
-        {{ form.password2 }}
-        {% if form.password2.errors %}
-        <div class="invalid-feedback d-block">
-            {% for error in form.password2.errors %}
-            <p>{{ error }}</p>
-            {% endfor %}
-        </div>
-        {% endif %}
-    </div>
-    <button type="submit" class="btn btn-primary">Register</button>
-    </form>
 </div>
+
 {% endblock %}
