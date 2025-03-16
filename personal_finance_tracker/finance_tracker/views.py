@@ -10,7 +10,7 @@ def landing(request):
 
 @login_required
 def dashboard(request):
-    return render(request, 'finance_tracker/index.html')
+    return render(request, 'finance_tracker/dashboard.html')
 
 def register(request):
     if request.method == 'POST':

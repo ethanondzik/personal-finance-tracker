@@ -8,27 +8,37 @@
     <div class="form-group">
         <label for="id_username">{{ form.username.label }}</label>
         {{ form.username }}
+        {% if form.username.errors %}
+        <div class="invalid-feedback d-block">
+            {% for error in form.username.errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
     <div class="form-group">
         <label for="id_password1">{{ form.password1.label }}</label>
         {{ form.password1 }}
+        {% if form.password1.errors %}
+        <div class="invalid-feedback d-block">
+            {% for error in form.password1.errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
     <div class="form-group">
         <label for="id_password2">{{ form.password2.label }}</label>
         {{ form.password2 }}
+        {% if form.password2.errors %}
+        <div class="invalid-feedback d-block">
+            {% for error in form.password2.errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
     <button type="submit" class="btn btn-primary">Register</button>
     </form>
-    {% if form.errors %}
-    <div class="form-errors">
-        <ul>
-        {% for field in form %}
-            {% for error in field.errors %}
-            <li>{{ error }}</li>
-            {% endfor %}
-        {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}
