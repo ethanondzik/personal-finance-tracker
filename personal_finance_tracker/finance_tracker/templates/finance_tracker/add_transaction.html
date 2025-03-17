@@ -1,0 +1,40 @@
+<!-- filepath: /home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/templates/finance_tracker/add_transaction.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-scroller">
+    <div class="container-fluid page-body-wrapper full-page-wrapper">
+        <div class="content-wrapper d-flex align-items-center auth px-0">
+            <div class="row w-100 mx-0">
+                <div class="col-lg-4 mx-auto">
+                    <div class="auth-form-light text-left py-5 px-4 px-sm-5">
+                        <h2 class="text-center">Add Transaction</h2>
+                        <div class="text-center mt-4">
+                            <form method="post" action="{% url 'add_transaction' %}">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="id_date">Date</label>
+                                {{ form.date }}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_type">Type</label>
+                                {{ form.type }}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_amount">Amount</label>
+                                {{ form.amount }}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_description">Description</label>
+                                {{ form.description }}
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
