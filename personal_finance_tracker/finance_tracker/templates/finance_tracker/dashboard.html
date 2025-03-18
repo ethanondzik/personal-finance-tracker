@@ -98,30 +98,55 @@
                   <div class="card-body">
                     <h4 class="card-title">Transactions</h4>
                     <div class="table-responsive">
-                      <table class="table table-striped">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Description</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for transaction in transactions %}
-                          <tr>
-                            <td>{{ transaction.date }}</td>
-                            <td>{{ transaction.get_type_display }}</td>
-                            <td>{{ transaction.amount }}</td>
-                            <td>{{ transaction.description }}</td>
-                            <td>
-                              <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning">Edit</a>
-                              <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
+                      <div class="table-responsive">
+                        <table class="table table-striped">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Type</th>
+                              <th>Amount</th>
+                              <th>Description</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for transaction in transactions %}
+                            <tr 
+                              data-bs-toggle="collapse" 
+                              data-bs-target="#details{{ transaction.id }}" 
+                              aria-expanded="false" 
+                              aria-controls="details{{ transaction.id }}"
+                              class="clickable-row"
+                            >
+                              <td>
+                                <i class="mdi mdi-chevron-down"></i> <!-- Caret icon -->
+                                {{ transaction.date }}
+                              </td>
+                              <td>{{ transaction.get_type_display }}</td>
+                              <td>{{ transaction.amount }}</td>
+                              <td>{{ transaction.description }}</td>
+                              <td>
+                                <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning">Edit</a>
+                                <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-sm btn-danger">Delete</a>
+                              </td>
+                            </tr>
+                            <tr id="details{{ transaction.id }}" class="collapse">
+                              <td colspan="5">
+                                <strong>Category:</strong> {{ transaction.category }}<br>
+                                <strong>Status:</strong> {{ transaction.status }}<br>
+                                <strong>Payment Method:</strong> {{ transaction.payment_method }}<br>
+                                {% if transaction.is_recurring %}
+                                <strong>Recurring:</strong> Yes ({{ transaction.recurrence_interval }})<br>
+                                {% endif %}
+                                {% if transaction.notes %}
+                                <strong>Notes:</strong> {{ transaction.notes }}<br>
+                                {% endif %}
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                     <div class="mt-4">
                       <a href="{% url 'add_transaction' %}" class="btn btn-primary">Add Transaction</a>

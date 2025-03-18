@@ -117,6 +117,22 @@
 /* === Import template variables === */
 /*-------------------------------------------------------------------*/
 /* === SCSS Compass Functions === */
+
+/****** CUSTOM STYLES **********/
+
+/* Rotate the caret icon when expanded */
+.clickable-row[aria-expanded="true"] i.mdi-chevron-down {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
+/* Add a hover effect for better interactivity */
+.clickable-row:hover {
+  background-color: grey;
+  cursor: pointer;
+}
+/********************************/
+
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap");
 @-moz-keyframes flash {
   0% {

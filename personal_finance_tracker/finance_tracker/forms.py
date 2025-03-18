@@ -4,4 +4,8 @@ from .models import Transaction
 class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
-        fields = ['date', 'type', 'amount', 'description']
+        fields = [
+            'date', 'type', 'amount', 'description', 'category',
+            'is_recurring', 'recurrence_interval', 'payment_method',
+            'status', 'notes', 'currency', 'location', 'tags'
+        ]
