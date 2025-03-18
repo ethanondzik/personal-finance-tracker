@@ -114,6 +114,10 @@
                             <td>{{ transaction.get_type_display }}</td>
                             <td>{{ transaction.amount }}</td>
                             <td>{{ transaction.description }}</td>
+                            <td>
+                              <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning">Edit</a>
+                              <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-sm btn-danger">Delete</a>
+                            </td>
                           </tr>
                           {% endfor %}
                         </tbody>

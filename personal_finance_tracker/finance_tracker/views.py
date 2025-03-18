@@ -1,5 +1,5 @@
 # filepath: /home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction
 from .forms import TransactionForm
@@ -12,6 +12,7 @@ def landing(request):
 @login_required
 def dashboard(request):
     transactions = Transaction.objects.filter(user=request.user)
+    print(transactions)
     return render(request, 'finance_tracker/dashboard.html', {'transactions': transactions})
 
 @login_required
@@ -39,3 +40,26 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'finance_tracker/register.html', {'form': form})
+
+
+@login_required
+def update_transaction(request, transaction_id):
+    transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, instance=transaction)
+        if form.is_valid():
+            form.save()
+            return redirect('dashboard')
+    else:
+        form = TransactionForm(instance=transaction)
+    return render(request, 'finance_tracker/update_transaction.html', {'form': form, 'transaction': transaction})
+
+
+
+@login_required
+def delete_transaction(request, transaction_id):
+    transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+    if request.method == 'POST':
+        transaction.delete()
+        return redirect('dashboard')
+    return render(request, 'finance_tracker/delete_transaction.html', {'transaction': transaction})

@@ -15,4 +15,4 @@ class Transaction(models.Model):
 
     #just in case we need to print
     def __str__(self):
-        return f"{self.user.username} - {self.type} - {self.amount}"
+        return f"[{self.id}] - {self.user.username} - {self.type} - {self.amount}"
