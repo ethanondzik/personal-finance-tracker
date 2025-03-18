@@ -5,6 +5,7 @@ from .models import Transaction
 from .forms import TransactionForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+from django.http import HttpResponseNotAllowed
 
 def landing(request):
     return render(request, 'finance_tracker/landing.html')
@@ -45,13 +46,20 @@ def register(request):
 @login_required
 def update_transaction(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=transaction)
         if form.is_valid():
             form.save()
             return redirect('dashboard')
-    else:
+        else:
+            print(form.errors)  # Debugging: Print form errors if invalid
+    elif request.method == 'GET':
         form = TransactionForm(instance=transaction)
+    else:
+        # Reject any non-GET or non-POST requests
+        return HttpResponseNotAllowed(['GET', 'POST'])
+
     return render(request, 'finance_tracker/update_transaction.html', {'form': form, 'transaction': transaction})
 
 
@@ -62,4 +70,5 @@ def delete_transaction(request, transaction_id):
     if request.method == 'POST':
         transaction.delete()
         return redirect('dashboard')
-    return render(request, 'finance_tracker/delete_transaction.html', {'transaction': transaction})
+    else:
+        return render(request, 'finance_tracker/delete_transaction.html', {'transaction': transaction})
