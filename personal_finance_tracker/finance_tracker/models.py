@@ -9,8 +9,8 @@ class Transaction(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
-    type = models.CharField(max_length=7, choices=TRANSACTION_TYPES)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
     description = models.TextField()
     category = models.CharField(max_length=50, choices=[
         ('food', 'Food'),
@@ -44,10 +44,10 @@ class Transaction(models.Model):
         default='completed'
     )
     notes = models.TextField(null=True, blank=True)
-    currency = models.CharField(max_length=10, default='CAD')
+    currency = models.CharField(max_length=20, default='CAD')
     linked_transaction = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
     location = models.CharField(max_length=255, null=True, blank=True)
     tags = models.CharField(max_length=255, null=True, blank=True)
-    
+
     def __str__(self):
         return f"[{self.id}] - {self.user.username} - {self.type} - {self.amount}"

@@ -9,3 +9,6 @@ class TransactionForm(forms.ModelForm):
             'is_recurring', 'recurrence_interval', 'payment_method',
             'status', 'notes', 'currency', 'location', 'tags'
         ]
+
+class CSVUploadForm(forms.Form):
+    file = forms.FileField(label="Upload CSV File")

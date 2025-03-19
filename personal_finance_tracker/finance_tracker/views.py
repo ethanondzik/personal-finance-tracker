@@ -2,10 +2,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction
-from .forms import TransactionForm
+from .forms import TransactionForm, CSVUploadForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.http import HttpResponseNotAllowed
+from django.contrib import messages
+import csv
 
 def landing(request):
     return render(request, 'finance_tracker/landing.html')
@@ -72,3 +74,39 @@ def delete_transaction(request, transaction_id):
         return redirect('dashboard')
     else:
         return render(request, 'finance_tracker/delete_transaction.html', {'transaction': transaction})
+    
+
+
+@login_required
+def upload_transactions(request):
+    if request.method == 'POST':
+        form = CSVUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = request.FILES['file']
+            try:
+                decoded_file = csv_file.read().decode('utf-8').splitlines()
+                reader = csv.DictReader(decoded_file)
+                for row in reader:
+                    Transaction.objects.create(
+                        user=request.user,
+                        date=row['date'],
+                        type=row['type'],
+                        amount=row['amount'],
+                        description=row['description'],
+                        category=row.get('category', 'other'),
+                        is_recurring=row.get('is_recurring', 'False') == 'True',
+                        recurrence_interval=row.get('recurrence_interval', None),
+                        payment_method=row.get('payment_method', 'other'),
+                        status=row.get('status', 'completed'),
+                        notes=row.get('notes', ''),
+                        currency=row.get('currency', 'CAD'),
+                        location=row.get('location', ''),
+                        tags=row.get('tags', '')
+                    )
+                messages.success(request, "Transactions uploaded successfully!")
+                return redirect('dashboard')
+            except Exception as e:
+                messages.error(request, f"Error processing file: {e}")
+    else:
+        form = CSVUploadForm()
+    return render(request, 'finance_tracker/upload_transactions.html', {'form': form})

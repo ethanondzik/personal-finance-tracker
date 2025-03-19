@@ -1,0 +1,11 @@
+date,type,amount,description,category,is_recurring,recurrence_interval,payment_method,status,notes,currency,location,tags
+2023-10-01,income,1000,Salary,other,False,,bank_transfer,completed,Monthly salary,CAD,Office,work
+2023-10-02,expense,50,Dinner,food,False,,credit_card,completed,Dinner with friends,CAD,Restaurant,foodie
+2023-10-03,expense,200,Rent,rent,True,monthly,bank_transfer,completed,Monthly rent payment,CAD,Apartment,home
+2023-10-04,income,500,Freelance Project,other,False,,paypal,completed,Payment for freelance work,CAD,Online,freelance
+2023-10-05,expense,30,Groceries,utilities,False,,cash,completed,Weekly groceries,CAD,Supermarket,shopping
+2023-10-06,expense,20,Movie,entertainment,False,,credit_card,completed,Movie night,CAD,Cinema,fun
+2023-10-07,income,150,Gift,other,False,,cash,completed,Birthday gift,CAD,Home,gift
+2023-10-08,expense,100,Electricity Bill,utilities,False,,bank_transfer,completed,Monthly electricity bill,CAD,Home,bills
+2023-10-09,expense,15,Coffee,food,False,,cash,completed,Coffee with a friend,CAD,Cafe,coffee
+2023-10-10,income,200,Bonus,other,False,,bank_transfer,completed,Quarterly bonus,CAD,Office,bonus
