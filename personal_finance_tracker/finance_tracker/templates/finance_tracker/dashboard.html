@@ -112,11 +112,8 @@
                           <tbody>
                             {% for transaction in transactions %}
                             <tr 
-                              data-bs-toggle="collapse" 
-                              data-bs-target="#details{{ transaction.id }}" 
-                              aria-expanded="false" 
-                              aria-controls="details{{ transaction.id }}"
                               class="clickable-row"
+                              onclick="toggleDetails('{{ transaction.id }}')"
                             >
                               <td>
                                 <i class="mdi mdi-chevron-down"></i> <!-- Caret icon -->
@@ -126,8 +123,9 @@
                               <td>{{ transaction.amount }}</td>
                               <td>{{ transaction.description }}</td>
                               <td>
-                                <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                <!-- Prevent buttons from triggering the row collapse -->
+                                <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning" onclick="event.stopPropagation();">Edit</a>
+                                <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-sm btn-danger" onclick="event.stopPropagation();">Delete</a>
                               </td>
                             </tr>
                             <tr id="details{{ transaction.id }}" class="collapse">
@@ -189,6 +187,7 @@
     <!-- Custom js for this page-->
     <script src="{% static 'js/dashboard.js' %}"></script>
     <script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
+    <script src="{% static 'js/custom_collapse.js' %}"></script>
     <!-- End custom js for this page-->
   </body>
 </html>
