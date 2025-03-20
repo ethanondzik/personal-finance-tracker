@@ -26,7 +26,10 @@ def add_transaction(request):
             transaction = form.save(commit=False)
             transaction.user = request.user
             transaction.save()
+            messages.success(request, "Transaction added successfully!")
             return redirect('dashboard')
+        else:
+            messages.error(request, "Error adding transaction. Please try again.")
     else:
         form = TransactionForm()
     return render(request, 'finance_tracker/add_transaction.html', {'form': form})
