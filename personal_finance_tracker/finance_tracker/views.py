@@ -12,6 +12,7 @@ import csv
 def landing(request):
     return render(request, 'finance_tracker/landing.html')
 
+
 @login_required
 def dashboard(request):
     transactions = Transaction.objects.filter(user=request.user)
@@ -69,15 +70,7 @@ def update_transaction(request, transaction_id):
 
 
 
-'''@login_required
-def delete_transaction(request, transaction_id):
-    transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
-    if request.method == 'POST':
-        transaction.delete()
-        return redirect('dashboard')
-    else:
-        return render(request, 'finance_tracker/delete_transaction.html', {'transaction': transaction})
-    '''
+
 @login_required
 def delete_transactions(request):
     if request.method == 'POST':
