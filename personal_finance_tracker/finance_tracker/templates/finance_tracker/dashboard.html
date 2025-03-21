@@ -94,63 +94,68 @@
         <!-- partial -->
         <div class="main-panel">
           <div class="content-wrapper">
+            <!-- TO DISPLAY DANJGO MESSAGES-->
+            {% if messages %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}            
             <div class="row">
               <div class="col-lg-12 grid-margin stretch-card">
                 <div class="card">
                   <div class="card-body">
                     <h4 class="card-title">Transactions</h4>
                     <div class="table-responsive">
-                      <div class="table-responsive">
-                        <table class="table table-striped">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Type</th>
-                              <th>Amount</th>
-                              <th>Description</th>
-                              <th>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for transaction in transactions %}
-                            <tr 
-                              class="clickable-row"
-                              onclick="toggleDetails('{{ transaction.id }}')"
-                            >
-                              <td>
-                                <i class="mdi mdi-chevron-down"></i> <!-- Caret icon -->
-                                {{ transaction.date }}
-                              </td>
-                              <td>{{ transaction.get_type_display }}</td>
-                              <td>{{ transaction.amount }}</td>
-                              <td>{{ transaction.description }}</td>
-                              <td>
-                                <!-- Prevent buttons from triggering the row collapse -->
-                                <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning" onclick="event.stopPropagation();">Edit</a>
-                                <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-sm btn-danger" onclick="event.stopPropagation();">Delete</a>
-                              </td>
-                            </tr>
-                            <tr id="details{{ transaction.id }}" class="collapse">
-                              <td colspan="5">
-                                <strong>Category:</strong> {{ transaction.category }}<br>
-                                <strong>Status:</strong> {{ transaction.status }}<br>
-                                <strong>Payment Method:</strong> {{ transaction.payment_method }}<br>
-                                {% if transaction.is_recurring %}
-                                <strong>Recurring:</strong> Yes ({{ transaction.recurrence_interval }})<br>
-                                {% endif %}
-                                {% if transaction.notes %}
-                                <strong>Notes:</strong> {{ transaction.notes }}<br>
-                                {% endif %}
-                              </td>
-                            </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
+                      <form id="delete-form" method="post" action="{% url 'delete_transactions' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="confirm" value="true" id="confirm-input">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="select-all"></th>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr class="clickable-row" onclick="toggleDetails('{{ transaction.id }}')">
+                                        <td>
+                                            <input type="checkbox" name="transaction_ids" value="{{ transaction.id }}" class="transaction-checkbox" onclick="event.stopPropagation();">
+                                        </td>
+                                        <td>
+                                            <i class="mdi mdi-chevron-down"></i>
+                                            {{ transaction.date }}
+                                        </td>
+                                        <td>{{ transaction.get_type_display }}</td>
+                                        <td>{{ transaction.amount }}</td>
+                                        <td>{{ transaction.description }}</td>
+                                        <td>
+                                            <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning" onclick="event.stopPropagation();">Edit</a>
+                                            <!--<button type="button" class="btn btn-sm btn-danger" onclick="prepareDeleteSingle('{{ transaction.id }}', '{{ transaction.description }}', '{{ transaction.amount }}', '{{ transaction.date }}'); event.stopPropagation();">Delete</button>-->
+                                        </td>
+                                    </tr>
+                                    <tr id="details{{ transaction.id }}" class="collapse">
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                      </form>
                     </div>
-                    <div class="mt-4">
-                      <a href="{% url 'add_transaction' %}" class="btn btn-primary">Add Transaction</a>
-                      <a href="{% url 'upload_transactions' %}" class="btn btn-secondary">Upload CSV</a>
+                    <div class="d-flex mt-3">
+                      <a href="{% url 'add_transaction' %}" class="btn btn-primary ms-3">Add Transaction</a>
+                      <a href="{% url 'upload_transactions' %}" class="btn btn-secondary ms-3">Upload CSV</a>
+                      <button type="button" id="delete-selected-btn" class="btn btn-danger ms-3" onclick="prepareDeleteMultiple()">Delete Selected</button>
                     </div>
                   </div>
                 </div>
@@ -191,6 +196,31 @@
     <script src="{% static 'js/dashboard.js' %}"></script>
     <script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
     <script src="{% static 'js/custom_collapse.js' %}"></script>
+    <script src="{% static 'js/dashboard_modal.js' %}"></script>
     <!-- End custom js for this page-->
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                  
+              </div>
+              <div class="modal-body">
+                  <p>Are you sure you want to delete the following transaction(s)?</p>
+                  <ul id="transaction-list" class="list-group">
+                      <!-- This will be filled dynamically -->
+                  </ul>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+              </div>
+          </div>
+      </div>
+    </div>
+
+
   </body>
 </html>

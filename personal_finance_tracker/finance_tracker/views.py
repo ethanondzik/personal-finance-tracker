@@ -69,7 +69,7 @@ def update_transaction(request, transaction_id):
 
 
 
-@login_required
+'''@login_required
 def delete_transaction(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
     if request.method == 'POST':
@@ -77,7 +77,26 @@ def delete_transaction(request, transaction_id):
         return redirect('dashboard')
     else:
         return render(request, 'finance_tracker/delete_transaction.html', {'transaction': transaction})
-    
+    '''
+@login_required
+def delete_transactions(request):
+    if request.method == 'POST':
+        transaction_ids = request.POST.getlist('transaction_ids')
+        print(request.POST)
+        if 'confirm' in request.POST:
+            # User has confirmed deletion
+            transactions = Transaction.objects.filter(id__in=transaction_ids, user=request.user)
+            count = transactions.count()
+            
+            if count > 0:
+                transactions.delete()
+                messages.success(request, f"{count} transaction(s) deleted successfully!")
+            else:
+                messages.error(request, "No valid transactions found to delete.")
+        
+        return redirect('dashboard')
+    else:
+        return redirect('dashboard')
 
 
 @login_required
