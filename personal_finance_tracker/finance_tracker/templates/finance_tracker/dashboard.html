@@ -148,7 +148,7 @@
                                   {% endif %}
                                   {% if transaction.notes %}  
                                     <strong>Notes:</strong> {{ transaction.notes }}<br>
-                                  {{ transaction.currency }}
+                                  {% endif %}
                                   <strong>Currency: </strong> {{ transaction.currency }}<br>
                                   <strong>Location: </strong> {{ transaction.location }}<br>
                                   <strong>Tags: </strong> {{ transaction.tags }}<br>
