@@ -137,7 +137,23 @@
                                 <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-warning" onclick="event.stopPropagation();">Edit</a>
                               </td>
                             </tr>
-                            <tr id="details{{ transaction.id }}" class="collapse"></tr>
+                            <!-- EXPANDED TRANSACTION DETAILS-->
+                            <tr id="details{{ transaction.id }}" class="collapse">
+                                <td colspan="5">
+                                  <strong>Category:</strong> {{ transaction.category }}<br>
+                                  <strong>Status:</strong> {{ transaction.status }}<br>
+                                  <strong>Payment Method:</strong> {{ transaction.payment_method }}<br>
+                                  {% if transaction.is_recurring %}
+                                    <strong>Recurring:</strong> Yes ({{ transaction.recurrence_interval }})<br>
+                                  {% endif %}
+                                  {% if transaction.notes %}  
+                                    <strong>Notes:</strong> {{ transaction.notes }}<br>
+                                  {{ transaction.currency }}
+                                  <strong>Currency: </strong> {{ transaction.currency }}<br>
+                                  <strong>Location: </strong> {{ transaction.location }}<br>
+                                  <strong>Tags: </strong> {{ transaction.tags }}<br>
+                                </td>                               
+                            </tr>
                             {% endfor %}
                           </tbody>
                         </table>
