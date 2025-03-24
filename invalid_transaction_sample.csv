@@ -1,11 +1,19 @@
 date,type,amount,description,category,is_recurring,recurrence_interval,payment_method,status,notes,currency,location,tags
-2023-10-01,income,10000000000,Salary,other,False,,bank_transfer,completed,Monthly salary,CAD,Office,work
-2036-10-02,expense,50,Dinner,food,False,,credit_card,completed,Dinner with friends,CAD,Restaurant,foodie
-2023-10-03,expense,200,Rent,rent,True,monthly,bank_transfer,completed,Monthly rent payment,CAD,Apartment,home
-2023-10-04,income,500,Freelance Project,other,False,,paypal,completed,Payment for freelance work,CAD,Online,freelance
-2023-10-05,expense,30,Groceries,utilities,False,,cash,completed,Weekly groceries,CAD,Supermarket,shopping
-2023-10-06,expense,20,Movie,entertainment,False,,credit_card,completed,Movie night,CAD,Cinema,fun
-2023-10-07,income,150,Gift,other,False,,cash,completed,Birthday gift,CAD,Home,gift
-2023-10-08,expense,100,Electricity Bill,utilities,False,,bank_transfer,completed,Monthly electricity bill,CAD,Home,bills
-2023-10-09,expense,15,Coffee,food,False,,cash,completed,Coffee with a friend,CAD,Cafe,coffee
-2023-10-10,income,200,Bonus,other,False,,bank_transfer,completed,Quarterly bonus,CAD,Office,bonus
+40000-01-01,expense,100,Date 40,000 years in the future,food,False,,cash,completed,,CAD,,test
+0001-01-01,expense,100,Date in the year 1,food,False,,cash,completed,,CAD,,test
+2023-01-01,invalid_type,100,Invalid type,food,False,,cash,completed,,CAD,,test
+2023-01-01,,100,Completely blank type,food,False,,cash,completed,,CAD,,test
+2023-01-01,expense,1000000000000,Excessively large amount,food,False,,cash,completed,,CAD,,test
+2023-01-01,expense,-1000000000000,Excessively negative amount,food,False,,cash,completed,,CAD,,test
+2023-01-01,expense,abc,Non-numeric amount,food,False,,cash,completed,,CAD,,test
+2023-01-01,expense,100,Missing description,,False,,cash,completed,,CAD,,test
+2023-01-01,expense,100,Invalid category,invalid_category,False,,cash,completed,,CAD,,test
+2023-01-01,income,100,Income with non-other category,food,False,,cash,completed,,CAD,,test
+2023-01-01,expense,100,Recurring without interval,food,True,,cash,completed,,CAD,,test
+2023-01-01,expense,100,Invalid recurrence interval,food,True,invalid_interval,cash,completed,,CAD,,test
+2023-01-01,no,100,Invalid payment method,food,False,,invalid_method,completed,,CAD,,test
+2023-01-01,expense,100,Invalid status,food,False,,cash,invalid_status,,CAD,,test
+2023-01-01,expense,100,Invalid notes length,food,False,,cash,completed,Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.,CAD,,test
+,,,,,,,,,,,,,
+2023-01-01,expense,100,Invalid type and category,invalid_type,invalid_category,False,,cash,completed,,CAD,,test
+2023-01-01,expense,100,Invalid everything,invalid_type,invalid_category,invalid_boolean,invalid_interval,invalid_method,invalid_status,Lorem ipsum dolor sit amet, INVALID,Lorem ipsum dolor sit amet,Lorem ipsum dolor sit amet
