@@ -43,6 +43,32 @@
               <h3 class="welcome-sub-text">Your finance summary this week </h3>
             </li>
           </ul>
+          <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="table-tab" data-bs-toggle="tab" 
+                        data-bs-target="#table" type="button" role="tab" 
+                        aria-controls="table" aria-selected="true">
+                    Transactions Table
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="chart-tab" data-bs-toggle="tab" 
+                        data-bs-target="#chart" type="button" role="tab" 
+                        aria-controls="chart" aria-selected="false">
+                    Transactions Graph
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content mt-4" style="width: 500px; border: 0px;">
+          <div class="tab-pane fade" id="chart" role="tabpanel" aria-labelledby="chart-tab">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Transactions Graph</h4>
+                    <canvas id="transactionChart" style="height: 400px;"></canvas>
+                  </div>
+              </div>
+          </div>
+      </div>
           <ul class="navbar-nav ms-auto">
             <li class="nav-item dropdown d-none d-lg-block user-dropdown">
               <a class="nav-link" id="UserDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
@@ -190,5 +216,50 @@
     <script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
     <script src="{% static 'js/custom_collapse.js' %}"></script>
     <!-- End custom js for this page-->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          // Check if chart element exists
+          const chartEl = document.getElementById('transactionChart');
+          if (!chartEl) return;
+      
+          // Format data properly
+          const config = {
+              type: 'line',
+              data: {
+                  labels: {{ chart_data.dates|safe }},
+                  datasets: [{
+                      label: 'Income',
+                      data: {{ chart_data.income|safe }},
+                      borderColor: '#4CAF50',
+                      backgroundColor: '#4CAF5020',
+                      tension: 0.2
+                  },
+                  {
+                      label: 'Expenses',
+                      data: {{ chart_data.expenses|safe }},
+                      borderColor: '#F44336',
+                      backgroundColor: '#F4433620',
+                      tension: 0.2
+                  }]
+              },
+              options: {
+                  responsive: false,
+                  maintainAspectRatio: false,
+                  scales: {
+                      y: {
+                          beginAtZero: true,
+                          title: { display: true, text: 'Amount (CAD)' }
+                      },
+                      x: {
+                          title: { display: true, text: 'Date' },
+                          ticks: { autoSkip: true, maxTicksLimit: 10 }
+                      }
+                  }
+              }
+          };
+      
+          new Chart(chartEl, config);
+      });
+      </script>
   </body>
 </html>

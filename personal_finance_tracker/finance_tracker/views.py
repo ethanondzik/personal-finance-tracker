@@ -15,8 +15,39 @@ def landing(request):
 @login_required
 def dashboard(request):
     transactions = Transaction.objects.filter(user=request.user)
-    print(transactions)
-    return render(request, 'finance_tracker/dashboard.html', {'transactions': transactions})
+    #print(transactions)
+    #return render(request, 'finance_tracker/dashboard.html', {'transactions': transactions})
+    # Prepare chart data
+    dates = []
+    income = []
+    expenses = []
+    
+    # Aggregate data by date and type
+    chart_data = {}
+    for t in transactions:
+        key = t.date.isoformat()
+        if key not in chart_data:
+            chart_data[key] = {'income': 0, 'expense': 0}
+        if t.type == 'income':
+            chart_data[key]['income'] += float(t.amount)
+        else:
+            chart_data[key]['expense'] += float(t.amount)
+    
+    # Sort dates and populate arrays
+    sorted_dates = sorted(chart_data.keys())
+    for date in sorted_dates:
+        dates.append(date)
+        income.append(chart_data[date]['income'])
+        expenses.append(chart_data[date]['expense'])
+    
+    return render(request, 'finance_tracker/dashboard.html', {
+        'transactions': transactions,
+        'chart_data': {
+            'dates': dates,
+            'income': income,
+            'expenses': expenses
+        }
+    })
 
 @login_required
 def add_transaction(request):
