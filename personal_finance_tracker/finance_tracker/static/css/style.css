@@ -30395,4 +30395,12 @@ dl li {
   background-color: darkgrey;
   outline: 1px solid slategrey;
 }
+.nav-tabs {
+  margin-bottom: 1.5rem;
+}
+.canvas-container {
+  position: relative;
+  margin: auto;
+  width: 100%;
+}
 /*# sourceMappingURL=maps/style.css.map */
