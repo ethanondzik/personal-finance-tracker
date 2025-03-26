@@ -61,6 +61,17 @@ def dashboard(request):
         dates.append(date)
         income.append(chart_data[date]['income'])
         expenses.append(chart_data[date]['expense'])
+
+    chart_data = {
+        'transactions': transactions,
+        'chart_data': {
+            'dates': dates,
+            'income': income,
+            'expenses': expenses
+        }
+    }
+
+    #return render(request, 'finance_tracker/dashboard.html', {'chart_data': chart_data})
     
     return render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
