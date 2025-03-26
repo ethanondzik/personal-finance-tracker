@@ -157,7 +157,7 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': '/home/ethan/GitHub/personal-finance-tracker/logs/validation_errors.log',
+            'filename': BASE_DIR / '../logs/validation_errors.log',
             'formatter': 'verbose',
         },
     },
