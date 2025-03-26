@@ -1,0 +1,173 @@
+ERROR 2025-03-25 03:25:18,692 validation Error validating transaction data: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 125, in validate_transaction_data
+    if len(tags) > 255:
+       ^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2025-03-25 03:25:18,710 log Internal Server Error: /add_transaction/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 29, in add_transaction
+    if form.is_valid():
+       ^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 197, in is_valid
+    return self.is_bound and not self.errors
+                                 ^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 192, in errors
+    self.full_clean()
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 326, in full_clean
+    self._clean_form()
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 342, in _clean_form
+    cleaned_data = self.clean()
+                   ^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/forms.py", line 19, in clean
+    validate_transaction_data(cleaned_data)
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 133, in validate_transaction_data
+    raise e
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 125, in validate_transaction_data
+    if len(tags) > 255:
+       ^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+ERROR 2025-03-25 03:25:18,712 basehttp "POST /add_transaction/ HTTP/1.1" 500 109973
+Error validating transaction data: object of type 'NoneType' has no len()
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 125, in validate_transaction_data
+    if len(tags) > 255:
+       ^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+Internal Server Error: /add_transaction/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 29, in add_transaction
+    if form.is_valid():
+       ^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 197, in is_valid
+    return self.is_bound and not self.errors
+                                 ^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 192, in errors
+    self.full_clean()
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 326, in full_clean
+    self._clean_form()
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/forms/forms.py", line 342, in _clean_form
+    cleaned_data = self.clean()
+                   ^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/forms.py", line 19, in clean
+    validate_transaction_data(cleaned_data)
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 133, in validate_transaction_data
+    raise e
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 125, in validate_transaction_data
+    if len(tags) > 255:
+       ^^^^^^^^^
+TypeError: object of type 'NoneType' has no len()
+"POST /add_transaction/ HTTP/1.1" 500 111343
+Error validating transaction data: ['Transaction date is required.', "Transaction type must be either 'income' or 'expense'.", 'Amount must have at most two decimal places.', 'Description is required.', "Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction date is required.', "Transaction type must be either 'income' or 'expense'.", 'Amount must have at most two decimal places.', 'Description is required.', "Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Error validating transaction data: ['Transaction date is required.', "Transaction type must be either 'income' or 'expense'.", 'Amount must have at most two decimal places.', 'Description is required.', "Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction date is required.', "Transaction type must be either 'income' or 'expense'.", 'Amount must have at most two decimal places.', 'Description is required.', "Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Error validating transaction data: ['Transaction date is required.', "Transaction type must be either 'income' or 'expense'.", 'Amount must have at most two decimal places.', 'Description is required.', "Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction date is required.', "Transaction type must be either 'income' or 'expense'.", 'Amount must have at most two decimal places.', 'Description is required.', "Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Error validating transaction data: ['Transaction date must be within 10 years from today.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction date must be within 10 years from today.']
+Error validating transaction data: ["Transaction type must be either 'income' or 'expense'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Transaction type must be either 'income' or 'expense'."]
+Error validating transaction data: ["Transaction type must be either 'income' or 'expense'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Transaction type must be either 'income' or 'expense'."]
+Error validating transaction data: ['Amount must be a number between -1,000,000 and 1,000,000.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Amount must be a number between -1,000,000 and 1,000,000.']
+Error validating transaction data: ['Amount must have at most two decimal places.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Amount must have at most two decimal places.']
+Error validating transaction data: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'."]
+Error validating transaction data: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'."]
+Error validating transaction data: ["Income transactions must have the category 'other'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Income transactions must have the category 'other'."]
+Error validating transaction data: ["Recurring transactions must have a recurrence interval of 'daily', 'weekly', 'monthly', or 'yearly'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Recurring transactions must have a recurrence interval of 'daily', 'weekly', 'monthly', or 'yearly'."]
+Error validating transaction data: ["Recurring transactions must have a recurrence interval of 'daily', 'weekly', 'monthly', or 'yearly'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Recurring transactions must have a recurrence interval of 'daily', 'weekly', 'monthly', or 'yearly'."]
+Error validating transaction data: ["Transaction type must be either 'income' or 'expense'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Transaction type must be either 'income' or 'expense'.", "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'."]
+Error validating transaction data: ["Status must be one of: 'pending', 'completed', 'canceled'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Status must be one of: 'pending', 'completed', 'canceled'."]
+Error validating transaction data: ['Currency cannot be longer than 20 characters.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Currency cannot be longer than 20 characters.']
+Error validating transaction data: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", 'Non-recurring transactions cannot have a recurrence interval.', "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", 'Non-recurring transactions cannot have a recurrence interval.', "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", "Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc."]
+Error validating transaction data: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", 'Non-recurring transactions cannot have a recurrence interval.', "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", 'Currency cannot be longer than 20 characters.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.", 'Non-recurring transactions cannot have a recurrence interval.', "Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.", "Status must be one of: 'pending', 'completed', 'canceled'.", 'Currency cannot be longer than 20 characters.']
+Error validating transaction data: ["Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 128, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'."]

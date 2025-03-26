@@ -11,7 +11,7 @@ class Transaction(models.Model):
     date = models.DateField()
     type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     amount = models.DecimalField(max_digits=20, decimal_places=2)
-    description = models.TextField()
+    description = models.TextField(max_length=255)
     category = models.CharField(max_length=50, choices=[
         ('food', 'Food'),
         ('rent', 'Rent'),
@@ -43,7 +43,7 @@ class Transaction(models.Model):
     ], 
         default='completed'
     )
-    notes = models.TextField(null=True, blank=True)
+    notes = models.TextField(null=True, blank=True, max_length=512)
     currency = models.CharField(max_length=20, default='CAD')
     linked_transaction = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
     location = models.CharField(max_length=255, null=True, blank=True)

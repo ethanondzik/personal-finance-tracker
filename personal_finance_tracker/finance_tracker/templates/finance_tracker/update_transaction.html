@@ -8,60 +8,39 @@
                 <div class="col-lg-4 mx-auto">
                     <div class="auth-form-light text-left py-5 px-4 px-sm-5">
                         <h2 class="text-center">Update Transaction</h2>
+
+                        <!-- Render non-field errors -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
                         <form method="post" action="{% url 'update_transaction' transaction.id %}">
                             {% csrf_token %}
+
+                            <!-- Loop through all fields -->
+                            {% for field in form %}
                             <div class="form-group">
-                                <label for="id_date">Date</label>
-                                {{ form.date }}
+                                <label for="{{ field.id_for_label }}">
+                                    {{ field.label }}
+                                    {% if field.field.required %}
+                                    <span class="text-danger">*</span>
+                                    {% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in field.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
-                            <div class="form-group">
-                                <label for="id_type">Type</label>
-                                {{ form.type }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_amount">Amount</label>
-                                {{ form.amount }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_description">Description</label>
-                                {{ form.description }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_category">Category</label>
-                                {{ form.category }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_is_recurring">Is Recurring?</label>
-                                {{ form.is_recurring }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_recurrence_interval">Recurrence Interval</label>
-                                {{ form.recurrence_interval }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_payment_method">Payment Method</label>
-                                {{ form.payment_method }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_status">Status</label>
-                                {{ form.status }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_notes">Notes</label>
-                                {{ form.notes }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_currency">Currency</label>
-                                {{ form.currency }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_location">Location</label>
-                                {{ form.location }}
-                            </div>
-                            <div class="form-group">
-                                <label for="id_tags">Tags</label>
-                                {{ form.tags }}
-                            </div>
+                            {% endfor %}
+
                             <button type="submit" class="btn btn-primary">Update Transaction</button>
                         </form>
                     </div>
