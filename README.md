@@ -44,4 +44,8 @@ This project is in the early stages of development. More details will be added a
 - Yagna Patel
 - Ethan Ondzik
     
-    
+## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+### Third-Party Licenses
+This project uses third-party libraries and assets. See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for details.
