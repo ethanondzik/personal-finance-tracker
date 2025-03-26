@@ -31,6 +31,7 @@ From the root directory execute this command:
 
 ## Running the server
 Navigate to where the manage.py file is (e.g. /home/user/GitHub/personal-finance-tracker/personal_finance_tracker) and run the following command:
+Run `python3 manage.py migrate` if running the program for the first time
 `python3 manage.py runserver`
 
 This will run a server that is accessable at http://127.0.0.1:8000/
