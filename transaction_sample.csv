@@ -2,7 +2,7 @@ date,type,amount,description,category,is_recurring,recurrence_interval,payment_m
 2023-10-01,income,1000,Salary,other,False,,bank_transfer,completed,Monthly salary,CAD,Office,work
 2023-10-02,expense,50,Dinner,food,False,,credit_card,completed,Dinner with friends,CAD,Restaurant,foodie
 2023-10-03,expense,200,Rent,rent,True,monthly,bank_transfer,completed,Monthly rent payment,CAD,Apartment,home
-2023-10-04,income,500,Freelance Project,other,False,,paypal,completed,Payment for freelance work,CAD,Online,freelance
+2023-10-04,income,500,Freelance Project,other,False,,bank_transfer,completed,Payment for freelance work,CAD,Online,freelance
 2023-10-05,expense,30,Groceries,utilities,False,,cash,completed,Weekly groceries,CAD,Supermarket,shopping
 2023-10-06,expense,20,Movie,entertainment,False,,credit_card,completed,Movie night,CAD,Cinema,fun
 2023-10-07,income,150,Gift,other,False,,cash,completed,Birthday gift,CAD,Home,gift

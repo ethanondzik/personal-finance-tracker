@@ -2,7 +2,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction
-from .forms import TransactionForm, CSVUploadForm
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.http import HttpResponseNotAllowed
@@ -256,3 +256,49 @@ def upload_transactions(request):
     else:
         form = CSVUploadForm()
     return render(request, 'finance_tracker/upload_transactions.html', {'form': form})
+
+
+
+@login_required
+def add_bank_account(request):
+    """
+    Handles the addition of a new bank account for the logged-in user.
+    - If the request method is POST, validates the submitted form data and saves the account.
+    - If the request method is GET, displays an empty form for the user to fill out.
+    Args:
+        request (HttpRequest): The HTTP request object.
+    Returns:
+        HttpResponse: The rendered add bank account page with the form.
+        HttpResponseRedirect: Redirects to the dashboard if the account is successfully added.
+    """
+    if request.method == 'POST':
+        form = BankAccountForm(request.POST)
+        if form.is_valid():
+            bank_account = form.save(commit=False)
+            bank_account.user = request.user  # Associate the logged-in user
+            bank_account.save()
+            messages.success(request, "Bank account added successfully!")
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Error adding bank account. Please try again.")
+    else:
+        form = BankAccountForm()
+    
+    return render(request, 'finance_tracker/add_bank_account.html', {'form': form})
+
+
+@login_required
+def add_category(request):
+    """
+    Handles the addition of a new category for the logged-in user.
+    - If the request method is POST, validates the submitted form data and saves the category.
+    - If the request method is GET, displays an empty form for the user to fill out.
+    Args:
+        request (HttpRequest): The HTTP request object.
+    Returns:
+        HttpResponse: The rendered add category page with the form.
+        HttpResponseRedirect: Redirects to the dashboard if the category is successfully added.
+    """
+    # Placeholder function for adding a category
+    # Implement the logic to add a category here
+    return render(request, 'finance_tracker/add_category.html')

@@ -65,11 +65,12 @@ def validate_transaction_data(data):
 
         # Validate category
         category = data.get('category')
-        if category not in ['food', 'rent', 'utilities', 'entertainment', 'other']:
+        
+        if category and category not in ['food', 'rent', 'utilities', 'entertainment', 'other']:
             errors.append("Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'.")
         # Validate category for income transactions
-        if transaction_type == 'income' and category != 'other':
-            errors.append("Income transactions must have the category 'other'.")
+        # if transaction_type == 'income' and category != 'other':
+            # errors.append("Income transactions must have the category 'other'.")
 
 
         # # Validate is_recurring
