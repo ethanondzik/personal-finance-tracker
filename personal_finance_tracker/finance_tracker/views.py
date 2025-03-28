@@ -11,6 +11,8 @@ from .validation import validate_transaction_data
 from django.core.exceptions import ValidationError
 from datetime import date
 import csv
+import json
+from collections import defaultdict
 
 def landing(request):
     """
@@ -28,58 +30,42 @@ def landing(request):
 @login_required
 def dashboard(request):
     """
-    Displays the dashboard with a list of all transactions for the logged-in user.
+    Renders the dashboard page for the logged-in user.
+
+    - Displays a list of all transactions for the user, ordered by date.
+    - Aggregates income and expenses by date to prepare data for the transactions graph.
+    - Passes the transactions and chart data to the template for rendering.
 
     Args:
         request (HttpRequest): The HTTP request object.
 
     Returns:
-        HttpResponse: The rendered dashboard page with the user's transactions.
+        HttpResponse: The rendered dashboard page with the user's transactions and chart data.
     """
-    transactions = Transaction.objects.filter(user=request.user)
-    #print(transactions)
-    #return render(request, 'finance_tracker/dashboard.html', {'transactions': transactions})
-    # Prepare chart data
-    dates = []
-    income = []
-    expenses = []
-    
-    # Aggregate data by date and type
-    chart_data = {}
-    for t in transactions:
-        key = t.date.isoformat()
-        if key not in chart_data:
-            chart_data[key] = {'income': 0, 'expense': 0}
-        if t.type == 'income':
-            chart_data[key]['income'] += float(t.amount)
-        else:
-            chart_data[key]['expense'] += float(t.amount)
-    
-    # Sort dates and populate arrays
-    sorted_dates = sorted(chart_data.keys())
-    for date in sorted_dates:
-        dates.append(date)
-        income.append(chart_data[date]['income'])
-        expenses.append(chart_data[date]['expense'])
 
+    #Shows all income and all expenses on the same day for each day
+    transactions = Transaction.objects.filter(user=request.user).order_by('date')
+
+    # Use a dictionary to aggregate income and expenses by date
+    aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
+    for transaction in transactions:
+        date_str = transaction.date.strftime('%Y-%m-%d')
+        if transaction.type == 'income':
+            aggregated_data[date_str]["income"] += float(transaction.amount)
+        elif transaction.type == 'expense':
+            aggregated_data[date_str]["expenses"] += float(transaction.amount)
+
+    # Sort the dates and prepare the chart data
+    sorted_dates = sorted(aggregated_data.keys())
     chart_data = {
-        'transactions': transactions,
-        'chart_data': {
-            'dates': dates,
-            'income': income,
-            'expenses': expenses
-        }
+        "dates": sorted_dates,
+        "income": [aggregated_data[date]["income"] for date in sorted_dates],
+        "expenses": [aggregated_data[date]["expenses"] for date in sorted_dates],
     }
 
-    #return render(request, 'finance_tracker/dashboard.html', {'chart_data': chart_data})
-    
     return render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
-        'chart_data': {
-            'dates': dates,
-            'income': income,
-            'expenses': expenses
-        }
+        'chart_data': chart_data,  # 
     })
 
 @login_required
