@@ -1,0 +1,87 @@
+CREATE TABLE Users (
+    user_id NUMBER PRIMARY KEY,
+    name VARCHAR2(100) NOT NULL,
+    email VARCHAR2(255) UNIQUE NOT NULL,
+    password_hash VARCHAR2(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Accounts (
+    account_id NUMBER PRIMARY KEY,
+    user_id NUMBER REFERENCES User(user_id) ON DELETE CASCADE,
+    account_type VARCHAR2(50) NOT NULL,
+    balance NUMBER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Transactions (
+    transaction_id NUMBER PRIMARY KEY,
+    user_id NUMBER REFERENCES Users(user_id) ON DELETE CASCADE
+    account_id NUMBER REFERENCES Accounts(acount_id) ON DELETE SET NULL,
+    category_id NUMBER REFERENCES Categories(category_id) ON DELETE SET NULL,
+    amount NUMBER NOT NULL,
+    transaction_type VARCHAR2(10) CHECK (transaction_type IN ('Income', 'Expense')),
+    date DATE DEFAULT SYSDATE,
+    description VARCHAR2(255)
+);
+
+CREATE TABLE Categories (
+    category_id NUMBER PRIMARY KEY,
+    user_id NUMBER REFERENCES Users(user_id) ON DELETE CASCADE,
+    name VARCHAR2(100) NOT NULL,
+    type VARCHAR2(10) CHECK (type IN ('Income', 'Expense'))
+);
+CREATE TABLE Debts (
+    debt_id NUMBER PRIMARY KEY,
+    user_id NUMBER REFERENCES Users(user_id) ON DELETE CASCADE,
+    account_id NUMBER REFERENCES Accounts(account_id) ON DELETE SET NULL,
+    debt_type VARCHAR2(50) CHECK (dept_type IN ('Loan', 'Credit Card', 'Mortgage')),
+    name VARCHAR2(100),
+    principal_amount NUMBER NOT NULL
+    interest_type VARCHAR2(20) CHECK (interest_type IN ('Fixed', 'Variable')),
+    interest_rate NUMBER NOT NULL,
+    payment_frequency VARCHAR2(20) CHECK (payment_frequency IN ('Monthly', 'Quarterly', 'Annual'),
+    remaining_balance NUMBER NOT NULL,
+    last_updated DATE DEFAULT SYSDATE
+);
+
+CREATE TABLE Debt_History (
+    history_id NUMBER PRIMARY KEY,
+    debt_id NUMBER REFERENCES Debts(debt_id) ON DELETE CASCADE,
+    balance NUMBER NOT NULL,
+    interest_rate NUMBER NOT NULL,
+    update_source VARCHAR2(50) CHECK (update_source IN ('Bank', 'User')),
+    change_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Payments (
+    payment_id NUMBER PRIMARY KEY,
+    debt_id NUMBER REFERENCES Debts(debt_id) ON DELETE CASCADE,
+    amount_paid NUMBER NOT NULL,
+    payment_date DATE DEFAULT SYSDATE,
+    remaining_balance NUMBER NOT NULL
+);
+CREATE TABLE Assets (
+    asset_id NUMBER PRIMARY KEY,
+    user_id NUMBER REFERENCES Users(user_id) ON DELETE CASCADE,
+    account_id NUMBER REFERENCES Accounts(account_id) ON DELETE SET NULL,
+    asset_type VARCHAR2(50) NOT NULL CHECK (asset_type IN ('Stock', 'Real Estate', 'Bond', 'Other')),
+    name VARCHAR2(100) NOT NULL,
+    current_value NUMBER NOT NULL,
+    last_updated TIMESTAMO DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Stock_Details (
+    asset_id NUMBER PRIMARY KEY REFERENCES Assets(asset_id) ON DELETE CASCADE,
+    ticker VARCHAR2(10) UNIQUE NOT NULL,
+    exchange VARCHAR2(20),
+    sector VARCHAR2(50)
+);
+
+CREATE TABLE Asset_History (
+    history_id NUMBER PRIMARY KEY,
+    asset_id NUMBER REFERENCES Assets(asset_id) ON DELETE CASCADE,
+    value NUMBER NOT NULL,
+    update_source VARCHAR2(50) CHECK (update_source IN ('User', 'API')),
+    change_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

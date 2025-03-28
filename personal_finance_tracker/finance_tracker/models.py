@@ -1,53 +1,63 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
-class Transaction(models.Model):
-    TRANSACTION_TYPES = [
-        ('income', 'Income'),
-        ('expense', 'Expense'),
+
+class Account(models.Model):
+    ACCOUNT_TYPES = [
+        ("checking", "Checking"),
+        ("savings", "Savings"),
+        ("credit", "Credit"),
+        ("investment", "Investment"),
+        ("other", "Other"),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date = models.DateField()
-    type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
-    amount = models.DecimalField(max_digits=20, decimal_places=2)
-    description = models.TextField(max_length=255)
-    category = models.CharField(max_length=50, choices=[
-        ('food', 'Food'),
-        ('rent', 'Rent'),
-        ('utilities', 'Utilities'),
-        ('entertainment', 'Entertainment'),
-        ('other', 'Other'),
-    ],
-        default='other'
-    )
-    is_recurring = models.BooleanField(default=False)
-    recurrence_interval = models.CharField(max_length=20, choices=[
-        ('daily', 'Daily'),
-        ('weekly', 'Weekly'),
-        ('monthly', 'Monthly'),
-        ('yearly', 'Yearly'),
-    ], null=True, blank=True)
-    payment_method = models.CharField(max_length=20, choices=[
-        ('cash', 'Cash'),
-        ('credit_card', 'Credit Card'),
-        ('bank_transfer', 'Bank Transfer'),
-        ('other', 'Other'),
-    ],
-        default='other'
-    )
-    status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('canceled', 'Canceled'),
-    ], 
-        default='completed'
-    )
-    notes = models.TextField(null=True, blank=True, max_length=512)
-    currency = models.CharField(max_length=20, default='CAD')
-    linked_transaction = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
-    location = models.CharField(max_length=255, null=True, blank=True)
-    tags = models.CharField(max_length=255, null=True, blank=True)
+    account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPES)
+    balance = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"[{self.id}] - {self.user.username} - {self.type} - {self.amount}"
+        return f"{self.user.username} - {self.account_type}"
+
+
+class Category(models.Model):
+    CATEGORY_TYPES = [
+        ("income", "Income"),
+        ("expense", "Expense"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    type = models.CharField(max_length=10, choices=CATEGORY_TYPES)
+
+    def __str__(self):
+        return self.name
+
+
+class Transaction(models.Model):
+    TRANSACTION_TYPES = [
+        ("income", "Income"),
+        ("expense", "Expense"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    account = models.ForeignKey(
+        Account, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    category = models.ForeignKey(
+        Category, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=[("income", "Income"), ("expense", "Expense")],
+        default="expense",
+    )
+ 
+    date = models.DateField(default=timezone.now, editable=True)
+    description = models.TextField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.transaction_type} - {self.amount}"
+

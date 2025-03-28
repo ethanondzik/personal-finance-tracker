@@ -45,14 +45,15 @@ def dashboard(request):
 
     #Shows all income and all expenses on the same day for each day
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
+    #print(transactions)
 
     # Use a dictionary to aggregate income and expenses by date
     aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
     for transaction in transactions:
         date_str = transaction.date.strftime('%Y-%m-%d')
-        if transaction.type == 'income':
+        if transaction.transaction_type == 'income':
             aggregated_data[date_str]["income"] += float(transaction.amount)
-        elif transaction.type == 'expense':
+        elif transaction.transaction_type == 'expense':
             aggregated_data[date_str]["expenses"] += float(transaction.amount)
 
     # Sort the dates and prepare the chart data

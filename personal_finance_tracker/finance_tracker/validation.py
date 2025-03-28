@@ -22,14 +22,9 @@ def validate_transaction_data(data):
             - amount (float or str): The transaction amount.
             - description (str): A brief description of the transaction.
             - category (str): The transaction category (e.g., 'food', 'rent', etc.).
-            - is_recurring (bool or str): Whether the transaction is recurring.
-            - recurrence_interval (str): The recurrence interval ('daily', 'weekly', etc.).
-            - payment_method (str): The payment method ('cash', 'credit_card', etc.).
             - status (str): The transaction status ('pending', 'completed', etc.).
-            - notes (str): Optional notes about the transaction.
             - currency (str): The currency code (e.g., 'CAD', 'USD').
-            - location (str): The location associated with the transaction.
-            - tags (str): Tags for categorizing the transaction.
+
 
     Raises:
         ValidationError: If any field fails validation, a list of error messages is raised.
@@ -77,35 +72,35 @@ def validate_transaction_data(data):
             errors.append("Income transactions must have the category 'other'.")
 
 
-        # Validate is_recurring
-        is_recurring = data.get('is_recurring')
-        if is_recurring not in ['True', 'False', True, False, 'true', 'false', 1, 0]:
-            errors.append("Is_recurring must be either True or False (case-insensitive).")
-        else:
-            # Convert to boolean for further processing
-            is_recurring = str(is_recurring).lower() in ['true', '1']
+        # # Validate is_recurring
+        # is_recurring = data.get('is_recurring')
+        # if is_recurring not in ['True', 'False', True, False, 'true', 'false', 1, 0]:
+        #     errors.append("Is_recurring must be either True or False (case-insensitive).")
+        # else:
+        #     # Convert to boolean for further processing
+        #     is_recurring = str(is_recurring).lower() in ['true', '1']
 
-        # Validate recurrence_interval
-        recurrence_interval = data.get('recurrence_interval')
-        if is_recurring and recurrence_interval not in ['daily', 'weekly', 'monthly', 'yearly']:
-            errors.append("Recurring transactions must have a recurrence interval of 'daily', 'weekly', 'monthly', or 'yearly'.")
-        elif not is_recurring and recurrence_interval:
-            errors.append("Non-recurring transactions cannot have a recurrence interval.")
+        # # Validate recurrence_interval
+        # recurrence_interval = data.get('recurrence_interval')
+        # if is_recurring and recurrence_interval not in ['daily', 'weekly', 'monthly', 'yearly']:
+        #     errors.append("Recurring transactions must have a recurrence interval of 'daily', 'weekly', 'monthly', or 'yearly'.")
+        # elif not is_recurring and recurrence_interval:
+        #     errors.append("Non-recurring transactions cannot have a recurrence interval.")
 
         # Validate payment_method
-        payment_method = data.get('payment_method')
-        if payment_method not in ['cash', 'credit_card', 'bank_transfer', 'other']:
-            errors.append("Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.")
+        # payment_method = data.get('payment_method')
+        # if payment_method not in ['cash', 'credit_card', 'bank_transfer', 'other']:
+        #     errors.append("Payment method must be one of: 'cash', 'credit_card', 'bank_transfer', 'other'.")
 
         # Validate status
         status = data.get('status')
         if status not in ['pending', 'completed', 'canceled']:
             errors.append("Status must be one of: 'pending', 'completed', 'canceled'.")
 
-        # Validate notes
-        notes = data.get('notes', '')
-        if notes and len(notes) > 512:
-            errors.append("Notes cannot be longer than 512 characters.")
+        # # Validate notes
+        # notes = data.get('notes', '')
+        # if notes and len(notes) > 512:
+        #     errors.append("Notes cannot be longer than 512 characters.")
 
         # Validate currency
         currency = data.get('currency', '')
@@ -115,14 +110,14 @@ def validate_transaction_data(data):
             errors.append("Currency must be a recognized currency like 'CAD', 'USD', 'EUR', etc.")
 
         # Validate location
-        location = data.get('location', '')
-        if location and len(location) > 255:
-            errors.append("Location cannot be longer than 255 characters.")
+        # location = data.get('location', '')
+        # if location and len(location) > 255:
+        #     errors.append("Location cannot be longer than 255 characters.")
 
-        # Validate tags
-        tags = data.get('tags', '')
-        if tags and len(tags) > 255:
-            errors.append("Tags cannot be longer than 255 characters.")
+        # # Validate tags
+        # tags = data.get('tags', '')
+        # if tags and len(tags) > 255:
+        #     errors.append("Tags cannot be longer than 255 characters.")
 
         if errors:
             raise ValidationError(errors)
