@@ -1,7 +1,7 @@
 # filepath: /home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Transaction
+from .models import Transaction, Account, Category
 from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
@@ -45,7 +45,9 @@ def dashboard(request):
 
     #Shows all income and all expenses on the same day for each day
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
-    #print(transactions)
+    #accounts = Account.objects.filter(user=request.user)
+    
+    
 
     # Use a dictionary to aggregate income and expenses by date
     aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
@@ -66,7 +68,8 @@ def dashboard(request):
 
     return render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
-        'chart_data': chart_data,  # 
+        'chart_data': chart_data,   
+        #'accounts': accounts,
     })
 
 @login_required
@@ -260,34 +263,6 @@ def upload_transactions(request):
 
 
 @login_required
-def add_bank_account(request):
-    """
-    Handles the addition of a new bank account for the logged-in user.
-    - If the request method is POST, validates the submitted form data and saves the account.
-    - If the request method is GET, displays an empty form for the user to fill out.
-    Args:
-        request (HttpRequest): The HTTP request object.
-    Returns:
-        HttpResponse: The rendered add bank account page with the form.
-        HttpResponseRedirect: Redirects to the dashboard if the account is successfully added.
-    """
-    if request.method == 'POST':
-        form = BankAccountForm(request.POST)
-        if form.is_valid():
-            bank_account = form.save(commit=False)
-            bank_account.user = request.user  # Associate the logged-in user
-            bank_account.save()
-            messages.success(request, "Bank account added successfully!")
-            return redirect('dashboard')
-        else:
-            messages.error(request, "Error adding bank account. Please try again.")
-    else:
-        form = BankAccountForm()
-    
-    return render(request, 'finance_tracker/add_bank_account.html', {'form': form})
-
-
-@login_required
 def add_category(request):
     """
     Handles the addition of a new category for the logged-in user.
@@ -302,3 +277,49 @@ def add_category(request):
     # Placeholder function for adding a category
     # Implement the logic to add a category here
     return render(request, 'finance_tracker/add_category.html')
+
+
+
+@login_required
+def manage_bank_accounts(request):
+    """
+    Displays a page where users can view, add, or delete their bank accounts.
+
+    - Handles account deletion if the request method is POST and includes an account_id.
+    - Handles account addition if the request method is POST and includes form data.
+    - Displays the list of bank accounts and the add account form.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage bank accounts page.
+    """
+    accounts = Account.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        # Handle account deletion
+        account_id = request.POST.get('account_id')
+        if account_id:
+            account = get_object_or_404(Account, id=account_id, user=request.user)
+            account.delete()
+            messages.success(request, "Bank account deleted successfully!")
+            return redirect('manage_bank_accounts')
+
+        # Handle account addition
+        form = BankAccountForm(request.POST)
+        if form.is_valid():
+            bank_account = form.save(commit=False)
+            bank_account.user = request.user
+            bank_account.save()
+            messages.success(request, "Bank account added successfully!")
+            return redirect('manage_bank_accounts')
+        else:
+            messages.error(request, "Error adding bank account. Please try again.")
+    else:
+        form = BankAccountForm()
+
+    return render(request, 'finance_tracker/manage_bank_accounts.html', {
+        'accounts': accounts,
+        'add_account_form': form,
+    })
