@@ -323,3 +323,78 @@ def manage_bank_accounts(request):
         'accounts': accounts,
         'add_account_form': form,
     })
+
+
+def create_category(request):
+    """
+    Handles the creation of a new category for the logged-in user.
+
+    - If the request method is POST, validates the submitted form data and saves the category.
+    - If the request method is GET, displays an empty form for the user to fill out.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered create category page with the form.
+        HttpResponseRedirect: Redirects to the dashboard if the category is successfully added.
+    """
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.user = request.user
+            category.save()
+            messages.success(request, "Category added successfully!")
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Error adding category. Please try again.")
+    else:
+        form = CategoryForm()
+    return render(request, 'finance_tracker/create_category.html', {'form': form})
+
+
+
+@login_required
+def manage_categories(request):
+    """
+    Displays a page where users can view, add, or delete their categories.
+
+    - Handles category deletion if the request method is POST and includes a category_id.
+    - Handles category addition if the request method is POST and includes form data.
+    - Displays the list of categories and the add category form.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage categories page.
+    """
+    categories = Category.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        # Handle category deletion
+        category_id = request.POST.get('category_id')
+        if category_id:
+            category = get_object_or_404(Category, id=category_id, user=request.user)
+            category.delete()
+            messages.success(request, "Category deleted successfully!")
+            return redirect('manage_categories')
+
+        # Handle category addition
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.user = request.user
+            category.save()
+            messages.success(request, "Category added successfully!")
+            return redirect('manage_categories')
+        else:
+            messages.error(request, "Error adding category. Please try again.")
+    else:
+        form = CategoryForm()
+
+    return render(request, 'finance_tracker/manage_categories.html', {
+        'categories': categories,
+        'add_category_form': form,
+    })

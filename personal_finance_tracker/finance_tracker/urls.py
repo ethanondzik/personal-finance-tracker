@@ -14,6 +14,7 @@ urlpatterns = [
     path('delete-transactions/', views.delete_transactions, name='delete_transactions'),
     path('upload_transactions/', views.upload_transactions, name='upload_transactions'),
     path('manage_bank_accounts/', views.manage_bank_accounts, name='manage_bank_accounts'),
+    path('manage_categories/', views.manage_categories, name='manage_categories'),
     path('add_category/', views.add_category, name='add_category'),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
