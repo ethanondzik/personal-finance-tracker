@@ -4893,3 +4893,8 @@ Traceback (most recent call last):
     raise TemplateDoesNotExist(template_name, chain=chain)
 django.template.exceptions.TemplateDoesNotExist: finance_tracker/manage_categories.html
 "GET /manage_categories/ HTTP/1.1" 500 93954
+Error validating transaction data: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 124, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'."]
