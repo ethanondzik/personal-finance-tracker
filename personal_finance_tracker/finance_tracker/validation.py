@@ -41,7 +41,9 @@ def validate_transaction_data(data):
 
         # Validate type
         transaction_type = data.get('type')
-        if transaction_type and str(transaction_type).lower() not in ['income', 'expense']:
+        if not transaction_type:
+            errors.append("Transaction type is required.")
+        elif str(transaction_type).lower() not in ['income', 'expense']:
             errors.append("Transaction type must be either 'income' or 'expense'.")
 
         # Validate amount

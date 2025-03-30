@@ -4945,3 +4945,48 @@ Traceback (most recent call last):
   File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 64, in validate_transaction_data
     raise ValidationError(errors)
 django.core.exceptions.ValidationError: ['Amount must have at most two decimal places.']
+Error validating transaction data: ['Transaction date must be within 10 years from today.', 'Transaction type is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction date must be within 10 years from today.', 'Transaction type is required.']
+Error validating transaction data: ['Transaction type is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.']
+Error validating transaction data: ['Transaction type is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.']
+Error validating transaction data: ['Transaction type is required.', 'Amount must be a number between -1,000,000 and 1,000,000.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.', 'Amount must be a number between -1,000,000 and 1,000,000.']
+Error validating transaction data: ['Transaction type is required.', 'Amount must have at most two decimal places.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.', 'Amount must have at most two decimal places.']
+Error validating transaction data: ['Transaction type is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.']
+Error validating transaction data: ['Transaction type is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.']
+Error validating transaction data: ['Transaction type is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.']
+Error validating transaction data: ['Transaction type is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 66, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction type is required.']
