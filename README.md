@@ -36,6 +36,11 @@ Run `python3 manage.py migrate` if running the program for the first time
 
 This will run a server that is accessable at http://127.0.0.1:8000/
 
+## Make a test user
+Running the the python script `populate_sample_user.py` located in the project root directory will populate a user instance with predefined categories and bank accounts.
+Username: Tester
+Password: Test1234$
+
 ## Development Status
 This project is in the early stages of development. More details will be added as we make progress. 
 
