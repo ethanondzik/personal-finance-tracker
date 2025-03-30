@@ -4898,3 +4898,50 @@ Traceback (most recent call last):
   File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 124, in validate_transaction_data
     raise ValidationError(errors)
 django.core.exceptions.ValidationError: ["Category must be one of: 'food', 'rent', 'utilities', 'entertainment', 'other'."]
+Error validating transaction data: ['Description is required.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 124, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Description is required.']
+Error validating transaction data: ["Transaction type must be either 'income' or 'expense'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 68, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Transaction type must be either 'income' or 'expense'."]
+Error validating transaction data: ["Transaction type must be either 'income' or 'expense'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 68, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Transaction type must be either 'income' or 'expense'."]
+Error validating transaction data: ["Transaction type must be either 'income' or 'expense'."]
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 68, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ["Transaction type must be either 'income' or 'expense'."]
+Error validating transaction data: 'str' object has no attribute 'tolower'
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 48, in validate_transaction_data
+    if str(transaction_type).tolower() not in ['income', 'expense']:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'tolower'
+Error validating transaction data: 'str' object has no attribute 'tolower'
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 48, in validate_transaction_data
+    if str(transaction_type).tolower() not in ['income', 'expense']:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'tolower'
+Error validating transaction data: ['Transaction date must be within 10 years from today.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 64, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Transaction date must be within 10 years from today.']
+Error validating transaction data: ['Amount must be a number between -1,000,000 and 1,000,000.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 64, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Amount must be a number between -1,000,000 and 1,000,000.']
+Error validating transaction data: ['Amount must have at most two decimal places.']
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/validation.py", line 64, in validate_transaction_data
+    raise ValidationError(errors)
+django.core.exceptions.ValidationError: ['Amount must have at most two decimal places.']

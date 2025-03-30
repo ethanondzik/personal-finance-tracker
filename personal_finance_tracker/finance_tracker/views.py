@@ -217,36 +217,75 @@ def upload_transactions(request):
                 decoded_file = csv_file.read().decode('utf-8').splitlines()
                 reader = csv.DictReader(decoded_file)
                 errors = []
+
                 for row_number, row in enumerate(reader, start=1):
-                    # Convert CSV row values to the correct types
                     try:
+                        # Map CSV row to transaction data
                         row_data = {
                             'date': date.fromisoformat(row['date']),
-                            'type': row['type'],
+                            'transaction_type': row['transaction_type'],
                             'amount': float(row['amount']),
-                            'description': row['description'],
-                            'category': row['category'],
-                            'is_recurring': row['is_recurring'].lower() == 'true',
-                            'recurrence_interval': row.get('recurrence_interval', None),
-                            'payment_method': row['payment_method'],
-                            'status': row['status'],
-                            'notes': row.get('notes', ''),
-                            'currency': row.get('currency', 'CAD'),
-                            'location': row.get('location', ''),
-                            'tags': row.get('tags', '')
+                            'description': row.get('description', ''),
+                            #'category': Category.objects.get(id=row['category_id'], user=request.user),
+                            #'account': Account.objects.get(id=row['account_id'], user=request.user),
                         }
-                        # Validate the row
+
+
+                        # For the ease of developing transaction validation we will make account and category fields optional, also
+                        # they are accessable by their id's or names
+                        # Handle Category
+                        category_value = row.get('category')
+                        if category_value:
+                            try:
+                                if category_value.isdigit():
+                                    row_data['category'] = Category.objects.get(id=category_value, user=request.user)
+                                else:
+                                    row_data['category'] = Category.objects.get(name=category_value, user=request.user)
+                            except Category.DoesNotExist:
+                                errors.append(f"Row {row_number}: Invalid category '{category_value}'.")
+                                #raise ValidationError(f"Row {row_number}: Invalid category '{category_value}'.") #don't add transaction
+
+                        # Handle account
+                        account_value = row.get('account')
+                        if account_value:
+                            try:
+                                account_value = account_value.strip()  # Remove leading/trailing whitespace
+                                # Try to match as an ID first
+                                if Account.objects.filter(id=account_value, user=request.user).exists():
+                                    row_data['account'] = Account.objects.get(id=account_value, user=request.user)
+                                # If not found as an ID, try to match as an account_number
+                                elif Account.objects.filter(account_number=account_value, user=request.user).exists():
+                                    row_data['account'] = Account.objects.get(account_number=account_value, user=request.user)
+                                else:
+                                    raise Account.DoesNotExist
+                            except Account.DoesNotExist:
+                                errors.append(f"Row {row_number}: Invalid account '{account_value}'.")
+                                #raise ValidationError(f"Row {row_number}: Invalid account '{account_value}'.") #don't add transaction
+
+
+                        # Validate the transaction data
                         validate_transaction_data(row_data)
 
-                        # Create the transaction if valid
+                        # Create the transaction
+                        # Transaction.objects.create(
+                        #     user=request.user,
+                        #     account=row_data['account'],
+                        #     category=row_data['category'],
+                        #     amount=row_data['amount'],
+                        #     transaction_type=row_data['transaction_type'],
+                        #     date=row_data['date'],
+                        #     description=row_data['description'],
+                        # )
                         Transaction.objects.create(
                             user=request.user,
-                            **row_data
+                            **row_data #unpack the dictionary into the model fields
                         )
+
+
                     except ValidationError as e:
                         errors.append(f"Row {row_number}: {', '.join(e.messages)}")
                     except Exception as e:
-                        errors.append(f"Row {row_number}: {str(e)}")
+                        errors.append(f"Row {row_number}: (generic error) {str(e)}")
 
                 if errors:
                     for error in errors:
@@ -260,23 +299,6 @@ def upload_transactions(request):
         form = CSVUploadForm()
     return render(request, 'finance_tracker/upload_transactions.html', {'form': form})
 
-
-
-@login_required
-def add_category(request):
-    """
-    Handles the addition of a new category for the logged-in user.
-    - If the request method is POST, validates the submitted form data and saves the category.
-    - If the request method is GET, displays an empty form for the user to fill out.
-    Args:
-        request (HttpRequest): The HTTP request object.
-    Returns:
-        HttpResponse: The rendered add category page with the form.
-        HttpResponseRedirect: Redirects to the dashboard if the category is successfully added.
-    """
-    # Placeholder function for adding a category
-    # Implement the logic to add a category here
-    return render(request, 'finance_tracker/add_category.html')
 
 
 
@@ -324,34 +346,6 @@ def manage_bank_accounts(request):
         'add_account_form': form,
     })
 
-
-def create_category(request):
-    """
-    Handles the creation of a new category for the logged-in user.
-
-    - If the request method is POST, validates the submitted form data and saves the category.
-    - If the request method is GET, displays an empty form for the user to fill out.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The rendered create category page with the form.
-        HttpResponseRedirect: Redirects to the dashboard if the category is successfully added.
-    """
-    if request.method == 'POST':
-        form = CategoryForm(request.POST)
-        if form.is_valid():
-            category = form.save(commit=False)
-            category.user = request.user
-            category.save()
-            messages.success(request, "Category added successfully!")
-            return redirect('dashboard')
-        else:
-            messages.error(request, "Error adding category. Please try again.")
-    else:
-        form = CategoryForm()
-    return render(request, 'finance_tracker/create_category.html', {'form': form})
 
 
 

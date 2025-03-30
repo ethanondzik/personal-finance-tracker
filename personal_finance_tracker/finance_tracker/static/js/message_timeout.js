@@ -9,6 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(() => {
         alert.classList.remove('show'); // Bootstrap's fade-out class
         alert.addEventListener('transitionend', () => alert.remove()); // Remove from DOM after fade-out
-      }, 10000); // 10 seconds
+      }, 1000000); 
     });
   });
