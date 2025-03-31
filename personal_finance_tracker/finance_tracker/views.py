@@ -2,16 +2,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction, Account, Category
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm
-from django.contrib.auth.forms import UserCreationForm
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm
 from django.contrib.auth import login
-from django.http import HttpResponseNotAllowed
 from django.contrib import messages
 from .validation import validate_transaction_data
 from django.core.exceptions import ValidationError
 from datetime import date
 import csv
-import json
 from collections import defaultdict
 
 def landing(request):
@@ -88,7 +85,7 @@ def add_transaction(request):
         HttpResponseRedirect: Redirects to the dashboard if the transaction is successfully added.
     """
     if request.method == 'POST':
-        form = TransactionForm(request.POST)
+        form = TransactionForm(request.POST, user=request.user)
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.user = request.user
@@ -98,7 +95,7 @@ def add_transaction(request):
         else:
             messages.error(request, "Error adding transaction. Please try again.")
     else:
-        form = TransactionForm()
+        form = TransactionForm(user=request.user)
     return render(request, 'finance_tracker/add_transaction.html', {'form': form})
     
 
@@ -123,8 +120,11 @@ def register(request):
             user.set_password(form.cleaned_data["password"])
             user.save()
             login(request, user)
+            print(f"User {user.username} registered successfully.")
+            messages.success(request, "Registration successful! Welcome to your dashboard.")
             return redirect("dashboard")
         else:
+            print(f'Invalid form: {form.errors}')
             messages.error(request, "Error registering user. Please try again.")
     else:
         form = UserCreationForm()

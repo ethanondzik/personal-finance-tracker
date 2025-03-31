@@ -6,13 +6,13 @@ from django.conf import settings
 
 
 class UserManager(BaseUserManager):
-     def create_user(self, email, username, name, password=None):
+     def create_user(self, username, email, name, password=None):
         if not email:
             raise ValueError("The Email field must be set")
         if not username:
             raise ValueError("The Username field must be set")
         email = self.normalize_email(email)
-        user = self.model(email=email, username=username, name=name)
+        user = self.model(username=username, email=email, name=name)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -30,14 +30,10 @@ class User(AbstractBaseUser):
 
     objects = UserManager()
 
-    USERNAME_FIELD = "email"  # Use email for authentication
-    #REQUIRED_FIELDS = ["name"]
+    USERNAME_FIELD = "email"  #use username for authentication
 
     def __str__(self):
         return self.email
-
-
-
 
 
 
@@ -55,8 +51,8 @@ class Account(models.Model):
     balance = models.DecimalField(max_digits=20, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     account_number = models.CharField(max_length=10, unique=True)
-    transit_number = models.CharField(max_length=10, default=00000)
-    institution_number = models.CharField(max_length=10, default=00000)
+    transit_number = models.CharField(max_length=10, default="00000")
+    institution_number = models.CharField(max_length=10, default="00000")
 
     def __str__(self):
         return f"Account: {self.account_number}, Balance: {self.balance}, Type: {self.account_type}"
@@ -100,7 +96,7 @@ class Transaction(models.Model):
     description = models.TextField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.transaction_type} - {self.amount}"
+        return f"{self.user.email} - {self.transaction_type} - {self.amount}"
 
 
 

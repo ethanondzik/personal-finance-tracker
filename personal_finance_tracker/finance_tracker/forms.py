@@ -1,6 +1,7 @@
 from django import forms
 from .models import Transaction, Account, Category, User
 from datetime import date, timedelta
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from .validation import validate_transaction_data
@@ -9,12 +10,27 @@ from .validation import validate_transaction_data
 
 
 class UserCreationForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
-    confirm_password = forms.CharField(widget=forms.PasswordInput)
+    """
+    A form for creating new users.
+
+    - Includes fields for email, username, name, password, and confirm_password.
+    - Validates that the password and confirm_password match.
+    - Enforces password strength using Django's built-in password validation.
+
+    Attributes:
+        password (CharField): A field for entering the user's password.
+        confirm_password (CharField): A field for confirming the user's password.
+
+    Methods:
+        clean(): Validates the form data, ensuring passwords match and meet strength requirements.
+    """
+    password = forms.CharField(widget=forms.PasswordInput, label="Password")
+    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
+
 
     class Meta:
-        model = User
-        fields = ["email", "username", "name", "password"]
+        model = User #custom user model
+        fields = ["username", "email", "name", "password"]
 
     def clean(self):
         cleaned_data = super().clean()
@@ -23,13 +39,33 @@ class UserCreationForm(forms.ModelForm):
 
         if password != confirm_password:
             raise forms.ValidationError("Passwords do not match.")
-
+        
+        # Validate password strength
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            self.add_error("password", e.messages)
+        print("Password validation complete")
         return cleaned_data
 
 
 
 
 class TransactionForm(forms.ModelForm):
+    """
+    A form for creating or updating transactions.
+
+    - Filters the account and category fields to include only those belonging to the logged-in user.
+    - Validates transaction data using a custom validation function.
+
+    Attributes:
+        account (ForeignKey): The account associated with the transaction.
+        category (ForeignKey): The category associated with the transaction.
+
+    Methods:
+        __init__(user): Filters the account and category fields based on the logged-in user.
+        clean(): Validates the transaction data using the validate_transaction_data function.
+    """
     class Meta:
         model = Transaction
         fields = [
@@ -44,10 +80,11 @@ class TransactionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-
+        
         if user:
             self.fields["account"].queryset = Account.objects.filter(user=user)
             self.fields["category"].queryset = Category.objects.filter(user=user)
+
 
     def clean(self):
         cleaned_data = super().clean()
@@ -62,20 +99,30 @@ class TransactionForm(forms.ModelForm):
             validate_transaction_data(transaction_data)
         except ValidationError as e:
             for error in e:
-                print(error)
                 self.add_error(None, error)
         return cleaned_data
 
 
 
 class BankAccountForm(forms.ModelForm):
+    """
+    A form for creating or updating bank accounts.
+
+    - Filters the user field to include only the logged-in user.
+
+    Attributes:
+        user (ForeignKey): The user associated with the bank account.
+
+    Methods:
+        __init__(user): Filters the user field based on the logged-in user.
+        clean(): Validates the form data.
+    """
     class Meta:
         model = Account
         fields = [
             "user",
             "account_type", 
             "balance",
-            # "created_at",
             "account_number",
             "transit_number",
             "institution_number",
@@ -91,6 +138,18 @@ class BankAccountForm(forms.ModelForm):
         return cleaned_data
 
 class CategoryForm(forms.ModelForm):
+    """
+    A form for creating or updating categories.
+
+    - Filters the user field to include only the logged-in user.
+
+    Attributes:
+        name (CharField): The name of the category.
+        type (CharField): The type of the category (e.g., income or expense).
+
+    Methods:
+        __init__(user): Filters the user field based on the logged-in user.
+    """
     class Meta:
         model = Category
         fields = ["name", "type"]
@@ -106,4 +165,10 @@ class CategoryForm(forms.ModelForm):
 
 
 class CSVUploadForm(forms.Form):
+    """
+    A form for uploading CSV files.
+
+    Attributes:
+        file (FileField): The uploaded CSV file.
+    """
     file = forms.FileField(label="Upload CSV File")
