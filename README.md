@@ -38,7 +38,7 @@ This will run a server that is accessable at http://127.0.0.1:8000/
 
 ## Make a test user
 Running the the python script `populate_sample_user.py` located in the project root directory will populate a user instance with predefined categories and bank accounts.
-Username: Tester
+Email: test.user@example.com
 Password: Test1234$
 
 ## Development Status

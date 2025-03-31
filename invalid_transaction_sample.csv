@@ -7,8 +7,4 @@ date,transaction_type,amount,description,category,account
 2023-01-01,expense,-1000000000000,Excessively negative amount,Groceries,123456
 2023-01-01,expense,abc,Non-numeric amount,Groceries,123456
 2023-01-01,expense,100,Missing description,,123456
-2023-01-01,expense,100,Invalid category,InvalidCategory,123456
-2023-01-01,income,100,Income with expense category,Groceries,123456
-2023-01-01,expense,100,Invalid account,Groceries,InvalidAccount
-2023-01-01,expense,100,Missing account,Groceries,
 ,,,,,

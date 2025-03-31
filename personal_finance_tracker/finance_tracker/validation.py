@@ -40,7 +40,7 @@ def validate_transaction_data(data):
             errors.append("Transaction date must be within 10 years from today.")
 
         # Validate type
-        transaction_type = data.get('type')
+        transaction_type = data.get('transaction_type')
         if not transaction_type:
             errors.append("Transaction type is required.")
         elif str(transaction_type).lower() not in ['income', 'expense']:

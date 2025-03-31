@@ -3,6 +3,10 @@ CREATE TABLE Users (
     name VARCHAR2(100) NOT NULL,
     email VARCHAR2(255) UNIQUE NOT NULL,
     password_hash VARCHAR2(255) NOT NULL,
+    is_active NUMBER(1) DEFAULT 1, -- To indicate if the user account is active
+    is_staff NUMBER(1) DEFAULT 0, -- To indicate if the user has staff privileges
+    is_superuser NUMBER(1) DEFAULT 0, -- To indicate if the user has superuser privileges
+    last_login TIMESTAMP, -- To track the last login time
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -40,7 +44,7 @@ CREATE TABLE Debts (
     principal_amount NUMBER NOT NULL
     interest_type VARCHAR2(20) CHECK (interest_type IN ('Fixed', 'Variable')),
     interest_rate NUMBER NOT NULL,
-    payment_frequency VARCHAR2(20) CHECK (payment_frequency IN ('Monthly', 'Quarterly', 'Annual'),
+    payment_frequency VARCHAR2(20) CHECK (payment_frequency IN ('Monthly', 'Quarterly', 'Annual')),
     remaining_balance NUMBER NOT NULL,
     last_updated DATE DEFAULT SYSDATE
 );

@@ -11,17 +11,19 @@ sys.path.append(PARENT_DIR) #~/personal-finance-tracker/personal_finance_tracker
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'personal_finance_tracker.settings')
 django.setup()
 
-from django.contrib.auth.models import User
-from finance_tracker.models import Account, Category
+
+#from django.contrib.auth.models import User
+from finance_tracker.models import Account, Category, User
 
 def populate_sample_data():
     # Create a sample user
     username = "Tester"
     email = "test.user@example.com"
+    name = "Test User" 
     password = "Test1234$"
 
     if not User.objects.filter(username=username).exists():
-        user = User.objects.create_user(username=username, email=email, password=password)
+        user = User.objects.create_user(username=username, email=email, name=name, password=password)
         print(f"Created user: {username}")
     else:
         user = User.objects.get(username=username)

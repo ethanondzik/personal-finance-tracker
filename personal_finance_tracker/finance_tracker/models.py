@@ -1,6 +1,44 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.utils import timezone
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.conf import settings
+
+
+
+class UserManager(BaseUserManager):
+     def create_user(self, email, username, name, password=None):
+        if not email:
+            raise ValueError("The Email field must be set")
+        if not username:
+            raise ValueError("The Username field must be set")
+        email = self.normalize_email(email)
+        user = self.model(email=email, username=username, name=name)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+
+
+class User(AbstractBaseUser):
+    email = models.EmailField(unique=True)
+    username = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = "email"  # Use email for authentication
+    #REQUIRED_FIELDS = ["name"]
+
+    def __str__(self):
+        return self.email
+
+
+
+
 
 
 class Account(models.Model):
@@ -12,7 +50,7 @@ class Account(models.Model):
         ("other", "Other"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPES)
     balance = models.DecimalField(max_digits=20, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -30,7 +68,7 @@ class Category(models.Model):
         ("expense", "Expense"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=10, choices=CATEGORY_TYPES)
 
@@ -44,7 +82,7 @@ class Transaction(models.Model):
         ("expense", "Expense"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     account = models.ForeignKey(
         Account, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -84,7 +122,7 @@ class Debt(models.Model):
         ("Annual", "Annual"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     account = models.ForeignKey("Account", on_delete=models.SET_NULL, null=True, blank=True)
     debt_type = models.CharField(max_length=50, choices=DEBT_TYPES)
     name = models.CharField(max_length=100)
@@ -133,7 +171,7 @@ class Asset(models.Model):
         ("Other", "Other"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     account = models.ForeignKey("Account", on_delete=models.SET_NULL, null=True, blank=True)
     asset_type = models.CharField(max_length=50, choices=ASSET_TYPES)
     name = models.CharField(max_length=100)

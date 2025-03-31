@@ -133,6 +133,8 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+AUTH_USER_MODEL = "finance_tracker.User"
+
 # Logging configuration
 LOGGING = {
     'version': 1,

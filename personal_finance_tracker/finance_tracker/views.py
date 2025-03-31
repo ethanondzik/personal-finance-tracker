@@ -119,9 +119,11 @@ def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data["password"])
+            user.save()
             login(request, user)
-            return redirect('dashboard')
+            return redirect("dashboard")
         else:
             messages.error(request, "Error registering user. Please try again.")
     else:

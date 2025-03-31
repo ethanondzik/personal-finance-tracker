@@ -1,9 +1,33 @@
 from django import forms
-from .models import Transaction, Account, Category
+from .models import Transaction, Account, Category, User
 from datetime import date, timedelta
 from django.core.exceptions import ValidationError
 
 from .validation import validate_transaction_data
+
+
+
+
+class UserCreationForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput)
+    confirm_password = forms.CharField(widget=forms.PasswordInput)
+
+    class Meta:
+        model = User
+        fields = ["email", "username", "name", "password"]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password != confirm_password:
+            raise forms.ValidationError("Passwords do not match.")
+
+        return cleaned_data
+
+
+
 
 class TransactionForm(forms.ModelForm):
     class Meta:
@@ -29,12 +53,10 @@ class TransactionForm(forms.ModelForm):
         cleaned_data = super().clean()
         transaction_data = {
             "date": cleaned_data.get("date"),
-            "type": cleaned_data.get("transaction_type"),
+            "transaction_type": cleaned_data.get("transaction_type"),
             "amount": cleaned_data.get("amount"),
             "description": cleaned_data.get("description"),
             "category": cleaned_data.get("category"),
-            "status": "pending",
-            "currency": "CAD",
         }
         try:
             validate_transaction_data(transaction_data)
