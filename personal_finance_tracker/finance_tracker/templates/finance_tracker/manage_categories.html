@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Manage Categories</h2>
+
+    <!-- Display Django Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- List of Categories -->
+    <h4>Your Categories</h4>
+    {% if categories %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+            <tr>
+                <td>{{ category.name }}</td>
+                <td>{{ category.get_type_display }}</td>
+                <td>
+                    <!-- Delete Button -->
+                    <button type="button" class="btn btn-danger btn-sm" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal" 
+                            data-category-id="{{ category.id }}" 
+                            data-category-name="{{ category.name }}">
+                        Delete
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>You have no categories.</p>
+    {% endif %}
+
+    <!-- Add Category Form -->
+    <h4 class="mt-5">Add a New Category</h4>
+    <form method="post" action="{% url 'manage_categories' %}">
+        {% csrf_token %}
+        {% for field in add_category_form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <div class="invalid-feedback d-block">
+                {% for error in field.errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="d-flex mt-3 gap-3">
+            <button type="submit" class="btn btn-primary">Add Category</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Return to Dashboard</a>
+        </div>
+
+        
+    </form>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the category <strong id="category-name"></strong>?
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="{% url 'manage_categories' %}" id="delete-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="category_id" id="category-id">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteModal = document.getElementById('deleteModal');
+        const categoryNameElement = document.getElementById('category-name');
+        const categoryIdInput = document.getElementById('category-id');
+
+        // Populate the modal with category details when the delete button is clicked
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget; // Button that triggered the modal
+            const categoryId = button.getAttribute('data-category-id');
+            const categoryName = button.getAttribute('data-category-name');
+
+            // Update the modal content
+            categoryNameElement.textContent = categoryName;
+            categoryIdInput.value = categoryId;
+        });
+    });
+</script>
+{% endblock %}

@@ -8,6 +8,7 @@
 
     <!-- Plugins CSS -->
     <link rel="stylesheet" href="{% static 'vendors/simple-line-icons/css/simple-line-icons.css' %}">
+    <!--To search for more mdi icons, search online here: https://pictogrammers.com/library/mdi/-->
     <link rel="stylesheet" href="{% static 'vendors/mdi/css/materialdesignicons.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendors/bootstrap-datepicker/bootstrap-datepicker.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}">
@@ -65,10 +66,22 @@
           <ul class="nav">
             <li class="nav-item">
               <a class="nav-link" href="{% url 'dashboard' %}">
-                <i class="mdi mdi-grid-large menu-icon"></i>
+                <i class="mdi mdi-view-dashboard menu-icon"></i>
                 <span class="menu-title">Dashboard</span>
               </a>
+            </li>                        
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'manage_bank_accounts' %}">
+                <i class="mdi mdi-bank menu-icon"></i>
+                <span class="menu-title">Bank Accounts</span>
+              </a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'manage_categories' %}">
+                <i class="mdi mdi-grid-large menu-icon"></i>
+                <span class="menu-title">Categories</span>
+              </a>
+            </li>          
           </ul>
         </nav>
 
@@ -134,7 +147,7 @@
                                     <i class="mdi mdi-chevron-down"></i>
                                     {{ transaction.date }}
                                   </td>
-                                  <td>{{ transaction.get_type_display }}</td>
+                                  <td>{{ transaction.get_transaction_type_display }}</td> 
                                   <td>{{ transaction.amount }}</td>
                                   <td>{{ transaction.description }}</td>
                                   <td>

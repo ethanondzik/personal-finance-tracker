@@ -1,17 +1,14 @@
 # filepath: /home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Transaction
-from .forms import TransactionForm, CSVUploadForm
-from django.contrib.auth.forms import UserCreationForm
+from .models import Transaction, Account, Category
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm
 from django.contrib.auth import login
-from django.http import HttpResponseNotAllowed
 from django.contrib import messages
 from .validation import validate_transaction_data
 from django.core.exceptions import ValidationError
 from datetime import date
 import csv
-import json
 from collections import defaultdict
 
 def landing(request):
@@ -45,14 +42,17 @@ def dashboard(request):
 
     #Shows all income and all expenses on the same day for each day
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
+    #accounts = Account.objects.filter(user=request.user)
+    
+    
 
     # Use a dictionary to aggregate income and expenses by date
     aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
     for transaction in transactions:
         date_str = transaction.date.strftime('%Y-%m-%d')
-        if transaction.type == 'income':
+        if transaction.transaction_type == 'income':
             aggregated_data[date_str]["income"] += float(transaction.amount)
-        elif transaction.type == 'expense':
+        elif transaction.transaction_type == 'expense':
             aggregated_data[date_str]["expenses"] += float(transaction.amount)
 
     # Sort the dates and prepare the chart data
@@ -65,7 +65,8 @@ def dashboard(request):
 
     return render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
-        'chart_data': chart_data,  # 
+        'chart_data': chart_data,   
+        #'accounts': accounts,
     })
 
 @login_required
@@ -84,7 +85,7 @@ def add_transaction(request):
         HttpResponseRedirect: Redirects to the dashboard if the transaction is successfully added.
     """
     if request.method == 'POST':
-        form = TransactionForm(request.POST)
+        form = TransactionForm(request.POST, user=request.user)
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.user = request.user
@@ -94,7 +95,7 @@ def add_transaction(request):
         else:
             messages.error(request, "Error adding transaction. Please try again.")
     else:
-        form = TransactionForm()
+        form = TransactionForm(user=request.user)
     return render(request, 'finance_tracker/add_transaction.html', {'form': form})
     
 
@@ -115,10 +116,15 @@ def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data["password"])
+            user.save()
             login(request, user)
-            return redirect('dashboard')
+            print(f"User {user.username} registered successfully.")
+            messages.success(request, "Registration successful! Welcome to your dashboard.")
+            return redirect("dashboard")
         else:
+            print(f'Invalid form: {form.errors}')
             messages.error(request, "Error registering user. Please try again.")
     else:
         form = UserCreationForm()
@@ -213,36 +219,75 @@ def upload_transactions(request):
                 decoded_file = csv_file.read().decode('utf-8').splitlines()
                 reader = csv.DictReader(decoded_file)
                 errors = []
+
                 for row_number, row in enumerate(reader, start=1):
-                    # Convert CSV row values to the correct types
                     try:
+                        # Map CSV row to transaction data
                         row_data = {
                             'date': date.fromisoformat(row['date']),
-                            'type': row['type'],
+                            'transaction_type': row['transaction_type'],
                             'amount': float(row['amount']),
-                            'description': row['description'],
-                            'category': row['category'],
-                            'is_recurring': row['is_recurring'].lower() == 'true',
-                            'recurrence_interval': row.get('recurrence_interval', None),
-                            'payment_method': row['payment_method'],
-                            'status': row['status'],
-                            'notes': row.get('notes', ''),
-                            'currency': row.get('currency', 'CAD'),
-                            'location': row.get('location', ''),
-                            'tags': row.get('tags', '')
+                            'description': row.get('description', ''),
+                            #'category': Category.objects.get(id=row['category_id'], user=request.user),
+                            #'account': Account.objects.get(id=row['account_id'], user=request.user),
                         }
-                        # Validate the row
+
+
+                        # For the ease of developing transaction validation we will make account and category fields optional, also
+                        # they are accessable by their id's or names
+                        # Handle Category
+                        category_value = row.get('category')
+                        if category_value:
+                            try:
+                                if category_value.isdigit():
+                                    row_data['category'] = Category.objects.get(id=category_value, user=request.user)
+                                else:
+                                    row_data['category'] = Category.objects.get(name=category_value, user=request.user)
+                            except Category.DoesNotExist:
+                                errors.append(f"Row {row_number}: Invalid category '{category_value}'.")
+                                #raise ValidationError(f"Row {row_number}: Invalid category '{category_value}'.") #don't add transaction
+
+                        # Handle account
+                        account_value = row.get('account')
+                        if account_value:
+                            try:
+                                account_value = account_value.strip()  # Remove leading/trailing whitespace
+                                # Try to match as an ID first
+                                if Account.objects.filter(id=account_value, user=request.user).exists():
+                                    row_data['account'] = Account.objects.get(id=account_value, user=request.user)
+                                # If not found as an ID, try to match as an account_number
+                                elif Account.objects.filter(account_number=account_value, user=request.user).exists():
+                                    row_data['account'] = Account.objects.get(account_number=account_value, user=request.user)
+                                else:
+                                    raise Account.DoesNotExist
+                            except Account.DoesNotExist:
+                                errors.append(f"Row {row_number}: Invalid account '{account_value}'.")
+                                #raise ValidationError(f"Row {row_number}: Invalid account '{account_value}'.") #don't add transaction
+
+
+                        # Validate the transaction data
                         validate_transaction_data(row_data)
 
-                        # Create the transaction if valid
+                        # Create the transaction
+                        # Transaction.objects.create(
+                        #     user=request.user,
+                        #     account=row_data['account'],
+                        #     category=row_data['category'],
+                        #     amount=row_data['amount'],
+                        #     transaction_type=row_data['transaction_type'],
+                        #     date=row_data['date'],
+                        #     description=row_data['description'],
+                        # )
                         Transaction.objects.create(
                             user=request.user,
-                            **row_data
+                            **row_data #unpack the dictionary into the model fields
                         )
+
+
                     except ValidationError as e:
                         errors.append(f"Row {row_number}: {', '.join(e.messages)}")
                     except Exception as e:
-                        errors.append(f"Row {row_number}: {str(e)}")
+                        errors.append(f"Row {row_number}: (generic error) {str(e)}")
 
                 if errors:
                     for error in errors:
@@ -255,3 +300,97 @@ def upload_transactions(request):
     else:
         form = CSVUploadForm()
     return render(request, 'finance_tracker/upload_transactions.html', {'form': form})
+
+
+
+
+@login_required
+def manage_bank_accounts(request):
+    """
+    Displays a page where users can view, add, or delete their bank accounts.
+
+    - Handles account deletion if the request method is POST and includes an account_id.
+    - Handles account addition if the request method is POST and includes form data.
+    - Displays the list of bank accounts and the add account form.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage bank accounts page.
+    """
+    accounts = Account.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        # Handle account deletion
+        account_id = request.POST.get('account_id')
+        if account_id:
+            account = get_object_or_404(Account, id=account_id, user=request.user)
+            account.delete()
+            messages.success(request, "Bank account deleted successfully!")
+            return redirect('manage_bank_accounts')
+
+        # Handle account addition
+        form = BankAccountForm(request.POST)
+        if form.is_valid():
+            bank_account = form.save(commit=False)
+            bank_account.user = request.user
+            bank_account.save()
+            messages.success(request, "Bank account added successfully!")
+            return redirect('manage_bank_accounts')
+        else:
+            messages.error(request, "Error adding bank account. Please try again.")
+    else:
+        form = BankAccountForm()
+
+    return render(request, 'finance_tracker/manage_bank_accounts.html', {
+        'accounts': accounts,
+        'add_account_form': form,
+    })
+
+
+
+
+@login_required
+def manage_categories(request):
+    """
+    Displays a page where users can view, add, or delete their categories.
+
+    - Handles category deletion if the request method is POST and includes a category_id.
+    - Handles category addition if the request method is POST and includes form data.
+    - Displays the list of categories and the add category form.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage categories page.
+    """
+    categories = Category.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        # Handle category deletion
+        category_id = request.POST.get('category_id')
+        if category_id:
+            category = get_object_or_404(Category, id=category_id, user=request.user)
+            category.delete()
+            messages.success(request, "Category deleted successfully!")
+            return redirect('manage_categories')
+
+        # Handle category addition
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.user = request.user
+            category.save()
+            messages.success(request, "Category added successfully!")
+            return redirect('manage_categories')
+        else:
+            messages.error(request, "Error adding category. Please try again.")
+    else:
+        form = CategoryForm()
+
+    return render(request, 'finance_tracker/manage_categories.html', {
+        'categories': categories,
+        'add_category_form': form,
+    })
