@@ -27398,7 +27398,7 @@ dl li {
 }
 
 .tab-content {
-  border: 1px solid #dee2e6;
+  border: 0px solid #dee2e6;
   border-top: 0;
   padding: 1rem 1rem;
   text-align: justify;
