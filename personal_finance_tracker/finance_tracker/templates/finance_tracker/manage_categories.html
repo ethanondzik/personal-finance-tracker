@@ -50,32 +50,36 @@
     <p>You have no categories.</p>
     {% endif %}
 
-    <!-- Add Category Form -->
-    <h4 class="mt-5">Add a New Category</h4>
-    <form method="post" action="{% url 'manage_categories' %}">
-        {% csrf_token %}
-        {% for field in add_category_form %}
-        <div class="form-group">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}
-            <div class="invalid-feedback d-block">
-                {% for error in field.errors %}
-                <p>{{ error }}</p>
-                {% endfor %}
+    <!-- Button to Show Add Bank Account Form -->
+    <div class="d-flex mt-3 gap-3">
+        <button id="show-form-btn" class="btn btn-primary">Add a New Category</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Return to Dashboard</a>
+    </div>
+
+    <!-- Add Category Form (Initially Hidden)-->
+    <div id="add-category-form-container" style="display: none;">
+        <h4 class="mt-5">Add a New Category</h4>
+        <form method="post" action="{% url 'manage_categories' %}">
+            {% csrf_token %}
+            {% for field in add_category_form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="invalid-feedback d-block">
+                    {% for error in field.errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
-        {% endfor %}
+            {% endfor %}
 
-        <div class="d-flex mt-3 gap-3">
-            <button type="submit" class="btn btn-primary">Add Category</button>
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Return to Dashboard</a>
-        </div>
-
-        
-    </form>
-</div>
+            <div class="d-flex mt-3 gap-3">
+                <button type="submit" class="btn btn-success mt-3">Add Category</button>
+            </div> 
+        </form>
+    </div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -102,9 +106,30 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const showFormButton = document.getElementById('show-form-btn');
+        const formContainer = document.getElementById('add-category-form-container');
         const deleteModal = document.getElementById('deleteModal');
         const categoryNameElement = document.getElementById('category-name');
         const categoryIdInput = document.getElementById('category-id');
+
+
+        // Toggle the visibility of the add category form
+        showFormButton.addEventListener('click', function () {
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                showFormButton.textContent = 'Hide Form';
+            } else {
+                formContainer.style.display = 'none';
+                showFormButton.textContent = 'Add a New Category';
+            }
+        });
+
+        // Ensure the form remains visible if it contains errors
+        if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        }
+
 
         // Populate the modal with category details when the delete button is clicked
         deleteModal.addEventListener('show.bs.modal', function (event) {

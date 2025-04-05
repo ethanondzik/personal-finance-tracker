@@ -123,6 +123,12 @@
             }
         });
 
+        // Ensure the form remains visible if it contains errors
+        if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        }
+
         // Populate the modal with account details when the delete button is clicked
         deleteModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget; // Button that triggered the modal
