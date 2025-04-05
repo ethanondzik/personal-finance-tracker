@@ -135,6 +135,11 @@ class BankAccountForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        account_number = cleaned_data.get('account_number')
+        user = self.instance.user if self.instance and self.instance.user else self.initial.get('user')
+
+        if Account.objects.filter(account_number=account_number, user=user).exists():
+            raise forms.ValidationError(f"A bank account with the number {account_number} already exists.")
         return cleaned_data
 
 class CategoryForm(forms.ModelForm):
@@ -161,6 +166,16 @@ class CategoryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        name = cleaned_data.get('name')
+        category_type = cleaned_data.get('type')
+        user = self.instance.user if self.instance and self.instance.user else self.initial.get('user')
+
+        if Category.objects.filter(name=name, type=category_type, user=user).exists():
+            raise forms.ValidationError(f"A category with the name '{name}' and type '{category_type}' already exists.")
+        return cleaned_data
         
 
 

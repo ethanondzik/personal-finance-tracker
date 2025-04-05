@@ -6,6 +6,10 @@ import logging
 logger = logging.getLogger(__name__) #create logger specific to this module
 
 
+
+
+
+
 """
 This module contains validation logic for transaction data in the personal finance tracker application.
 The `validate_transaction_data` function ensures that all transaction fields meet the required constraints
@@ -67,3 +71,8 @@ def validate_transaction_data(data):
     except Exception as e:
         logger.error(f"Error validating transaction data: {e}", exc_info=True)
         raise e
+
+
+
+
+

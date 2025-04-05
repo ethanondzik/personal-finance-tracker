@@ -332,6 +332,7 @@ def manage_bank_accounts(request):
 
         # Handle account addition
         form = BankAccountForm(request.POST)
+        form.instance.user = request.user 
         if form.is_valid():
             bank_account = form.save(commit=False)
             bank_account.user = request.user
@@ -379,6 +380,7 @@ def manage_categories(request):
 
         # Handle category addition
         form = CategoryForm(request.POST)
+        form.instance.user = request.user
         if form.is_valid():
             category = form.save(commit=False)
             category.user = request.user
