@@ -30403,4 +30403,33 @@ dl li {
   margin: auto;
   width: 100%;
 }
+
+.tab-content-basic {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 15px;
+  margin-top: 20px;
+}
+
+.card-rounded {
+  border-radius: 15px !important;
+  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+.statistics-details {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+}
+
+.statistics-title {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.rate-percentage {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
 /*# sourceMappingURL=maps/style.css.map */

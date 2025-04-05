@@ -10,7 +10,10 @@ from django.core.exceptions import ValidationError
 from datetime import date
 import csv
 from collections import defaultdict
-from django.db.models import Sum
+from django.db import models
+from django.db.models import Sum, Q
+from django.db.models.functions import TruncMonth
+
 
 def landing(request):
     """
@@ -49,6 +52,23 @@ def dashboard(request):
     total_income = transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
     total_expenses = transactions.filter(transaction_type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
 
+    #Monthly aggregation
+    monthly_data = Transaction.objects.filter(user=request.user).annotate(
+        month=TruncMonth('date')
+    ).values('month').annotate(
+        income=Sum('amount', filter=Q(transaction_type='income')),
+        expenses=Sum('amount', filter=Q(transaction_type='expense'))
+    ).order_by('month')
+
+    # Calculate the total income and expenses for each month
+    months = []
+    monthly_income = []
+    monthly_expenses = []
+    for entry in monthly_data:
+        months.append(entry['month'].strftime("%b %Y"))
+        monthly_income.append(float(entry['income'] or 0))
+        monthly_expenses.append(float(entry['expenses'] or 0))
+
     # Use a dictionary to aggregate income and expenses by date
     aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
     for transaction in transactions:
@@ -66,6 +86,9 @@ def dashboard(request):
         "expenses": [aggregated_data[date]["expenses"] for date in sorted_dates],
         "total_income": float(total_income),
         "total_expenses": float(total_expenses),
+        "months": months,
+        "monthly_income": monthly_income,
+        "monthly_expenses": monthly_expenses,
     }
 
     return render(request, 'finance_tracker/dashboard.html', {
