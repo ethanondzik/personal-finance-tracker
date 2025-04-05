@@ -99,7 +99,7 @@
             {% endif %}
 
             <!-- Tabs for Transactions Table and Graph -->
-            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist" style="border: 0;">
               <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="table-tab" data-bs-toggle="tab" data-bs-target="#table-view" type="button" role="tab" aria-controls="table-view" aria-selected="true">
                   Transactions Table
@@ -108,6 +108,11 @@
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="chart-tab" data-bs-toggle="tab" data-bs-target="#chart-view" type="button" role="tab" aria-controls="chart-view" aria-selected="false">
                   Transactions Graph
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pie-tab" data-bs-toggle="tab" data-bs-target="#pie-view" type="button" role="tab">
+                  Income vs Expenses
                 </button>
               </li>
             </ul>
@@ -196,11 +201,21 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Pie Chart -->
+              <div class="tab-pane fade" id="pie-view" role="tabpanel">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Income vs Expenses</h4>
+                    <canvas id="pieChart" style="height:400px; max-height:700px;"></canvas>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           
           <!-- Footer -->
-          <footer class="footer">
+          <footer class="footer" style="border: 0;">
             <div class="d-sm-flex justify-content-center justify-content-sm-between">
               <!-- <span class="text-muted d-block text-center text-sm-left d-sm-inline-block">Track your finances!</span> -->
             </div>
