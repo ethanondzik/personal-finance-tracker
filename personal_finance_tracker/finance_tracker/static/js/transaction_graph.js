@@ -6,28 +6,54 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize Line Chart
   const lineChartEl = document.getElementById('transactionChart');
   if (lineChartEl) {
-      new Chart(lineChartEl, {
-        type: 'line',
-        data: {
+    const chart = new Chart(lineChartEl, {
+      type: 'line',
+      data: {
           labels: chartData.dates,
           datasets: [
-            {
-              label: 'Income',
-              data: chartData.income,
-              borderColor: '#4CAF50',
-              backgroundColor: '#4CAF5020',
-              tension: 0.2,
-            },
-            {
-              label: 'Expenses',
-              data: chartData.expenses,
-              borderColor: '#F44336',
-              backgroundColor: '#F4433620',
-              tension: 0.2,
-            },
-          ],
-        },
-        options: {
+              {
+                  label: 'Income',
+                  data: chartData.income,
+                  borderColor: '#4CAF50',
+                  backgroundColor: (context) => {
+                      const chart = context.chart;
+                      const {ctx, chartArea} = chart;
+                      if (!chartArea) return null;
+                      
+                      const gradient = ctx.createLinearGradient(
+                          0, chartArea.bottom, 
+                          0, chartArea.top
+                      );
+                      gradient.addColorStop(0, 'rgba(76, 175, 80, 0)');
+                      gradient.addColorStop(1, 'rgba(76, 175, 80, 0.3)');
+                      return gradient;
+                  },
+                  tension: 0.2,
+                  fill: true
+              },
+              {
+                  label: 'Expenses',
+                  data: chartData.expenses,
+                  borderColor: '#F44336',
+                  backgroundColor: (context) => {
+                      const chart = context.chart;
+                      const {ctx, chartArea} = chart;
+                      if (!chartArea) return null;
+                      
+                      const gradient = ctx.createLinearGradient(
+                          0, chartArea.bottom, 
+                          0, chartArea.top
+                      );
+                      gradient.addColorStop(0, 'rgba(244, 67, 54, 0)');
+                      gradient.addColorStop(1, 'rgba(244, 67, 54, 0.3)');
+                      return gradient;
+                  },
+                  tension: 0.2,
+                  fill: true
+              }
+          ]
+      },
+      options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
@@ -38,10 +64,19 @@ document.addEventListener('DOMContentLoaded', function() {
             x: {
               title: { display: true, text: 'Date' },
               ticks: { autoSkip: true, maxTicksLimit: 10 },
+              grid: { display: false }
             },
           },
-        },
-      });
+          plugins: {
+            legend: {
+                labels: {
+                    usePointStyle: true,
+                    pointStyle: 'circle'
+                }
+            }
+          }
+      },
+    });
   }
 
   // Initialize Pie Chart
@@ -61,7 +96,13 @@ document.addEventListener('DOMContentLoaded', function() {
           responsive: true,
           maintainAspectRatio: true,
           plugins: {
-            legend: { position: 'bottom' },
+            legend: { 
+              labels: {
+                usePointStyle: true,
+                pointStyle: 'circle'
+              },
+              position: 'bottom'
+            },
             tooltip: {
               callbacks: {
                 label: (context) => {
@@ -119,6 +160,10 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             plugins: {
                 legend: {
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle'
+                    },
                     position: 'top'
                 },
                 tooltip: {
