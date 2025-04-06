@@ -98,24 +98,81 @@
             </div>
             {% endif %}
 
-            <!-- Tabs for Transactions Table and Graph -->
-            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist" style="border: 0;">
-              <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="table-tab" data-bs-toggle="tab" data-bs-target="#table-view" type="button" role="tab" aria-controls="table-view" aria-selected="true">
-                  Transactions Table
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="chart-tab" data-bs-toggle="tab" data-bs-target="#chart-view" type="button" role="tab" aria-controls="chart-view" aria-selected="false">
-                  Transactions Graph
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="pie-tab" data-bs-toggle="tab" data-bs-target="#pie-view" type="button" role="tab">
-                  Income vs Expenses
-                </button>
-              </li>
-            </ul>
+            <!-- Cards Layout -->
+            <div class="tab-content tab-content-basic">
+              <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview">
+                <!-- Statistics Row -->
+                <div class="row">
+                  <div class="col-sm-12">
+                    <div class="statistics-details d-flex align-items-center justify-content-between">
+                      <!-- Stats bar -->
+                      <div>
+                        <p class="statistics-title">Total Income</p>
+                        <h3 class="rate-percentage">${{ chart_data.total_income|floatformat:2 }}</h3>
+                      </div>
+                      <div>
+                        <p class="statistics-title">Total Expenses</p>
+                        <h3 class="rate-percentage">${{ chart_data.total_expenses|floatformat:2 }}</h3>
+                      </div>
+                      <!-- Add more stats as needed -->
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <!-- Left Column (75% width) -->
+                  <div class="col-lg-8 d-flex flex-column">
+                    <div class="row flex-grow">
+                      <!-- Transactions Table -->
+                      <div class="col-12 grid-margin stretch-card">
+                        <div class="card card-rounded">
+                          <div class="card-body">
+                            <h4 class="card-title">Monthly Overview</h4>
+                            <canvas id="monthlyBarChart" style="max-height: 200px;"></canvas>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Line Chart -->
+                      <div class="col-12 grid-margin stretch-card">
+                        <div class="card card-rounded">
+                          <div class="card-body">
+                            <h4 class="card-title">Transactions Graph</h4>
+                            <canvas id="transactionChart" style="height: 400px; max-height: 700px;"></canvas>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Right Column (25% width) -->
+                  <div class="col-lg-4 d-flex flex-column">
+                    <div class="row flex-grow">
+                      <!-- Pie Chart -->
+                      <div class="col-md-6 col-lg-12 grid-margin stretch-card">
+                        <div class="card card-rounded">
+                          <div class="card-body">
+                            <h4 class="card-title">Pie Chart</h4>
+                            <canvas id="pieChart" style="height:400px; max-height:700px;"></canvas>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Blue Card -->
+                      <div class="col-md-6 col-lg-12 grid-margin stretch-card">
+                        <div class="card bg-primary card-rounded">
+                          <div class="card-body">
+                            <h4 class="card-title text-white">Quick Stats</h4>
+                            <div class="row">
+                              <div class="col-12">
+                                <p class="text-white">Net Savings</p>
+                                <h2 class="text-info">$$$</h2>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <!-- Tab Content -->
             <div class="tab-content mt-4">
@@ -191,28 +248,6 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Transactions Graph -->
-              <div class="tab-pane fade" id="chart-view" role="tabpanel" aria-labelledby="chart-tab">
-                <div class="card">
-                  <div class="card-body">
-                    <h4 class="card-title">Transactions Graph</h4>
-                    <canvas id="transactionChart" style="height: 400px; max-height: 700px;"></canvas>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Pie Chart -->
-              <div class="tab-pane fade" id="pie-view" role="tabpanel">
-                <div class="card">
-                  <div class="card-body">
-                    <h4 class="card-title">Income vs Expenses</h4>
-                    <canvas id="pieChart" style="height:400px; max-height:700px;"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
           
           <!-- Footer -->
           <footer class="footer" style="border: 0;">
