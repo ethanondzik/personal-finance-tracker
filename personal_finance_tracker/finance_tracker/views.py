@@ -2,12 +2,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction, Account, Category
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm
 from django.contrib.auth import login
 from django.contrib import messages
 from .validation import validate_transaction_data
 from django.core.exceptions import ValidationError
-from datetime import date
+from datetime import date, timedelta
 import csv
 from collections import defaultdict
 from django.db import models
@@ -357,4 +357,75 @@ def manage_categories(request):
     return render(request, 'finance_tracker/manage_categories.html', {
         'categories': categories,
         'add_category_form': form,
+    })
+
+
+@login_required
+def query_transactions(request):
+    """
+    Handles querying transactions based on user input.
+
+    - Filters transactions based on keyword, date range, amount range, transaction type, and method.
+    - Displays the filtered transactions in a table.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered query transactions page with the form and results.
+    """
+    form = TransactionQueryForm(request.GET or None)
+    transactions = Transaction.objects.filter(user=request.user)
+
+    if form.is_valid():
+        # Keyword Search
+        keyword = form.cleaned_data.get("keyword")
+        if keyword:
+            transactions = transactions.filter(
+                Q(description__icontains=keyword) | Q(category__name__icontains=keyword)
+            )
+
+        # Date Range
+        date_range = form.cleaned_data.get("date_range")
+        if date_range == "4weeks":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=4))
+        elif date_range == "3m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=12))
+        elif date_range == "6m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=24))
+        elif date_range == "12m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=48))
+        elif date_range == "custom":
+            start_date = form.cleaned_data.get("start_date")
+            end_date = form.cleaned_data.get("end_date")
+            if start_date and end_date:
+                transactions = transactions.filter(date__range=(start_date, end_date))
+
+        #print(f"Transactions after date range filter: {transactions}")
+
+        # Amount Range
+        min_amount = form.cleaned_data.get("min_amount")
+        max_amount = form.cleaned_data.get("max_amount")
+        #print(f"Min amount: {min_amount}, Max amount: {max_amount}")
+        if min_amount is not None:
+            transactions = transactions.filter(amount__gte=min_amount)
+        if max_amount is not None:
+            transactions = transactions.filter(amount__lte=max_amount)
+        # print(f"2Transactions after date range filter: {transactions}")
+
+        # Transaction Type
+        transaction_type = form.cleaned_data.get("transaction_type")
+        if transaction_type and transaction_type != "all":
+            transactions = transactions.filter(transaction_type=transaction_type)
+        #print(f"3Transactions after date range filter: {transactions}")
+        # Transaction Method
+        transaction_method = form.cleaned_data.get("transaction_method")
+        if transaction_method and transaction_method != "all":
+            transactions = transactions.filter(method=transaction_method)
+        
+        # print(f"4Transactions after date range filter: {transactions}")
+
+    return render(request, "finance_tracker/query_transactions.html", {
+        "form": form,
+        "transactions": transactions,
     })

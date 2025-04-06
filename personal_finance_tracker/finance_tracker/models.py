@@ -91,6 +91,13 @@ class Transaction(models.Model):
         choices=[("income", "Income"), ("expense", "Expense")],
         default="expense",
     )
+
+    METHOD_CHOICES = [
+        ("branch", "Branch Transaction"),
+        ("atm", "Automated Banking Machine"),
+        ("telephone", "Telephone Banking Personal"),
+    ]
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES, null=True, blank=True)
  
     date = models.DateField(default=timezone.now, editable=True)
     description = models.TextField(max_length=255, null=True, blank=True)

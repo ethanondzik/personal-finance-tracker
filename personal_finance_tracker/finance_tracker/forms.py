@@ -251,3 +251,79 @@ class CSVUploadForm(forms.Form):
             raise forms.ValidationError(errors)
 
         return file
+    
+
+
+
+
+class TransactionQueryForm(forms.Form):
+    keyword = forms.CharField(
+        required=False, 
+        label="Keyword Search", 
+        widget=forms.TextInput(attrs={"placeholder": "Search by description or category"})
+    )
+    date_range = forms.ChoiceField(
+        required=False,
+        label="Date Range",
+        choices=[
+            ("4weeks", "Last 4 Weeks"),
+            ("3m", "Last 3 Months"),
+            ("6m", "Last 6 Months"),
+            ("12m", "Last 12 Months"),
+            ("custom", "Custom Range"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+    start_date = forms.DateField(
+        required=False, 
+        label="Start Date", 
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_start_date"})
+    )
+    end_date = forms.DateField(
+        required=False, 
+        label="End Date", 
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_end_date"})
+    )
+    min_amount = forms.DecimalField(
+        required=False, 
+        label="Min Amount", 
+        widget=forms.NumberInput(attrs={"placeholder": "Minimum Amount"})
+    )
+    max_amount = forms.DecimalField(
+        required=False, 
+        label="Max Amount", 
+        widget=forms.NumberInput(attrs={"placeholder": "Maximum Amount"})
+    )
+    transaction_type = forms.ChoiceField(
+        required=False,
+        label="Transaction Type",
+        choices=[
+            ("all", "All"),
+            ("all_debits", "All Debits"),
+            ("all_credits", "All Credits"),
+            ("cheques", "Cheques"),
+            ("debit_memos", "Debit Memos"),
+            ("recurring_payments", "Recurring Payments"),
+            ("pre_authorized_payments", "Pre-Authorized Payments"),
+            ("credit_memos", "Credit Memos"),
+            ("fees", "Fees"),
+            ("purchases", "Purchases"),
+            ("cash_advance", "Cash Advance and Balance Transfer"),
+            ("payments", "Payments"),
+            ("interest", "Interest"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select"}),
+        initial = "all"
+    )
+    transaction_method = forms.ChoiceField(
+        required=False,
+        label="Transaction Method",
+        choices=[
+            ("all", "All"),
+            ("branch", "Branch Transaction"),
+            ("atm", "Automated Banking Machine"),
+            ("telephone", "Telephone Banking Personal"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select"}),
+        initial = "all"
+    )
