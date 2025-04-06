@@ -11,6 +11,7 @@ Tech Stack
 - Frontend: TBD
 
 ## Installation (Work in Progress)
+
 1. Clone the repository:
 
 `git clone https://github.com/ethanondzik/personal-finance-tracker.git`
@@ -30,17 +31,30 @@ From the root directory execute this command:
 `python3 generate_secret_key.py`
 
 5. Install postgreSQL (if not already present)
+
+For Linux
 ```
 sudo apt update
 sudo apt install postgresql
 ```
 
+For MacOS
+```
+brew update
+brew install postgresql
+brew services start postgresql
+```
+
 6. Create a database and user
-    1. Login to psql shell: `sudo -u postgres psql`
+
+    For Linux   
+    1. Login to psql shell:
+        * For LinuxL: `sudo -u postgres psql`
+        * For MacOS: `psql postgres`
     2. Create a user: `CREATE USER test_admin WITH PASSWORD 'your_password';`
     3. Create a database: `CREATE DATABASE personal_finance_tracker WITH OWNER test_admin;`
     4. Exit psql: `\q`
-
+  
 
 7. Update .env file
 - Add the name of the user and the password you gave it to the env file, and change any other variables if necessary
