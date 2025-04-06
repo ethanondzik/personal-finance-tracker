@@ -239,95 +239,29 @@ def upload_transactions(request):
         HttpResponse: The rendered upload transactions page with the form.
         HttpResponseRedirect: Redirects to the dashboard after processing the file.
     """
-    if request.method == 'POST':
-        form = CSVUploadForm(request.POST, request.FILES)
+    if request.method == "POST":
+        form = CSVUploadForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
-            csv_file = request.FILES['file']
-            try:
-                decoded_file = csv_file.read().decode('utf-8').splitlines()
-                reader = csv.DictReader(decoded_file)
-                errors = []
+            # Create transactions from validated rows
+            count = 0
+            for row in form.validated_rows:
+                Transaction.objects.create(
+                    user=request.user,
+                    **row #unpack the dictionary into the model fields
+                )
+                count += 1
 
-                for row_number, row in enumerate(reader, start=1):
-                    try:
-                        # Map CSV row to transaction data
-                        row_data = {
-                            'date': date.fromisoformat(row['date']),
-                            'transaction_type': row['transaction_type'],
-                            'amount': float(row['amount']),
-                            'description': row.get('description', ''),
-                            #'category': Category.objects.get(id=row['category_id'], user=request.user),
-                            #'account': Account.objects.get(id=row['account_id'], user=request.user),
-                        }
-
-
-                        # For the ease of developing transaction validation we will make account and category fields optional, also
-                        # they are accessable by their id's or names
-                        # Handle Category
-                        category_value = row.get('category')
-                        if category_value:
-                            try:
-                                if category_value.isdigit():
-                                    row_data['category'] = Category.objects.get(id=category_value, user=request.user)
-                                else:
-                                    row_data['category'] = Category.objects.get(name=category_value, user=request.user)
-                            except Category.DoesNotExist:
-                                errors.append(f"Row {row_number}: Invalid category '{category_value}'.")
-                                #raise ValidationError(f"Row {row_number}: Invalid category '{category_value}'.") #don't add transaction
-
-                        # Handle account
-                        account_value = row.get('account')
-                        if account_value:
-                            try:
-                                account_value = account_value.strip()  # Remove leading/trailing whitespace
-                                # Try to match as an ID first
-                                if Account.objects.filter(id=account_value, user=request.user).exists():
-                                    row_data['account'] = Account.objects.get(id=account_value, user=request.user)
-                                # If not found as an ID, try to match as an account_number
-                                elif Account.objects.filter(account_number=account_value, user=request.user).exists():
-                                    row_data['account'] = Account.objects.get(account_number=account_value, user=request.user)
-                                else:
-                                    raise Account.DoesNotExist
-                            except Account.DoesNotExist:
-                                errors.append(f"Row {row_number}: Invalid account '{account_value}'.")
-                                #raise ValidationError(f"Row {row_number}: Invalid account '{account_value}'.") #don't add transaction
-
-
-                        # Validate the transaction data
-                        validate_transaction_data(row_data)
-
-                        # Create the transaction
-                        # Transaction.objects.create(
-                        #     user=request.user,
-                        #     account=row_data['account'],
-                        #     category=row_data['category'],
-                        #     amount=row_data['amount'],
-                        #     transaction_type=row_data['transaction_type'],
-                        #     date=row_data['date'],
-                        #     description=row_data['description'],
-                        # )
-                        Transaction.objects.create(
-                            user=request.user,
-                            **row_data #unpack the dictionary into the model fields
-                        )
-
-
-                    except ValidationError as e:
-                        errors.append(f"Row {row_number}: {', '.join(e.messages)}")
-                    except Exception as e:
-                        errors.append(f"Row {row_number}: (generic error) {str(e)}")
-
-                if errors:
-                    for error in errors:
-                        messages.error(request, error)
-                else:
-                    messages.success(request, "Transactions uploaded successfully!")
-                return redirect('dashboard')
-            except Exception as e:
-                messages.error(request, f"Error processing file: {e}")
+            messages.success(request, f"{count} transactions uploaded successfully!") if count > 1 else messages.success(request, "Transaction uploaded successfully!")
+            return redirect("dashboard")
+        else:
+            messages.error(request, "Errors present in CSV. Please review the issues below:")
+            for error in form.errors.get("__all__", []):
+                messages.error(request, error)
     else:
-        form = CSVUploadForm()
-    return render(request, 'finance_tracker/upload_transactions.html', {'form': form})
+        form = CSVUploadForm(user=request.user)
+
+    return render(request, "finance_tracker/upload_transactions.html", {"form": form})
+    
 
 
 
