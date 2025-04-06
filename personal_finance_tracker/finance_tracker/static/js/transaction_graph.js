@@ -46,4 +46,40 @@ document.addEventListener('DOMContentLoaded', function () {
     chartTab.addEventListener('shown.bs.tab', function () {
       new Chart(chartEl, config);
     });
-  });
+
+  const pieChartEl = document.getElementById('pieChart');
+  if (pieChartEl) {
+    const pieConfig = {
+      type: 'pie',
+      data: {
+        labels: ['Income', 'Expenses'],
+        datasets: [{
+          data: [chartData.total_income, chartData.total_expenses],
+          backgroundColor: ['#36A2EB', '#FF6384'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const total = context.dataset.data.reduce((a, b) => a + b);
+                const value = context.parsed;
+                const percentage = ((value / total) * 100).toFixed(1) + '%';
+                return `${context.label}: $${value.toFixed(2)} (${percentage})`;
+              }
+            }
+          }
+        }
+      }
+    };
+  
+    document.getElementById('pie-tab').addEventListener('shown.bs.tab', () => {
+      new Chart(pieChartEl, pieConfig);
+    });
+  }
+});

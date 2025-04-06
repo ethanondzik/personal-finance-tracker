@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from datetime import date
 import csv
 from collections import defaultdict
+from django.db.models import Sum
 
 def landing(request):
     """
@@ -44,7 +45,9 @@ def dashboard(request):
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
     #accounts = Account.objects.filter(user=request.user)
     
-    
+    #Total income and expenses for the logged-in user
+    total_income = transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
+    total_expenses = transactions.filter(transaction_type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
 
     # Use a dictionary to aggregate income and expenses by date
     aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
@@ -61,6 +64,8 @@ def dashboard(request):
         "dates": sorted_dates,
         "income": [aggregated_data[date]["income"] for date in sorted_dates],
         "expenses": [aggregated_data[date]["expenses"] for date in sorted_dates],
+        "total_income": float(total_income),
+        "total_expenses": float(total_expenses),
     }
 
     return render(request, 'finance_tracker/dashboard.html', {
