@@ -1,9 +1,13 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from django.core.exceptions import ValidationError
 import re
 import logging
 
 logger = logging.getLogger(__name__) #create logger specific to this module
+
+
+
+
 
 
 """
@@ -32,27 +36,37 @@ def validate_transaction_data(data):
     errors = []
 
     try:
-        # Validate date
+        # Validate and convert date
         transaction_date = data.get('date')
         if not transaction_date:
             errors.append("Transaction date is required.")
-        elif transaction_date > date.today() + timedelta(days=365 * 10) or transaction_date < date.today() - timedelta(days=365 * 10):
-            errors.append("Transaction date must be within 10 years from today.")
+        else:
+            try:
+                if isinstance(transaction_date, str):
+                    transaction_date = datetime.strptime(transaction_date, "%Y-%m-%d").date() #interpret date as YYYY-MM-DD
+                if transaction_date > date.today() + timedelta(days=365 * 10) or transaction_date < date.today() - timedelta(days=365 * 10):
+                    errors.append("Transaction date must be within 10 years from today.")
+            except ValueError:
+                errors.append("Transaction date must be in the format 'YYYY-MM-DD'.")
 
-        # Validate type
+        # Validate transaction type
         transaction_type = data.get('transaction_type')
         if not transaction_type:
             errors.append("Transaction type is required.")
         elif str(transaction_type).lower() not in ['income', 'expense']:
             errors.append("Transaction type must be either 'income' or 'expense'.")
 
-        # Validate amount
+        # Validate and convert amount
         amount = data.get('amount')
-        if not re.match(r'^\d+(\.\d{1,2})?$', str(amount)):
-            #REGEX: match 1 or more digit 0-9, optionally followed by a decimal point and 1-2 digits 0-9
-            errors.append("Amount must have at most two decimal places.")
-        elif amount > 1_000_000 or amount < -1_000_000:
-            errors.append("Amount must be a number between -1,000,000 and 1,000,000.")
+        if not amount:
+            errors.append("Transaction amount is required.")
+        else:
+            try:
+                amount = float(amount)
+                if amount > 1_000_000 or amount < -1_000_000:
+                    errors.append("Amount must be a number between -1,000,000 and 1,000,000.")
+            except ValueError:
+                errors.append("Amount must be a valid number with at most two decimal places.")
 
         # Validate description
         description = data.get('description')
@@ -61,9 +75,16 @@ def validate_transaction_data(data):
         elif len(description) > 255:
             errors.append("Description cannot be longer than 255 characters.")
 
-
+        # Raise validation errors if any exist
         if errors:
             raise ValidationError(errors)
+
+    #catch any non-validation errors and log them
+    except ValidationError:
+        raise
     except Exception as e:
         logger.error(f"Error validating transaction data: {e}", exc_info=True)
-        raise e
+
+
+
+

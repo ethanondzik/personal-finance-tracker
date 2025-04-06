@@ -92,6 +92,7 @@
                 </form>
             </div>
         </div>
+
     </div>
 
 <!-- Delete Confirmation Modal -->
@@ -119,9 +120,30 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const showFormButton = document.getElementById('show-form-btn');
+        const formContainer = document.getElementById('add-category-form-container');
         const deleteModal = document.getElementById('deleteModal');
         const categoryNameElement = document.getElementById('category-name');
         const categoryIdInput = document.getElementById('category-id');
+
+
+        // Toggle the visibility of the add category form
+        showFormButton.addEventListener('click', function () {
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                showFormButton.textContent = 'Hide Form';
+            } else {
+                formContainer.style.display = 'none';
+                showFormButton.textContent = 'Add a New Category';
+            }
+        });
+
+        // Ensure the form remains visible if it contains errors
+        if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        }
+
 
         // Populate the modal with category details when the delete button is clicked
         deleteModal.addEventListener('show.bs.modal', function (event) {
