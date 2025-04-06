@@ -1,84 +1,98 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2>Manage Categories</h2>
+<div class="container d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 800px;">
+        <h2 class="card-title text-center mb-4">Manage Categories</h2>
 
-    <!-- Display Django Messages -->
-    {% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- List of Categories -->
-    <h4>Your Categories</h4>
-    {% if categories %}
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for category in categories %}
-            <tr>
-                <td>{{ category.name }}</td>
-                <td>{{ category.get_type_display }}</td>
-                <td>
-                    <!-- Delete Button -->
-                    <button type="button" class="btn btn-danger btn-sm" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#deleteModal" 
-                            data-category-id="{{ category.id }}" 
-                            data-category-name="{{ category.name }}">
-                        Delete
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>You have no categories.</p>
-    {% endif %}
-
-    <!-- Button to Show Add Bank Account Form -->
-    <div class="d-flex mt-3 gap-3">
-        <button id="show-form-btn" class="btn btn-primary">Add a New Category</button>
-        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Return to Dashboard</a>
-    </div>
-
-    <!-- Add Category Form (Initially Hidden)-->
-    <div id="add-category-form-container" style="display: none;">
-        <h4 class="mt-5">Add a New Category</h4>
-        <form method="post" action="{% url 'manage_categories' %}">
-            {% csrf_token %}
-            {% for field in add_category_form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">
-                    {% for error in field.errors %}
-                    <p>{{ error }}</p>
-                    {% endfor %}
-                </div>
-                {% endif %}
+        <!-- Django Messages -->
+        {% if messages %}
+        <div class="container mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
             {% endfor %}
+        </div>
+        {% endif %}
 
-            <div class="d-flex mt-3 gap-3">
-                <button type="submit" class="btn btn-success mt-3">Add Category</button>
-            </div> 
-        </form>
+        <!-- Categories List -->
+        <div class="text-center">
+            <h4 class="mb-4">Your Categories</h4>
+            {% if categories %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                        <tr>
+                            <td>{{ category.name }}</td>
+                            <td>{{ category.get_type_display }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal" 
+                                        data-category-id="{{ category.id }}" 
+                                        data-category-name="{{ category.name }}">
+                                    <i class="mdi mdi-delete"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <p class="text-muted mb-0">You have no categories.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Category Form -->
+        <div class="card border-primary mt-4">
+            <div class="card-header bg-primary text-white text-center">
+                <h5 class="mb-0">Add New Category</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'manage_categories' %}">
+                    {% csrf_token %}
+                    {% for field in add_category_form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in field.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex flex-column gap-3 align-items-center mt-4">
+                        <button type="submit" class="btn btn-primary w-75">
+                            <i class="mdi mdi-plus-circle me-2"></i>Add Category
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                            <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
 
 <!-- Delete Confirmation Modal -->
