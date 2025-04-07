@@ -298,7 +298,7 @@ def manage_bank_accounts(request):
             return redirect('manage_bank_accounts')
 
         # Handle account addition
-        form = BankAccountForm(request.POST)
+        form = BankAccountForm(request.POST, initial={'user': request.user})
         form.instance.user = request.user 
         if form.is_valid():
             bank_account = form.save(commit=False)
