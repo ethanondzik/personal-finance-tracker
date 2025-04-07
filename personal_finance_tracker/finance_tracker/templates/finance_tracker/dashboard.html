@@ -165,12 +165,34 @@
                         <div class="card bg-primary card-rounded">
                           <div class="card-body">
                             <h4 class="card-title text-white">Quick Stats</h4>
-                            <div class="row">
+                            <!-- <div class="row">
                               <div class="col-12">
                                 <p class="text-white">Net Savings</p>
                                 <h2 class="text-info">$$$</h2>
                               </div>
-                            </div>
+                            </div> -->
+                            <div class="row">
+                              <div class="col-12">
+                                  <p class="text-white">Bank Accounts</p>
+                                  <ul class="list-group">
+                                      {% for account in accounts %}
+                                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                                          <span>
+                                              <strong>{{ account.account_number }}</strong> 
+                                              ({{ account.account_type|capfirst }})
+                                          </span>
+                                          <span class="badge bg-success text-white">
+                                              ${{ account.balance|floatformat:2 }}
+                                          </span>
+                                      </li>
+                                      {% empty %}
+                                      <li class="list-group-item text-center text-muted">
+                                          No bank accounts found.
+                                      </li>
+                                      {% endfor %}
+                                  </ul>
+                              </div>
+                          </div>
                           </div>
                         </div>
                       </div>

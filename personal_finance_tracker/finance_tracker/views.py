@@ -47,6 +47,9 @@ def dashboard(request):
     #Shows all income and all expenses on the same day for each day
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
     #accounts = Account.objects.filter(user=request.user)
+    accounts = Account.objects.filter(user=request.user).values(
+        'account_number', 'account_type', 'balance'
+    )
     
     #Total income and expenses for the logged-in user
     total_income = transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
@@ -94,7 +97,7 @@ def dashboard(request):
     return render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
         'chart_data': chart_data,   
-        #'accounts': accounts,
+        'accounts': accounts,
     })
 
 @login_required
@@ -401,29 +404,24 @@ def query_transactions(request):
             if start_date and end_date:
                 transactions = transactions.filter(date__range=(start_date, end_date))
 
-        #print(f"Transactions after date range filter: {transactions}")
 
         # Amount Range
         min_amount = form.cleaned_data.get("min_amount")
         max_amount = form.cleaned_data.get("max_amount")
-        #print(f"Min amount: {min_amount}, Max amount: {max_amount}")
         if min_amount is not None:
             transactions = transactions.filter(amount__gte=min_amount)
         if max_amount is not None:
             transactions = transactions.filter(amount__lte=max_amount)
-        # print(f"2Transactions after date range filter: {transactions}")
 
         # Transaction Type
         transaction_type = form.cleaned_data.get("transaction_type")
         if transaction_type and transaction_type != "all":
             transactions = transactions.filter(transaction_type=transaction_type)
-        #print(f"3Transactions after date range filter: {transactions}")
         # Transaction Method
         transaction_method = form.cleaned_data.get("transaction_method")
         if transaction_method and transaction_method != "all":
             transactions = transactions.filter(method=transaction_method)
         
-        # print(f"4Transactions after date range filter: {transactions}")
 
     return render(request, "finance_tracker/query_transactions.html", {
         "form": form,
