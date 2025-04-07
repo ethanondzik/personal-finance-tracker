@@ -30432,4 +30432,33 @@ dl li {
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
 }
+
+#scrollToTopBtn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  display: none;
+  z-index: 1000;
+  transition: all 0.5s ease;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+}
+
+#scrollToTopBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+#scrollToTopBtn.show {
+  display: block;
+  animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
 /*# sourceMappingURL=maps/style.css.map */
