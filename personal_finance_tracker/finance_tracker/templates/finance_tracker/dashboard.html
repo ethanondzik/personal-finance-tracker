@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="{% static 'vendors/bootstrap-datepicker/bootstrap-datepicker.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}">
     <link rel="shortcut icon" href="{% static 'images/favicon.png' %}">
   </head>
   <body class="with-welcome-text">
@@ -277,6 +276,9 @@
         </div>
       </div>
     </div>
+    <button id="scrollToTopBtn" class="btn btn-primary rounded-circle shadow-lg">
+      <i class="mdi mdi-arrow-up"></i>
+    </button>
 
     <!-- Plugins JS -->
     <script src="{% static 'vendors/js/vendor.bundle.base.js' %}"></script>
@@ -298,6 +300,7 @@
     <script src="{% static 'js/message_timeout.js' %}"></script>
     <script src="{% static 'js/transaction_graph.js' %}"></script>
     <script src="{% static 'js/greetings.js' %}"></script>
+    <script src="{% static 'js/scroll_to_top.js' %}"></script>
 
     <!-- Chart Data -->
     {{ chart_data|json_script:"chart-data" }}
