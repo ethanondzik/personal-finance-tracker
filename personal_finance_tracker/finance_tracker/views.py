@@ -2,14 +2,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction, Account, Category
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm
 from django.contrib.auth import login
 from django.contrib import messages
 from .validation import validate_transaction_data
 from django.core.exceptions import ValidationError
-from datetime import date
+from datetime import date, timedelta
 import csv
 from collections import defaultdict
+from django.db import models
+from django.db.models import Sum, Q
+from django.db.models.functions import TruncMonth
+
 
 def landing(request):
     """
@@ -44,7 +48,26 @@ def dashboard(request):
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
     #accounts = Account.objects.filter(user=request.user)
     
-    
+    #Total income and expenses for the logged-in user
+    total_income = transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
+    total_expenses = transactions.filter(transaction_type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
+
+    #Monthly aggregation
+    monthly_data = Transaction.objects.filter(user=request.user).annotate(
+        month=TruncMonth('date')
+    ).values('month').annotate(
+        income=Sum('amount', filter=Q(transaction_type='income')),
+        expenses=Sum('amount', filter=Q(transaction_type='expense'))
+    ).order_by('month')
+
+    # Calculate the total income and expenses for each month
+    months = []
+    monthly_income = []
+    monthly_expenses = []
+    for entry in monthly_data:
+        months.append(entry['month'].strftime("%b %Y"))
+        monthly_income.append(float(entry['income'] or 0))
+        monthly_expenses.append(float(entry['expenses'] or 0))
 
     # Use a dictionary to aggregate income and expenses by date
     aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
@@ -61,6 +84,11 @@ def dashboard(request):
         "dates": sorted_dates,
         "income": [aggregated_data[date]["income"] for date in sorted_dates],
         "expenses": [aggregated_data[date]["expenses"] for date in sorted_dates],
+        "total_income": float(total_income),
+        "total_expenses": float(total_expenses),
+        "months": months,
+        "monthly_income": monthly_income,
+        "monthly_expenses": monthly_expenses,
     }
 
     return render(request, 'finance_tracker/dashboard.html', {
@@ -211,95 +239,29 @@ def upload_transactions(request):
         HttpResponse: The rendered upload transactions page with the form.
         HttpResponseRedirect: Redirects to the dashboard after processing the file.
     """
-    if request.method == 'POST':
-        form = CSVUploadForm(request.POST, request.FILES)
+    if request.method == "POST":
+        form = CSVUploadForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
-            csv_file = request.FILES['file']
-            try:
-                decoded_file = csv_file.read().decode('utf-8').splitlines()
-                reader = csv.DictReader(decoded_file)
-                errors = []
+            # Create transactions from validated rows
+            count = 0
+            for row in form.validated_rows:
+                Transaction.objects.create(
+                    user=request.user,
+                    **row #unpack the dictionary into the model fields
+                )
+                count += 1
 
-                for row_number, row in enumerate(reader, start=1):
-                    try:
-                        # Map CSV row to transaction data
-                        row_data = {
-                            'date': date.fromisoformat(row['date']),
-                            'transaction_type': row['transaction_type'],
-                            'amount': float(row['amount']),
-                            'description': row.get('description', ''),
-                            #'category': Category.objects.get(id=row['category_id'], user=request.user),
-                            #'account': Account.objects.get(id=row['account_id'], user=request.user),
-                        }
-
-
-                        # For the ease of developing transaction validation we will make account and category fields optional, also
-                        # they are accessable by their id's or names
-                        # Handle Category
-                        category_value = row.get('category')
-                        if category_value:
-                            try:
-                                if category_value.isdigit():
-                                    row_data['category'] = Category.objects.get(id=category_value, user=request.user)
-                                else:
-                                    row_data['category'] = Category.objects.get(name=category_value, user=request.user)
-                            except Category.DoesNotExist:
-                                errors.append(f"Row {row_number}: Invalid category '{category_value}'.")
-                                #raise ValidationError(f"Row {row_number}: Invalid category '{category_value}'.") #don't add transaction
-
-                        # Handle account
-                        account_value = row.get('account')
-                        if account_value:
-                            try:
-                                account_value = account_value.strip()  # Remove leading/trailing whitespace
-                                # Try to match as an ID first
-                                if Account.objects.filter(id=account_value, user=request.user).exists():
-                                    row_data['account'] = Account.objects.get(id=account_value, user=request.user)
-                                # If not found as an ID, try to match as an account_number
-                                elif Account.objects.filter(account_number=account_value, user=request.user).exists():
-                                    row_data['account'] = Account.objects.get(account_number=account_value, user=request.user)
-                                else:
-                                    raise Account.DoesNotExist
-                            except Account.DoesNotExist:
-                                errors.append(f"Row {row_number}: Invalid account '{account_value}'.")
-                                #raise ValidationError(f"Row {row_number}: Invalid account '{account_value}'.") #don't add transaction
-
-
-                        # Validate the transaction data
-                        validate_transaction_data(row_data)
-
-                        # Create the transaction
-                        # Transaction.objects.create(
-                        #     user=request.user,
-                        #     account=row_data['account'],
-                        #     category=row_data['category'],
-                        #     amount=row_data['amount'],
-                        #     transaction_type=row_data['transaction_type'],
-                        #     date=row_data['date'],
-                        #     description=row_data['description'],
-                        # )
-                        Transaction.objects.create(
-                            user=request.user,
-                            **row_data #unpack the dictionary into the model fields
-                        )
-
-
-                    except ValidationError as e:
-                        errors.append(f"Row {row_number}: {', '.join(e.messages)}")
-                    except Exception as e:
-                        errors.append(f"Row {row_number}: (generic error) {str(e)}")
-
-                if errors:
-                    for error in errors:
-                        messages.error(request, error)
-                else:
-                    messages.success(request, "Transactions uploaded successfully!")
-                return redirect('dashboard')
-            except Exception as e:
-                messages.error(request, f"Error processing file: {e}")
+            messages.success(request, f"{count} transactions uploaded successfully!") if count > 1 else messages.success(request, "Transaction uploaded successfully!")
+            return redirect("dashboard")
+        else:
+            messages.error(request, "Errors present in CSV. Please review the issues below:")
+            for error in form.errors.get("__all__", []):
+                messages.error(request, error)
     else:
-        form = CSVUploadForm()
-    return render(request, 'finance_tracker/upload_transactions.html', {'form': form})
+        form = CSVUploadForm(user=request.user)
+
+    return render(request, "finance_tracker/upload_transactions.html", {"form": form})
+    
 
 
 
@@ -332,6 +294,7 @@ def manage_bank_accounts(request):
 
         # Handle account addition
         form = BankAccountForm(request.POST)
+        form.instance.user = request.user 
         if form.is_valid():
             bank_account = form.save(commit=False)
             bank_account.user = request.user
@@ -379,6 +342,7 @@ def manage_categories(request):
 
         # Handle category addition
         form = CategoryForm(request.POST)
+        form.instance.user = request.user
         if form.is_valid():
             category = form.save(commit=False)
             category.user = request.user
@@ -393,4 +357,75 @@ def manage_categories(request):
     return render(request, 'finance_tracker/manage_categories.html', {
         'categories': categories,
         'add_category_form': form,
+    })
+
+
+@login_required
+def query_transactions(request):
+    """
+    Handles querying transactions based on user input.
+
+    - Filters transactions based on keyword, date range, amount range, transaction type, and method.
+    - Displays the filtered transactions in a table.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered query transactions page with the form and results.
+    """
+    form = TransactionQueryForm(request.GET or None)
+    transactions = Transaction.objects.filter(user=request.user)
+
+    if form.is_valid():
+        # Keyword Search
+        keyword = form.cleaned_data.get("keyword")
+        if keyword:
+            transactions = transactions.filter(
+                Q(description__icontains=keyword) | Q(category__name__icontains=keyword)
+            )
+
+        # Date Range
+        date_range = form.cleaned_data.get("date_range")
+        if date_range == "4weeks":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=4))
+        elif date_range == "3m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=12))
+        elif date_range == "6m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=24))
+        elif date_range == "12m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=48))
+        elif date_range == "custom":
+            start_date = form.cleaned_data.get("start_date")
+            end_date = form.cleaned_data.get("end_date")
+            if start_date and end_date:
+                transactions = transactions.filter(date__range=(start_date, end_date))
+
+        #print(f"Transactions after date range filter: {transactions}")
+
+        # Amount Range
+        min_amount = form.cleaned_data.get("min_amount")
+        max_amount = form.cleaned_data.get("max_amount")
+        #print(f"Min amount: {min_amount}, Max amount: {max_amount}")
+        if min_amount is not None:
+            transactions = transactions.filter(amount__gte=min_amount)
+        if max_amount is not None:
+            transactions = transactions.filter(amount__lte=max_amount)
+        # print(f"2Transactions after date range filter: {transactions}")
+
+        # Transaction Type
+        transaction_type = form.cleaned_data.get("transaction_type")
+        if transaction_type and transaction_type != "all":
+            transactions = transactions.filter(transaction_type=transaction_type)
+        #print(f"3Transactions after date range filter: {transactions}")
+        # Transaction Method
+        transaction_method = form.cleaned_data.get("transaction_method")
+        if transaction_method and transaction_method != "all":
+            transactions = transactions.filter(method=transaction_method)
+        
+        # print(f"4Transactions after date range filter: {transactions}")
+
+    return render(request, "finance_tracker/query_transactions.html", {
+        "form": form,
+        "transactions": transactions,
     })

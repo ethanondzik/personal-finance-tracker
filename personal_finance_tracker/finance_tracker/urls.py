@@ -15,6 +15,7 @@ urlpatterns = [
     path('upload_transactions/', views.upload_transactions, name='upload_transactions'),
     path('manage_bank_accounts/', views.manage_bank_accounts, name='manage_bank_accounts'),
     path('manage_categories/', views.manage_categories, name='manage_categories'),
+    path("query-transactions/", views.query_transactions, name="query_transactions"),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),

@@ -4,6 +4,9 @@ from datetime import date, timedelta
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
+import csv
+import mimetypes
+
 from .validation import validate_transaction_data
 
 
@@ -135,6 +138,11 @@ class BankAccountForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        account_number = cleaned_data.get('account_number')
+        user = self.instance.user if self.instance and self.instance.user else self.initial.get('user')
+
+        if Account.objects.filter(account_number=account_number, user=user).exists():
+            raise forms.ValidationError(f"A bank account with the number {account_number} already exists.")
         return cleaned_data
 
 class CategoryForm(forms.ModelForm):
@@ -161,6 +169,16 @@ class CategoryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        name = cleaned_data.get('name')
+        category_type = cleaned_data.get('type')
+        user = self.instance.user if self.instance and self.instance.user else self.initial.get('user')
+
+        if Category.objects.filter(name=name, type=category_type, user=user).exists():
+            raise forms.ValidationError(f"A category with the name '{name}' and type '{category_type}' already exists.")
+        return cleaned_data
         
 
 
@@ -172,3 +190,140 @@ class CSVUploadForm(forms.Form):
         file (FileField): The uploaded CSV file.
     """
     file = forms.FileField(label="Upload CSV File")
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)  # Pass the user to the form
+        super().__init__(*args, **kwargs)
+        self.validated_rows = []  # Store validated rows here
+
+    def clean_file(self):
+        file = self.cleaned_data.get("file")
+
+        # Validate file type
+        if not file.name.endswith(".csv"):
+            raise forms.ValidationError("Only CSV files are allowed.")
+
+        # Check MIME type - ensure it is a valid csv
+        mime_type, _ = mimetypes.guess_type(file.name)
+        if mime_type != "text/csv":
+            raise forms.ValidationError("The uploaded file is not a valid CSV file.")
+
+        # Validate file size
+        max_file_size = 10 * 1024 * 1024  # 5 MB
+        if file.size > max_file_size:
+            raise forms.ValidationError("The uploaded file is too large. Maximum size allowed is 5 MB.")
+
+        # Validate File Contents Row by Row
+        try:
+            decoded_file = file.read().decode("utf-8").splitlines()
+            reader = csv.DictReader(decoded_file)
+            errors = []
+
+            for row_number, row in enumerate(reader, start=1):
+                # Resolve and Validate category
+                category_value = row.get("category")
+                if category_value:
+                    try:
+                        row["category"] = Category.objects.get(name=category_value, user=self.user)
+                    except Category.DoesNotExist:
+                        errors.append(f"Row {row_number}: Invalid category '{category_value}'.")
+
+                # Resolve and Validate account
+                account_value = row.get("account")
+                if account_value:
+                    try:
+                        row["account"] = Account.objects.get(account_number=account_value, user=self.user)
+                    except Account.DoesNotExist:
+                        errors.append(f"Row {row_number}: Invalid account '{account_value}'.")
+
+                try:
+                    validate_transaction_data(row)
+                except ValidationError as e:
+                    errors.append(f"Row {row_number}: {', '.join(e.messages)}")
+
+                #store row data 
+                self.validated_rows.append(row)
+
+        except Exception as e:
+            errors.append(f"Error processing file: {e}")
+
+        if errors:
+            raise forms.ValidationError(errors)
+
+        return file
+    
+
+
+
+
+class TransactionQueryForm(forms.Form):
+    keyword = forms.CharField(
+        required=False, 
+        label="Keyword Search", 
+        widget=forms.TextInput(attrs={"placeholder": "Search by description or category"})
+    )
+    date_range = forms.ChoiceField(
+        required=False,
+        label="Date Range",
+        choices=[
+            ("4weeks", "Last 4 Weeks"),
+            ("3m", "Last 3 Months"),
+            ("6m", "Last 6 Months"),
+            ("12m", "Last 12 Months"),
+            ("custom", "Custom Range"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+    start_date = forms.DateField(
+        required=False, 
+        label="Start Date", 
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_start_date"})
+    )
+    end_date = forms.DateField(
+        required=False, 
+        label="End Date", 
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_end_date"})
+    )
+    min_amount = forms.DecimalField(
+        required=False, 
+        label="Min Amount", 
+        widget=forms.NumberInput(attrs={"placeholder": "Minimum Amount"})
+    )
+    max_amount = forms.DecimalField(
+        required=False, 
+        label="Max Amount", 
+        widget=forms.NumberInput(attrs={"placeholder": "Maximum Amount"})
+    )
+    transaction_type = forms.ChoiceField(
+        required=False,
+        label="Transaction Type",
+        choices=[
+            ("all", "All"),
+            ("all_debits", "All Debits"),
+            ("all_credits", "All Credits"),
+            ("cheques", "Cheques"),
+            ("debit_memos", "Debit Memos"),
+            ("recurring_payments", "Recurring Payments"),
+            ("pre_authorized_payments", "Pre-Authorized Payments"),
+            ("credit_memos", "Credit Memos"),
+            ("fees", "Fees"),
+            ("purchases", "Purchases"),
+            ("cash_advance", "Cash Advance and Balance Transfer"),
+            ("payments", "Payments"),
+            ("interest", "Interest"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select"}),
+        initial = "all"
+    )
+    transaction_method = forms.ChoiceField(
+        required=False,
+        label="Transaction Method",
+        choices=[
+            ("all", "All"),
+            ("branch", "Branch Transaction"),
+            ("atm", "Automated Banking Machine"),
+            ("telephone", "Telephone Banking Personal"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select"}),
+        initial = "all"
+    )
