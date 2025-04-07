@@ -33,7 +33,7 @@ def random_date():
 
 # Generate 1000 valid transactions
 transactions = []
-for _ in range(1000):
+for _ in range(100):
     category = random.choice(categories)
     account = random.choice(accounts)
     transaction_type = category["type"]

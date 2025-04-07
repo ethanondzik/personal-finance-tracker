@@ -1,7 +1,10 @@
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.conf import settings
+from decimal import Decimal
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 
@@ -102,11 +105,64 @@ class Transaction(models.Model):
     date = models.DateField(default=timezone.now, editable=True)
     description = models.TextField(max_length=255, null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        # Ensure amount is a Decimal
+        if isinstance(self.amount, str):
+            self.amount = Decimal(self.amount)
+        # Check if this is a new transaction or an update
+        is_new = self.pk is None
+        if not is_new:
+            # Fetch the original transaction from the database
+            original = Transaction.objects.get(pk=self.pk)
+            # Revert the original transaction's effect on the account balance
+            if original.account:
+                if original.transaction_type == "income":
+                    original.account.balance -= original.amount
+                elif original.transaction_type == "expense":
+                    original.account.balance += original.amount
+                original.account.save()
+
+        # Apply the new transaction's effect on the account balance
+        if self.account:
+            with transaction.atomic():
+                account = Account.objects.select_for_update().get(pk=self.account.pk)
+                if self.transaction_type == "income":
+                    account.balance += self.amount
+                elif self.transaction_type == "expense":
+                    account.balance -= self.amount
+                account.save()
+
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Ensure amount is a Decimal
+        if isinstance(self.amount, str):
+            self.amount = Decimal(self.amount)
+        # Revert the transaction's effect on the account balance before deletion
+        if self.account:
+            if self.transaction_type == "income":
+                self.account.balance -= self.amount
+            elif self.transaction_type == "expense":
+                self.account.balance += self.amount
+            self.account.save()
+
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return f"{self.user.email} - {self.transaction_type} - {self.amount}"
 
 
-
+# Signal to handle account balance update after a transaction is deleted
+@receiver(post_delete, sender=Transaction)
+def update_account_balance_on_delete(sender, instance, **kwargs):
+    if instance.account:
+        if isinstance(instance.amount, str):
+            instance.amount = Decimal(instance.amount)
+        if instance.transaction_type == "income":
+            instance.account.balance -= instance.amount
+        elif instance.transaction_type == "expense":
+            instance.account.balance += instance.amount
+        instance.account.save()
 
 
 class Debt(models.Model):

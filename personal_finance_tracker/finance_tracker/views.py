@@ -13,6 +13,7 @@ from collections import defaultdict
 from django.db import models
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
+from decimal import Decimal
 
 
 def landing(request):
@@ -248,6 +249,7 @@ def upload_transactions(request):
             # Create transactions from validated rows
             count = 0
             for row in form.validated_rows:
+                row['amount'] = Decimal(row['amount'])  # Ensure amount is a Decimal
                 Transaction.objects.create(
                     user=request.user,
                     **row #unpack the dictionary into the model fields
