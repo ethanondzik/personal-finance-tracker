@@ -2,8 +2,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction, Account, Category
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm
-from django.contrib.auth import login
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
 from .validation import validate_transaction_data
 from django.core.exceptions import ValidationError
@@ -14,6 +15,7 @@ from django.db import models
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
 from decimal import Decimal
+
 
 
 def landing(request):
@@ -428,4 +430,42 @@ def query_transactions(request):
     return render(request, "finance_tracker/query_transactions.html", {
         "form": form,
         "transactions": transactions,
+    })
+
+
+@login_required
+def manage_account(request):
+    user = request.user
+
+    if request.method == "POST":
+        if "update_account" in request.POST:
+            form = AccountManagementForm(request.POST, instance=user)
+            password_form = PasswordChangeForm(user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Account details updated successfully!")
+                return redirect("manage_account")
+            else:
+                messages.error(request, "Error updating account details. Please try again.")
+        elif "change_password" in request.POST:
+            form = AccountManagementForm(instance=user)
+            password_form = PasswordChangeForm(user, request.POST)
+            if password_form.is_valid():
+                password_form.save()
+                update_session_auth_hash(request, user)  # Prevents logout after password change
+                messages.success(request, "Password changed successfully!")
+                return redirect("manage_account")
+            else:
+                messages.error(request, "Error changing password. Please try again.")
+        elif "delete_account" in request.POST:
+            user.delete()
+            messages.success(request, "Your account and all associated data have been deleted.")
+            return redirect("landing")
+    else:
+        form = AccountManagementForm(instance=user)
+        password_form = PasswordChangeForm(user)
+
+    return render(request, "finance_tracker/manage_account.html", {
+        "form": form,
+        "password_form": password_form,
     })

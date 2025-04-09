@@ -46,6 +46,9 @@
                   <p class="mb-1 mt-3 fw-semibold">{{ user.username }}</p>
                   <p class="fw-light text-muted mb-0">{{ user.email }}</p>
                 </div>
+                <a class="dropdown-item" href="{% url 'manage_account' %}">
+                  <i class="dropdown-item-icon mdi mdi-account text-primary me-2"></i>Manage Account
+                </a>
                 <a class="dropdown-item" onclick="document.getElementById('logout-form').submit();"><i class="dropdown-item-icon mdi mdi-power text-primary me-2"></i>Sign Out</a>
                 <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">
                   {% csrf_token %}
