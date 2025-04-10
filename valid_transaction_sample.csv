@@ -1,6 +1,6 @@
 date,transaction_type,amount,description,category,account
-2023-09-01,income,1500.00,Monthly salary,Salary,123456
-2023-09-05,expense,200.00,Grocery shopping,Groceries,987654
-2023-09-10,expense,50.00,Public transport,Transport,123456
-2023-09-15,income,300.00,Freelance project,Freelance,123456
-2023-09-20,expense,100.00,Electricity bill,Utilities,987654
+2025-09-01,income,1500.00,Monthly salary,Salary,44564376
+2025-09-05,expense,200.00,Grocery shopping,Groceries,44564376
+2025-09-10,expense,50.00,Public transport,Transport,44564376
+2025-09-15,income,300.00,Freelance project,Freelance,44564376
+2025-09-20,expense,100.00,Electricity bill,Utilities,44564376

@@ -1,6 +1,5 @@
 from django import forms
 from .models import Transaction, Account, Category, User
-from datetime import date, timedelta
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
@@ -50,8 +49,6 @@ class UserCreationForm(forms.ModelForm):
             self.add_error("password", e.messages)
         print("Password validation complete")
         return cleaned_data
-
-
 
 
 class TransactionForm(forms.ModelForm):
@@ -106,18 +103,21 @@ class TransactionForm(forms.ModelForm):
         return cleaned_data
 
 
-
 class BankAccountForm(forms.ModelForm):
     """
     A form for creating or updating bank accounts.
 
     - Filters the user field to include only the logged-in user.
+    - Validates that the account number is unique for the user.
 
     Attributes:
-        user (ForeignKey): The user associated with the bank account.
+        account_type (CharField): The type of the bank account (e.g., checking, savings).
+        balance (DecimalField): The initial balance of the account.
+        account_number (CharField): The unique account number.
+        transit_number (CharField): The transit number for the account.
+        institution_number (CharField): The institution number for the account.
 
     Methods:
-        __init__(user): Filters the user field based on the logged-in user.
         clean(): Validates the form data.
     """
     class Meta:
@@ -145,18 +145,20 @@ class BankAccountForm(forms.ModelForm):
             raise forms.ValidationError(f"A bank account with the number {account_number} already exists.")
         return cleaned_data
 
+
 class CategoryForm(forms.ModelForm):
     """
     A form for creating or updating categories.
 
     - Filters the user field to include only the logged-in user.
+    - Validates that the category name and type are unique for the user.
 
     Attributes:
         name (CharField): The name of the category.
         type (CharField): The type of the category (e.g., income or expense).
 
     Methods:
-        __init__(user): Filters the user field based on the logged-in user.
+        clean(): Validates the form data.
     """
     class Meta:
         model = Category
@@ -181,13 +183,19 @@ class CategoryForm(forms.ModelForm):
         return cleaned_data
         
 
-
 class CSVUploadForm(forms.Form):
     """
     A form for uploading CSV files.
 
+    - Validates the uploaded file type, size, and contents.
+    - Processes each row in the CSV file and validates the data.
+
     Attributes:
         file (FileField): The uploaded CSV file.
+        validated_rows (list): A list of validated rows from the CSV file.
+
+    Methods:
+        clean_file(): Validates the uploaded file and processes its contents.
     """
     file = forms.FileField(label="Upload CSV File")
 
@@ -253,10 +261,21 @@ class CSVUploadForm(forms.Form):
         return file
     
 
-
-
-
 class TransactionQueryForm(forms.Form):
+    """
+    A form for querying transactions based on various filters.
+
+    Attributes:
+        keyword (CharField): A keyword to search in transaction descriptions or categories.
+        date_range (ChoiceField): A predefined date range for filtering transactions.
+        start_date (DateField): The start date for a custom date range.
+        end_date (DateField): The end date for a custom date range.
+        min_amount (DecimalField): The minimum transaction amount.
+        max_amount (DecimalField): The maximum transaction amount.
+        transaction_type (ChoiceField): The type of transaction (e.g., income, expense).
+        transaction_method (ChoiceField): The method of the transaction (e.g., branch, ATM).
+    """
+
     keyword = forms.CharField(
         required=False, 
         label="Keyword Search", 
@@ -330,6 +349,22 @@ class TransactionQueryForm(forms.Form):
 
 
 class AccountManagementForm(forms.ModelForm):
+    """
+    A form for managing user account details.
+
+    - Allows users to update their username, email, and name.
+    - Validates that the username and email are unique.
+
+    Attributes:
+        username (CharField): The user's username.
+        email (EmailField): The user's email address.
+        name (CharField): The user's full name.
+
+    Methods:
+        clean_email(): Validates that the email is unique.
+        clean_username(): Validates that the username is unique.
+    """
+    
     class Meta:
         model = User
         fields = ["username", "email", "name"]

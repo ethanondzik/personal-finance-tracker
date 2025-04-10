@@ -14,9 +14,10 @@ categories = [
     {"name": "Utilities", "type": "expense"},
 ]
 
+#adjust accounts to match the sample user as required
 accounts = [
-    {"account_number": "123456", "account_type": "checking"},
-    {"account_number": "987654", "account_type": "savings"},
+    {"account_number": "44564376", "account_type": "checking"},
+    {"account_number": "44569771", "account_type": "savings"},
 ]
 
 # Define the range for transaction amounts
@@ -31,7 +32,7 @@ def random_date():
     end_date = datetime.now()
     return start_date + (end_date - start_date) * random.random()
 
-# Generate 1000 valid transactions
+# Generate 100 valid transactions
 transactions = []
 for _ in range(100):
     category = random.choice(categories)
