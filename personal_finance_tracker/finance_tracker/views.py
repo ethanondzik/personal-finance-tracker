@@ -1,4 +1,3 @@
-# filepath: /home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Transaction, Account, Category
@@ -6,12 +5,8 @@ from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
-from .validation import validate_transaction_data
-from django.core.exceptions import ValidationError
 from datetime import date, timedelta
-import csv
 from collections import defaultdict
-from django.db import models
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
 from decimal import Decimal
@@ -49,7 +44,6 @@ def dashboard(request):
 
     #Shows all income and all expenses on the same day for each day
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
-    #accounts = Account.objects.filter(user=request.user)
     accounts = Account.objects.filter(user=request.user).values(
         'account_number', 'account_type', 'balance'
     )
@@ -126,8 +120,6 @@ def add_transaction(request):
             transaction.save()
             messages.success(request, "Transaction added successfully!")
             return redirect('dashboard')
-        else:
-            messages.error(request, "Error adding transaction. Please try again.")
     else:
         form = TransactionForm(user=request.user)
     return render(request, 'finance_tracker/add_transaction.html', {'form': form})
@@ -154,7 +146,6 @@ def register(request):
             user.set_password(form.cleaned_data["password"])
             user.save()
             login(request, user)
-            print(f"User {user.username} registered successfully.")
             messages.success(request, "Registration successful! Welcome to your dashboard.")
             return redirect("dashboard")
         else:
@@ -228,14 +219,13 @@ def delete_transactions(request):
     return redirect('dashboard')
 
 
-
-
 @login_required
 def upload_transactions(request):
     """
     Handles the upload of transactions via a CSV file for the logged-in user.
 
-    - If the request method is POST, processes the uploaded CSV file, validates each row, and saves valid transactions.
+    - If the request method is POST, processes the uploaded CSV file, validates each row, and saves the transactions if
+       they are all valid.
     - Displays error messages for invalid rows or issues with the file.
 
     Args:
@@ -269,9 +259,6 @@ def upload_transactions(request):
 
     return render(request, "finance_tracker/upload_transactions.html", {"form": form})
     
-
-
-
 
 @login_required
 def manage_bank_accounts(request):
@@ -317,8 +304,6 @@ def manage_bank_accounts(request):
         'accounts': accounts,
         'add_account_form': form,
     })
-
-
 
 
 @login_required
@@ -435,6 +420,23 @@ def query_transactions(request):
 
 @login_required
 def manage_account(request):
+    """
+    Handles account management for the logged-in user.
+
+    - Allows the user to update their account details, change their password, or delete their account.
+    - Displays the appropriate forms for each action.
+    - If the user deletes their account they are redirected to the landing page, otherwise
+      they are redireccted to the manage account page.
+    - Displays success or error messages based on the actions taken.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage account page with the forms.
+        HttpResponseRedirect: Redirects to the appropriate page after processing the user's action.
+    """
+
     user = request.user
 
     if request.method == "POST":

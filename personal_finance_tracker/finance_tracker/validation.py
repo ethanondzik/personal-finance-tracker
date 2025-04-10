@@ -1,13 +1,8 @@
 from datetime import date, timedelta, datetime
 from django.core.exceptions import ValidationError
-import re
 import logging
 
 logger = logging.getLogger(__name__) #create logger specific to this module
-
-
-
-
 
 
 """
