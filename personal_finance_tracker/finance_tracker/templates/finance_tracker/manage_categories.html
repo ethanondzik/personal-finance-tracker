@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 800px;">
+        <h2 class="card-title text-center mb-4">Manage Categories</h2>
+
+        <!-- Django Messages -->
+        {% if messages %}
+        <div class="container mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Categories List -->
+        <div class="text-center">
+            <h4 class="mb-4">Your Categories</h4>
+            {% if categories %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                        <tr>
+                            <td>{{ category.name }}</td>
+                            <td>{{ category.get_type_display }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal" 
+                                        data-category-id="{{ category.id }}" 
+                                        data-category-name="{{ category.name }}">
+                                    <i class="mdi mdi-delete"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <p class="text-muted mb-0">You have no categories.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Category Form -->
+        <div class="card border-primary mt-4">
+            <div class="card-header bg-primary text-white text-center">
+                <h5 class="mb-0">Add New Category</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'manage_categories' %}">
+                    {% csrf_token %}
+                    {% for field in add_category_form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in field.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex flex-column gap-3 align-items-center mt-4">
+                        <button type="submit" class="btn btn-primary w-75">
+                            <i class="mdi mdi-plus-circle me-2"></i>Add Category
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                            <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the category <strong id="category-name"></strong>?
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="{% url 'manage_categories' %}" id="delete-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="category_id" id="category-id">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const showFormButton = document.getElementById('show-form-btn');
+        const formContainer = document.getElementById('add-category-form-container');
+        const deleteModal = document.getElementById('deleteModal');
+        const categoryNameElement = document.getElementById('category-name');
+        const categoryIdInput = document.getElementById('category-id');
+
+
+        // Toggle the visibility of the add category form
+        showFormButton.addEventListener('click', function () {
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                showFormButton.textContent = 'Hide Form';
+            } else {
+                formContainer.style.display = 'none';
+                showFormButton.textContent = 'Add a New Category';
+            }
+        });
+
+        // Ensure the form remains visible if it contains errors
+        if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        }
+
+
+        // Populate the modal with category details when the delete button is clicked
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget; // Button that triggered the modal
+            const categoryId = button.getAttribute('data-category-id');
+            const categoryName = button.getAttribute('data-category-name');
+
+            // Update the modal content
+            categoryNameElement.textContent = categoryName;
+            categoryIdInput.value = categoryId;
+        });
+    });
+</script>
+{% endblock %}

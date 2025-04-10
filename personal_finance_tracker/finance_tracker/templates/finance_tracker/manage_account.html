@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 800px;">
+        <h2 class="card-title text-center mb-4">Manage Account</h2>
+
+        <!-- Django Messages -->
+        {% if messages %}
+        <div class="container mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Update Account Form -->
+        <div class="card border-primary mb-4">
+            <div class="card-header bg-primary text-white text-center">
+                <h5 class="mb-0">Update Account Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="update_account" class="btn btn-success">
+                            <i class="mdi mdi-content-save me-2"></i>Update Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Password Change Section -->
+        <div class="card border-warning mb-4">
+            <div class="card-header bg-warning text-white text-center">
+                <h5 class="mb-0">Change Password</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ password_form.as_p }}
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="change_password" class="btn btn-warning">
+                            <i class="mdi mdi-lock-reset me-2"></i>Change Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Delete Account Section -->
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white text-center">
+                <h5 class="mb-0">Delete Account</h5>
+            </div>
+            <div class="card-body text-center">
+                <p class="text-muted">Deleting your account will remove all your data and cannot be undone.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="delete_account" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete your account? This action cannot be undone.')">
+                        <i class="mdi mdi-delete me-2"></i>Delete Account
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Return to Dashboard Button -->
+        <div class="d-flex flex-column gap-3 align-items-center mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

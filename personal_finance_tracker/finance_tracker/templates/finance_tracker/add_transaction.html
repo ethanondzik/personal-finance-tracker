@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-scroller">
+    <div class="container-fluid page-body-wrapper full-page-wrapper">
+        <div class="content-wrapper d-flex align-items-center auth px-0">
+            <div class="row w-100 mx-0">
+                <div class="col-lg-4 mx-auto">
+                    <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 800px;">
+                        <h2 class="text-center">Add Transaction</h2>
+
+                        <!-- Render all non-field errors -->
+                        {% if form.non_field_errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <form method="post" action="{% url 'add_transaction' %}">
+                            {% csrf_token %}
+                            {% for field in form %}
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">
+                                    {{ field.label }}
+                                    {% if field.field.required %}
+                                    <span class="text-danger">*</span>
+                                    {% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in field.errors %}
+                                    <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <!-- Buttons -->
+                            <div class="d-flex justify-content-center gap-3 mt-4">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="mdi mdi-content-save me-2"></i>Add Transaction
+                                </button>
+                                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                    <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

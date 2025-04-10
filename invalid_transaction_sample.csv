@@ -1,0 +1,10 @@
+date,transaction_type,amount,description,category,account
+40000-01-01,expense,100,Date 40,000 years in the future,Groceries,123456
+0001-01-01,expense,100,Date in the year 1,Groceries,123456
+2023-01-01,invalid_type,100,Invalid transaction type,Groceries,123456
+2023-01-01,,100,Missing transaction type,Groceries,123456
+2023-01-01,expense,1000000000000,Excessively large amount,Groceries,123456
+2023-01-01,expense,-1000000000000,Excessively negative amount,Groceries,123456
+2023-01-01,expense,abc,Non-numeric amount,Groceries,123456
+2023-01-01,expense,100,,,123456
+,,,,,

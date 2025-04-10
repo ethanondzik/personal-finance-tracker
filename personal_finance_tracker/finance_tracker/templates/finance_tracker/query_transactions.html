@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">Query Transactions</h2>
+    <form method="get" class="mb-4">
+        {{ form.as_p }}
+        <div class="d-flex flex-column gap-3 align-items-center mt-4">
+            <button type="submit" class="btn btn-primary w-75">
+                <i class="mdi mdi-magnify me-2"></i>Search
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+            </a>
+        </div>
+    </form>
+
+    <h3 class="mt-5">Results</h3>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Account</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.date }}</td>
+                    <td>{{ transaction.account.account_number|default:"N/A" }}</td>
+                    <td>{{ transaction.get_transaction_type_display }}</td>
+                    <td>{{ transaction.amount }}</td>
+                    <td>{{ transaction.description }}</td>
+                    <td>{{ transaction.category }}</td>
+                    <td>{{ transaction.method }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No transactions found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // JavaScript to handle the date range selection
+    // and update the start_date and end_date fields accordingly
+    document.addEventListener("DOMContentLoaded", function () {
+        const dateRangeField = document.getElementById("id_date_range");
+        const startDateField = document.getElementById("id_start_date");
+        const endDateField = document.getElementById("id_end_date");
+
+        dateRangeField.addEventListener("change", function () {
+            const today = new Date();
+            let startDate = "";
+            let endDate = today.toISOString().split("T")[0]; // Today's date in YYYY-MM-DD format
+
+            if (this.value === "4weeks") {
+                const fourWeeksAgo = new Date(today.setDate(today.getDate() - 28));
+                startDate = fourWeeksAgo.toISOString().split("T")[0];
+            } else if (this.value === "3m") {
+                const threeMonthsAgo = new Date(today.setMonth(today.getMonth() - 3));
+                startDate = threeMonthsAgo.toISOString().split("T")[0];
+            } else if (this.value === "6m") {
+                const sixMonthsAgo = new Date(today.setMonth(today.getMonth() - 6));
+                startDate = sixMonthsAgo.toISOString().split("T")[0];
+            } else if (this.value === "12m") {
+                const twelveMonthsAgo = new Date(today.setMonth(today.getMonth() - 12));
+                startDate = twelveMonthsAgo.toISOString().split("T")[0];
+            } else if (this.value === "custom") {
+                startDateField.disabled = false;
+                endDateField.disabled = false;
+            } else {
+                startDateField.disabled = true;
+                endDateField.disabled = true;
+            }
+
+            // Update the start_date and end_date fields
+            startDateField.value = startDate;
+            endDateField.value = endDate;
+        });
+    });
+</script>
+{% endblock %}

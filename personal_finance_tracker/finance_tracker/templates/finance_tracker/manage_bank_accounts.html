@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 800px;">
+        <h2 class="card-title text-center mb-4">Manage Bank Accounts</h2>
+
+        <!-- Django Messages -->
+        {% if messages %}
+        <div class="container mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Bank Accounts List -->
+        <div class="text-center">
+            <h4 class="mb-4">Your Bank Accounts</h4>
+            {% if accounts %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Account Number</th>
+                            <th>Type</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td>{{ account.account_number }}</td>
+                            <td>{{ account.get_account_type_display }}</td>
+                            <td>${{ account.balance }}</td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal" 
+                                        data-account-id="{{ account.id }}" 
+                                        data-account-number="{{ account.account_number }}">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <p class="text-muted mb-0">You have no bank accounts.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex flex-column gap-3 align-items-center mt-4">
+            <button id="show-form-btn" class="btn btn-primary w-75">
+                <i class="mdi mdi-bank-plus me-2"></i>Add New Account
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+            </a>
+        </div>
+
+        <!-- Add Account Form -->
+        <div id="add-account-form-container" style="display: none;" class="mt-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0">New Bank Account Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'manage_bank_accounts' %}">
+                        {% csrf_token %}
+                        {% for field in add_account_form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">
+                                {{ field.label }}
+                            </label>
+                            {{ field }}
+                            {% if field.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in field.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="mdi mdi-content-save me-2"></i>Save Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the bank account <strong id="account-number"></strong>?
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="{% url 'manage_bank_accounts' %}" id="delete-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="account_id" id="account-id">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const showFormButton = document.getElementById('show-form-btn');
+        const formContainer = document.getElementById('add-account-form-container');
+        const deleteModal = document.getElementById('deleteModal');
+        const accountNumberElement = document.getElementById('account-number');
+        const accountIdInput = document.getElementById('account-id');
+
+        // Toggle the visibility of the add account form
+        showFormButton.addEventListener('click', function () {
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                showFormButton.textContent = 'Hide Form';
+            } else {
+                formContainer.style.display = 'none';
+                showFormButton.textContent = 'Add a New Bank Account';
+            }
+        });
+
+        // Ensure the form remains visible if it contains errors
+        if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        }
+
+        // Populate the modal with account details when the delete button is clicked
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget; // Button that triggered the modal
+            const accountId = button.getAttribute('data-account-id');
+            const accountNumber = button.getAttribute('data-account-number');
+
+            // Update the modal content
+            accountNumberElement.textContent = accountNumber;
+            accountIdInput.value = accountId;
+        });
+    });
+</script>
+{% endblock %}

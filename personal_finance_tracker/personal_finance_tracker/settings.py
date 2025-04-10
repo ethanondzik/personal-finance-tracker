@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'finance_tracker',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +56,7 @@ ROOT_URLCONF = 'personal_finance_tracker.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'finance_tracker/templates/finance_tracker'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -74,10 +75,22 @@ WSGI_APPLICATION = 'personal_finance_tracker.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+    # 'default': {
+        # 'ENGINE': 'django.db.backends.postgresql',
+        # 'NAME': config('DB_NAME'),
+        # 'USER': config('DB_USER'),
+        # 'PASSWORD': config('DB_PASSWORD'),
+        # 'HOST': config('DB_HOST', default='localhost'),
+        # 'PORT': config('DB_PORT', default='5432'), #postgres default port
+    # }
+# }
+
+#sql configuration, sqlite3 db file is placed in project root
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3', 
     }
 }
 
@@ -122,3 +135,59 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Custom settings
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+AUTH_USER_MODEL = "finance_tracker.User"
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            '''
+                {levelname}: The severity level of the log message (e.g., ERROR, INFO).
+                {asctime}: The timestamp when the log message was generated.
+                {module}: The name of the module where the log message originated.
+                {message}: The log message itself.
+            '''
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / '../logs/validation_errors.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'finance_tracker.validation': {  # Custom logger for validation
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
+
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000  # Increase the limit to handle more fields
