@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="{% static 'vendors/bootstrap-datepicker/bootstrap-datepicker.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}">
     <link rel="shortcut icon" href="{% static 'images/favicon.png' %}">
   </head>
   <body class="with-welcome-text">
@@ -47,6 +46,9 @@
                   <p class="mb-1 mt-3 fw-semibold">{{ user.username }}</p>
                   <p class="fw-light text-muted mb-0">{{ user.email }}</p>
                 </div>
+                <a class="dropdown-item" href="{% url 'manage_account' %}">
+                  <i class="dropdown-item-icon mdi mdi-account text-primary me-2"></i>Manage Account
+                </a>
                 <a class="dropdown-item" onclick="document.getElementById('logout-form').submit();"><i class="dropdown-item-icon mdi mdi-power text-primary me-2"></i>Sign Out</a>
                 <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">
                   {% csrf_token %}
@@ -165,12 +167,34 @@
                         <div class="card bg-primary card-rounded">
                           <div class="card-body">
                             <h4 class="card-title text-white">Quick Stats</h4>
-                            <div class="row">
+                            <!-- <div class="row">
                               <div class="col-12">
                                 <p class="text-white">Net Savings</p>
                                 <h2 class="text-info">$$$</h2>
                               </div>
-                            </div>
+                            </div> -->
+                            <div class="row">
+                              <div class="col-12">
+                                  <p class="text-white">Bank Accounts</p>
+                                  <ul class="list-group">
+                                      {% for account in accounts %}
+                                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                                          <span>
+                                              <strong>{{ account.account_number }}</strong> 
+                                              ({{ account.account_type|capfirst }})
+                                          </span>
+                                          <span class="badge bg-success text-white">
+                                              ${{ account.balance|floatformat:2 }}
+                                          </span>
+                                      </li>
+                                      {% empty %}
+                                      <li class="list-group-item text-center text-muted">
+                                          No bank accounts found.
+                                      </li>
+                                      {% endfor %}
+                                  </ul>
+                              </div>
+                          </div>
                           </div>
                         </div>
                       </div>
@@ -197,6 +221,7 @@
                                 <tr>
                                   <th><input type="checkbox" id="select-all"></th>
                                   <th>Date</th>
+                                  <th>Account</th>
                                   <th>Type</th>
                                   <th>Amount</th>
                                   <th>Description</th>
@@ -213,6 +238,7 @@
                                     <i class="mdi mdi-chevron-down"></i>
                                     {{ transaction.date }}
                                   </td>
+                                  <td>{{ transaction.account.account_number }}</td>
                                   <td>{{ transaction.get_transaction_type_display }}</td> 
                                   <td>{{ transaction.amount }}</td>
                                   <td>{{ transaction.description }}</td>
@@ -224,9 +250,9 @@
                                 <tr id="details{{ transaction.id }}" class="collapse">
                                     <td colspan="5">
                                       <strong>Category:</strong> {{ transaction.category }}<br>
-                                      <strong>Status:</strong> {{ transaction.status }}<br>
-                                      <strong>Payment Method:</strong> {{ transaction.payment_method }}<br>
-                                      {% if transaction.is_recurring %}
+                                      <!-- <strong>Status:</strong> {{ transaction.status }}<br> -->
+                                      <!-- <strong>Payment Method:</strong> {{ transaction.payment_method }}<br> -->
+                                      <!-- {% if transaction.is_recurring %}
                                         <strong>Recurring:</strong> Yes ({{ transaction.recurrence_interval }})<br>
                                       {% endif %}
                                       {% if transaction.notes %}  
@@ -234,7 +260,10 @@
                                       {% endif %}
                                       <strong>Currency: </strong> {{ transaction.currency }}<br>
                                       <strong>Location: </strong> {{ transaction.location }}<br>
-                                      <strong>Tags: </strong> {{ transaction.tags }}<br>
+                                      <strong>Tags: </strong> {{ transaction.tags }}<br> -->
+                                      <strong>Account Number:</strong> {{ transaction.account.account_number }}<br>
+                                      <strong>Account Type:</strong> {{ transaction.account.account_type }}<br>
+                                      <strong>Account Balance:</strong> ${{ transaction.account.balance }}<br>
                                     </td>                               
                                 </tr>
                                 {% endfor %}
@@ -283,6 +312,10 @@
         </div>
       </div>
     </div>
+    <!-- <button id="scrollToTopBtn" class="btn btn-primary rounded-circle shadow-lg"> -->
+    <button id="scrollToTopBtn" class="btn btn-primary shadow-lg" style="width: 40px">
+      <i class="mdi mdi-arrow-up"></i>
+    </button>
 
     <!-- Plugins JS -->
     <script src="{% static 'vendors/js/vendor.bundle.base.js' %}"></script>
@@ -304,6 +337,7 @@
     <script src="{% static 'js/message_timeout.js' %}"></script>
     <script src="{% static 'js/transaction_graph.js' %}"></script>
     <script src="{% static 'js/greetings.js' %}"></script>
+    <script src="{% static 'js/scroll_to_top.js' %}"></script>
 
     <!-- Chart Data -->
     {{ chart_data|json_script:"chart-data" }}

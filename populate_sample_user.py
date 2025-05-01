@@ -17,9 +17,9 @@ from finance_tracker.models import Account, Category, User
 
 def populate_sample_data():
     # Create a sample user
-    username = "Tester"
-    email = "test.user@example.com"
-    name = "Test User" 
+    username = "Ethan"
+    email = "ethan.ondzik@gmail.com"
+    name = "Ethan Ondzik" 
     password = "Test1234$"
 
     if not User.objects.filter(username=username).exists():
@@ -36,6 +36,14 @@ def populate_sample_data():
         {"name": "Transport", "type": "expense"},
         {"name": "Freelance", "type": "income"},
         {"name": "Utilities", "type": "expense"},
+        {"name": "Rent", "type": "expense"},
+        {"name": "Entertainment", "type": "expense"},
+        {"name": "Investments", "type": "income"},
+        {"name": "Miscellaneous", "type": "expense"},
+        {"name": "Insurance", "type": "expense"},
+        {"name": "Travel", "type": "expense"},
+        {"name": "Gifts", "type": "expense"},
+        {"name": "Subscriptions", "type": "expense"},
     ]
 
     # Add categories to the database
@@ -52,8 +60,8 @@ def populate_sample_data():
 
     # Define sample accounts
     accounts = [
-        {"account_number": "123456", "account_type": "checking", "balance": 1000.00},
-        {"account_number": "987654", "account_type": "savings", "balance": 5000.00},
+        {"account_number": "44564376", "account_type": "checking", "balance": 1000.00},
+        {"account_number": "44569771", "account_type": "savings", "balance": 5000.00},
     ]
 
     # Add accounts to the database

@@ -1,0 +1,32 @@
+date,transaction_type,amount,description,category,account
+2025-04-05,expense,108.00,Car Insurance,Insurance,44564376
+2025-05-05,expense,108.00,Car Insurance,Insurance,44564376
+2025-06-05,expense,108.00,Car Insurance,Insurance,44564376
+2025-07-05,expense,108.00,Car Insurance,Insurance,44564376
+2025-08-05,expense,108.00,Car Insurance,Insurance,44564376
+2025-09-05,expense,108.00,Car Insurance,Insurance,44564376
+2025-04-03,expense,204.10,Grocery Shopping,Groceries,44564376
+2025-05-02,expense,164.34,Grocery Shopping,Groceries,44564376
+2025-06-01,expense,212.32,Grocery Shopping,Groceries,44564376
+2025-07-03,expense,243.11,Grocery Shopping,Groceries,44564376
+2025-08-02,expense,176.98,Grocery Shopping,Groceries,44564376
+2025-09-05,expense,188.76,Grocery Shopping,Groceries,44564376
+2025-04-17,expense,201.54,Grocery Shopping,Groceries,44564376
+2025-05-15,expense,149.03,Grocery Shopping,Groceries,44564376
+2025-06-14,expense,236.59,Grocery Shopping,Groceries,44564376
+2025-07-15,expense,215.99,Grocery Shopping,Groceries,44564376
+2025-08-16,expense,203.37,Grocery Shopping,Groceries,44564376
+2025-09-17,expense,177.42,Grocery Shopping,Groceries,44564376
+2025-04-01,expense,447.07,Utilities bill,Utilities,44564376
+2025-05-01,expense,460.35,Utilities bill,Utilities,44564376
+2025-06-01,expense,389.44,Utilities bill,Utilities,44564376
+2025-07-01,expense,410.76,Utilities bill,Utilities,44564376
+2025-08-01,expense,402.56,Utilities bill,Utilities,44564376
+2025-09-01,expense,463.13,Utilities bill,Utilities,44564376
+2025-04-01,expense,2000.00,Monthly Rent,Rent,44564376
+2025-05-01,expense,2000.00,Monthly Rent,Rent,44564376
+2025-06-01,expense,2000.00,Monthly Rent,Rent,44564376
+2025-07-01,expense,2000.00,Monthly Rent,Rent,44564376
+2025-08-01,expense,2000.00,Monthly Rent,Rent,44564376
+2025-09-01,expense,2000.00,Monthly Rent,Rent,44564376
+

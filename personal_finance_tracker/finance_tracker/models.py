@@ -1,12 +1,33 @@
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.conf import settings
+from decimal import Decimal
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 
 class UserManager(BaseUserManager):
+     """
+    Custom manager for the User model.
+
+    Provides methods to create users with required fields like username, email, and password.
+    """
+     
      def create_user(self, username, email, name, password=None):
+        """
+        Creates and returns a new user.
+
+        Args:
+            username (str): The username of the user.
+            email (str): The email address of the user.
+            name (str): The full name of the user.
+            password (str, optional): The password for the user.
+
+        Returns:
+            User: The created user instance.
+        """
         if not email:
             raise ValueError("The Email field must be set")
         if not username:
@@ -18,8 +39,20 @@ class UserManager(BaseUserManager):
         return user
 
 
-
 class User(AbstractBaseUser):
+    """
+    Custom user model for the application.
+
+    Attributes:
+        email (EmailField): The user's email address (used for authentication).
+        username (CharField): The user's unique username.
+        name (CharField): The user's full name.
+        is_active (BooleanField): Indicates if the user is active.
+        is_staff (BooleanField): Indicates if the user is a staff member (not implemented).
+        is_superuser (BooleanField): Indicates if the user is a superuser (not implemented).
+        created_at (DateTimeField): The date and time when the user was created.
+    """
+
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
@@ -36,8 +69,20 @@ class User(AbstractBaseUser):
         return self.email
 
 
-
 class Account(models.Model):
+    """
+    Represents a user's bank account.
+
+    Attributes:
+        user (ForeignKey): The user who owns the account.
+        account_type (CharField): The type of account (e.g., checking, savings).
+        balance (DecimalField): The current balance of the account.
+        created_at (DateTimeField): The date and time when the account was created.
+        account_number (CharField): The unique account number.
+        transit_number (CharField): The transit number for the account.
+        institution_number (CharField): The institution number for the account.
+    """
+
     ACCOUNT_TYPES = [
         ("checking", "Checking"),
         ("savings", "Savings"),
@@ -59,6 +104,15 @@ class Account(models.Model):
 
 
 class Category(models.Model):
+    """
+    Represents a category for transactions.
+
+    Attributes:
+        user (ForeignKey): The user who owns the category.
+        name (CharField): The name of the category.
+        type (CharField): The type of category (income or expense).
+    """
+
     CATEGORY_TYPES = [
         ("income", "Income"),
         ("expense", "Expense"),
@@ -73,6 +127,20 @@ class Category(models.Model):
 
 
 class Transaction(models.Model):
+    """
+    Represents a financial transaction.
+
+    Attributes:
+        user (ForeignKey): The user who owns the transaction.
+        account (ForeignKey): The bank account associated with the transaction.
+        category (ForeignKey): The category of the transaction.
+        amount (DecimalField): The amount of the transaction.
+        transaction_type (CharField): The type of transaction (income or expense).
+        method (CharField): The method of the transaction (e.g., branch, ATM).
+        date (DateField): The date of the transaction.
+        description (TextField): A description of the transaction.
+    """
+
     TRANSACTION_TYPES = [
         ("income", "Income"),
         ("expense", "Expense"),
@@ -102,13 +170,106 @@ class Transaction(models.Model):
     date = models.DateField(default=timezone.now, editable=True)
     description = models.TextField(max_length=255, null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        """
+        Extends the default save method.
+
+        - Ensures the amount is a Decimal.
+        - Updates the associated account's balance based on the transaction type.
+        - Handles both new transactions and updates to existing transactions.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
+
+        # Ensure amount is a Decimal
+        if isinstance(self.amount, str):
+            self.amount = Decimal(self.amount)
+        # Check if this is a new transaction or an update
+        is_new = self.pk is None
+        if not is_new:
+            # Fetch the original transaction from the database
+            original = Transaction.objects.get(pk=self.pk)
+            # Revert the original transaction's effect on the account balance
+            if original.account:
+                if original.transaction_type == "income":
+                    original.account.balance -= original.amount
+                elif original.transaction_type == "expense":
+                    original.account.balance += original.amount
+                original.account.save()
+
+        # Apply the new transaction's effect on the account balance
+        if self.account:
+            with transaction.atomic():
+                account = Account.objects.select_for_update().get(pk=self.account.pk)
+                if self.transaction_type == "income":
+                    account.balance += self.amount
+                elif self.transaction_type == "expense":
+                    account.balance -= self.amount
+                account.save()
+
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        """
+        Extends the default delete method.
+
+        - Reverts the transaction's effect on the associated account's balance.
+        - Deletes the transaction from the database.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
+
+        # Ensure amount is a Decimal
+        if isinstance(self.amount, str):
+            self.amount = Decimal(self.amount)
+        # Revert the transaction's effect on the account balance before deletion
+        if self.account:
+            if self.transaction_type == "income":
+                self.account.balance -= self.amount
+            elif self.transaction_type == "expense":
+                self.account.balance += self.amount
+            self.account.save()
+
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return f"{self.user.email} - {self.transaction_type} - {self.amount}"
 
 
+@receiver(post_delete, sender=Transaction)
+def update_account_balance_on_delete(sender, instance, **kwargs):
+    """
+    Updates the account balance when a transaction is deleted.
+
+    - If the transaction is of type "income", the transaction amount is subtracted from the account balance.
+    - If the transaction is of type "expense", the transaction amount is added back to the account balance.
+    - Ensures that the account balance remains accurate after the transaction is removed.
+
+    Args:
+        sender (Model): The model class that triggered the signal (Transaction in this case).
+        instance (Transaction): The instance of the transaction being deleted.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        None
+    """
+    if instance.account:
+        if isinstance(instance.amount, str):
+            instance.amount = Decimal(instance.amount)
+        if instance.transaction_type == "income":
+            instance.account.balance -= instance.amount
+        elif instance.transaction_type == "expense":
+            instance.account.balance += instance.amount
+        instance.account.save()
 
 
 
+
+#implement the following models in the future...
 class Debt(models.Model):
     DEBT_TYPES = [
         ("Loan", "Loan"),

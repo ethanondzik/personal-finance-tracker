@@ -11,7 +11,7 @@ def generate_env_file():
     # Generate a random SECRET_KEY
     secret_key = get_random_secret_key()
 
-    #placeholder info for database configuration
+    #placeholder info for database configuration when using postgres
     database_info = ( 
         "\nDB_NAME=personal_finance_tracker\n"
         "DB_USER=test_admin\n"
