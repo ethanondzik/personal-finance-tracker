@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="container d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh;">
@@ -157,4 +158,7 @@
         });
     });
 </script>
+
+<script src="{% static 'js/theme-toggle.js' %}"></script>
+
 {% endblock %}
