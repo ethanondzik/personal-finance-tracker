@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Transaction, Account, Category
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm
+from .models import Transaction, Account, Category, Subscription
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
@@ -470,4 +470,79 @@ def manage_account(request):
     return render(request, "finance_tracker/manage_account.html", {
         "form": form,
         "password_form": password_form,
+    })
+
+
+@login_required
+def manage_subscriptions(request):
+    """
+    Displays a page where users can view, add, or delete their subscriptions.
+
+    - Handles subscription deletion if the request method is POST and includes a subscription_id.
+    - Handles subscription addition if the request method is POST and includes form data.
+    - Displays the list of subscriptions and the add subscription form.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage subscriptions page.
+    """
+    subscriptions = Subscription.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        # Handle subscription deletion
+        subscription_id = request.POST.get('subscription_id')
+        if subscription_id:
+            subscription = get_object_or_404(Subscription, id=subscription_id, user=request.user)
+            subscription.delete()
+            messages.success(request, "Subscription deleted successfully!")
+            return redirect('manage_subscriptions')
+
+        # Handle subscription addition
+        form = SubscriptionForm(request.POST)
+        form.instance.user = request.user
+        if form.is_valid():
+            subscription = form.save(commit=False)
+            subscription.user = request.user
+            subscription.save()
+            messages.success(request, "Subscription added successfully!")
+            return redirect('manage_subscriptions')
+        else:
+            messages.error(request, "Error adding subscription. Please try again.")
+    else:
+        form = SubscriptionForm()
+
+    return render(request, 'finance_tracker/manage_subscriptions.html', {
+        'subscriptions': subscriptions,
+        'add_subscription_form': form,
+    })
+
+@login_required
+def update_subscription(request, subscription_id):
+    """
+    Handles updating an existing subscription for the logged-in user.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+        subscription_id (int): The ID of the subscription to update.
+
+    Returns:
+        HttpResponse: The rendered update subscription page with the form.
+        HttpResponseRedirect: Redirects to manage_subscriptions if the subscription is successfully updated.
+    """
+    subscription = get_object_or_404(Subscription, id=subscription_id, user=request.user)
+
+    if request.method == 'POST':
+        form = SubscriptionForm(request.POST, instance=subscription)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Subscription updated successfully!")
+            return redirect('manage_subscriptions')
+    else:
+        form = SubscriptionForm(instance=subscription)
+
+    return render(request, 'finance_tracker/update_subscription.html', {
+        'form': form,
+        'subscription': subscription
     })

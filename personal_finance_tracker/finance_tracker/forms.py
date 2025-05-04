@@ -1,5 +1,5 @@
 from django import forms
-from .models import Transaction, Account, Category, User
+from .models import Transaction, Account, Category, User, Subscription
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
@@ -380,3 +380,59 @@ class AccountManagementForm(forms.ModelForm):
         if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("This username is already in use.")
         return username
+    
+
+class SubscriptionForm(forms.ModelForm):
+    """
+    A form for creating or updating subscriptions.
+
+    - Filters the account and category fields to include only those belonging to the logged-in user.
+    - Validates that the subscription data meets all requirements.
+
+    Attributes:
+        name (CharField): The name of the subscription.
+        amount (DecimalField): The recurring payment amount.
+        account (ModelChoiceField): The account used for payment.
+        category (ModelChoiceField): The category for this subscription.
+        frequency (ChoiceField): How often the payment occurs.
+        billing_date (IntegerField): Day of the month when payment is due.
+        start_date (DateField): When the subscription began.
+        end_date (DateField): Optional end date for fixed-term subscriptions.
+        description (CharField): Additional details about the subscription.
+        is_active (BooleanField): Whether the subscription is currently active.
+        auto_generate (BooleanField): Whether to auto-generate transaction entries.
+    """
+    class Meta:
+        model = Subscription
+        fields = [
+            'name',
+            'amount',
+            'account',
+            'category',
+            'frequency',
+            'billing_date',
+            'start_date',
+            'end_date',
+            'description',
+            'is_active',
+            'auto_generate',
+        ]
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['account'].queryset = Account.objects.filter(user=user)
+            self.fields['category'].queryset = Category.objects.filter(user=user, type='expense')
+
+    def clean_billing_date(self):
+        billing_date = self.cleaned_data.get('billing_date')
+        if billing_date < 1 or billing_date > 31:
+            raise forms.ValidationError("Billing date must be between 1 and 31.")
+        return billing_date
