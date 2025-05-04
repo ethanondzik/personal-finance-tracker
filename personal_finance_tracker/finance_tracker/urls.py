@@ -17,4 +17,6 @@ urlpatterns = [
     path('manage_categories/', views.manage_categories, name='manage_categories'),
     path("query-transactions/", views.query_transactions, name="query_transactions"),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
+    path('manage-subscriptions/', views.manage_subscriptions, name='manage_subscriptions'),
+    path('update-subscription/<int:subscription_id>/', views.update_subscription, name='update_subscription'),
 ]
