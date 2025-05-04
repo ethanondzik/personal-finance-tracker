@@ -5,6 +5,9 @@ from django.conf import settings
 from decimal import Decimal
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.core.validators import MinValueValidator, MaxValueValidator
+import calendar
+from datetime import date
 
 
 
@@ -267,6 +270,119 @@ def update_account_balance_on_delete(sender, instance, **kwargs):
         instance.account.save()
 
 
+
+
+class Subscription(models.Model):
+    """
+    Represents a recurring subscription payment.
+
+    Attributes:
+        user (ForeignKey): The user who owns the subscription.
+        name (CharField): The name of the subscription (e.g., "Netflix").
+        amount (DecimalField): The recurring payment amount.
+        account (ForeignKey): The account used for payment.
+        category (ForeignKey): The category for this subscription.
+        frequency (CharField): How often the payment occurs (monthly, yearly, etc.).
+        billing_date (IntegerField): Day of the month when payment is due (1-31).
+        start_date (DateField): When the subscription began.
+        end_date (DateField): Optional end date for fixed-term subscriptions.
+        description (TextField): Additional details about the subscription.
+        is_active (BooleanField): Whether the subscription is currently active.
+        last_payment_date (DateField): When the last payment was made.
+        next_payment_date (DateField): When the next payment is due.
+        auto_generate (BooleanField): Whether to auto-generate transaction entries.
+    """
+    
+    FREQUENCY_CHOICES = [
+        ("monthly", "Monthly"),
+        ("quarterly", "Quarterly"),
+        ("semi_annual", "Semi-Annual"),
+        ("annual", "Annual"),
+        ("weekly", "Weekly"),
+        ("biweekly", "Bi-Weekly"),
+    ]
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default="monthly")
+    billing_date = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(31)], default=1)
+    start_date = models.DateField(default=timezone.now)
+    end_date = models.DateField(null=True, blank=True)
+    description = models.TextField(max_length=255, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    last_payment_date = models.DateField(null=True, blank=True)
+    next_payment_date = models.DateField()
+    auto_generate = models.BooleanField(default=False, 
+                                        help_text="Automatically generate transaction entries on due dates")
+    
+    def save(self, *args, **kwargs):
+        # Calculate next_payment_date if not explicitly set
+        if not self.next_payment_date:
+            self.calculate_next_payment_date()
+        super().save(*args, **kwargs)
+    
+    def calculate_next_payment_date(self):
+        """Calculate the next payment date based on frequency and billing date"""
+        today = timezone.now().date()
+        
+        # Start with this month's billing date
+        current_year = today.year
+        current_month = today.month
+        
+        try:
+            next_date = date(current_year, current_month, self.billing_date)
+        except ValueError:
+            # Handle months with fewer days (e.g., billing_date=31 in February)
+            # Use the last day of the month instead
+            last_day = calendar.monthrange(current_year, current_month)[1]
+            next_date = date(current_year, current_month, last_day)
+        
+        # If this month's billing date has passed, move to next period
+        if next_date < today:
+            if self.frequency == "monthly":
+                if current_month == 12:
+                    next_date = date(current_year + 1, 1, self.billing_date)
+                else:
+                    try:
+                        next_date = date(current_year, current_month + 1, self.billing_date)
+                    except ValueError:
+                        # Handle months with fewer days
+                        next_month = current_month + 1
+                        last_day = calendar.monthrange(current_year, next_month)[1]
+                        next_date = date(current_year, next_month, min(self.billing_date, last_day))
+            elif self.frequency == "annual":
+                next_date = date(current_year + 1, current_month, self.billing_date)
+        
+        self.next_payment_date = next_date
+    
+    def create_transaction(self):
+        """Create a transaction entry for this subscription payment"""
+        if not self.is_active:
+            return None
+            
+        transaction = Transaction(
+            user=self.user,
+            account=self.account,
+            category=self.category,
+            amount=self.amount,
+            transaction_type="expense",
+            date=self.next_payment_date,
+            description=f"{self.name} subscription payment",
+        )
+        transaction.save()
+        
+        # Update subscription payment dates
+        self.last_payment_date = self.next_payment_date
+        self.calculate_next_payment_date()
+        self.save()
+        
+        return transaction
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_frequency_display()}: ${self.amount})"
 
 
 #implement the following models in the future...
