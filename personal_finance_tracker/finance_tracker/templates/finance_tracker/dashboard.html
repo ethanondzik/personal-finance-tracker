@@ -208,6 +208,63 @@
                           </div>
                         </div>
                       </div>
+                      <!-- Subscriptions Card -->
+                      <div class="col-md-6 col-lg-12 grid-margin stretch-card">
+                        <div class="card card-rounded bg-gradient-info text-white">
+                          <div class="card-body pb-0">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                              <h4 class="card-title text-white mb-0">Upcoming Subscriptions</h4>
+                              <a href="{% url 'manage_subscriptions' %}" class="btn btn-sm btn-light">Manage</a>
+                            </div>
+                            
+                            {% if upcoming_subscriptions %}
+                              <div class="subscription-list">
+                                {% for subscription in upcoming_subscriptions %}
+                                  <div class="subscription-item d-flex align-items-center mb-3 p-2 rounded {% if subscription.days_until <= 3 %}border-danger{% endif %}">
+                                    <div class="subscription-date me-3 text-center">
+                                      <h3 class="mb-0">{{ subscription.next_payment_date|date:"d" }}</h3>
+                                      <div>{{ subscription.next_payment_date|date:"M" }}</div>
+                                    </div>
+                                    <div class="subscription-details flex-grow-1">
+                                      <div class="fw-bold">{{ subscription.name }}</div>
+                                      <small>{{ subscription.get_frequency_display }}</small>
+                                    </div>
+                                    <div class="subscription-amount fw-bold">
+                                      ${{ subscription.amount|floatformat:2 }}
+                                    </div>
+                                    <div class="ms-3">
+                                      {% if subscription.days_until == 0 %}
+                                        <span class="badge bg-danger">Today</span>
+                                      {% elif subscription.days_until == 1 %}
+                                        <span class="badge bg-warning">Tomorrow</span>
+                                      {% elif subscription.days_until <= 7 %}
+                                        <span class="badge bg-warning">{{ subscription.days_until }} days</span>
+                                      {% else %}
+                                        <span class="badge bg-info">{{ subscription.days_until }} days</span>
+                                      {% endif %}
+                                    </div>
+                                  </div>
+                                {% endfor %}
+                              </div>
+                              {% if upcoming_subscriptions|length >= 3 %}
+                                <div class="text-center mt-3 mb-2">
+                                  <a href="{% url 'manage_subscriptions' %}" class="text-white text-decoration-underline">View all subscriptions</a>
+                                </div>
+                              {% endif %}
+                            {% else %}
+                              <div class="text-center py-4">
+                                <div class="mb-3">
+                                  <i class="mdi mdi-calendar-check mdi-48px"></i>
+                                </div>
+                                <p>No upcoming subscriptions</p>
+                                <a href="{% url 'manage_subscriptions' %}" class="btn btn-outline-light btn-sm mt-2">
+                                  <i class="mdi mdi-plus-circle me-1"></i>Add Subscription
+                                </a>
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

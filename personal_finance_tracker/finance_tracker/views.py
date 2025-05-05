@@ -10,6 +10,7 @@ from collections import defaultdict
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
 from decimal import Decimal
+from django.utils import timezone
 
 
 
@@ -91,10 +92,28 @@ def dashboard(request):
         "monthly_expenses": monthly_expenses,
     }
 
+    today = timezone.now().date()
+    
+    # Get upcoming subscriptions (due in the next 30 days)
+    upcoming_subscriptions = Subscription.objects.filter(
+        user=request.user,
+        is_active=True,
+        next_payment_date__gte=today,
+        next_payment_date__lte=today + timedelta(days=30)
+    ).order_by('next_payment_date')[:3]  # Limit to 3 most upcoming
+    
+    # Calculate days until due for each subscription
+    for subscription in upcoming_subscriptions:
+        delta = subscription.next_payment_date - today
+        subscription.days_until = delta.days
+    
+    # Return the rendered template with ALL context data
     return render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
         'chart_data': chart_data,   
         'accounts': accounts,
+        'upcoming_subscriptions': upcoming_subscriptions,
+        'today': today,
     })
 
 @login_required
