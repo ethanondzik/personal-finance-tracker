@@ -49,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'finance_tracker.middleware.ThemeMiddleware',
 ]
 
 ROOT_URLCONF = 'personal_finance_tracker.urls'
