@@ -2,30 +2,6 @@
 <html lang="en" class="{{ request.theme }}-theme">
   <head>
     {% load static %}
-    <script>
-      (function() {
-        // First try to get from cookies
-        function getCookie(name) {
-          const nameEQ = name + '=';
-          const ca = document.cookie.split(';');
-          for(let i=0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-          }
-          return null;
-        }
-        
-        // First check cookies, then localStorage
-        var theme = getCookie('theme') || localStorage.getItem('theme') || 'light';
-        
-        // Apply theme immediately before page renders
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark-theme');
-          document.documentElement.style.backgroundColor = '#1e1e1e';
-        }
-      })();
-    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>{% block title %}My Personal Finance Tracker{% endblock %}</title>

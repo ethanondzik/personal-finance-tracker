@@ -2,63 +2,59 @@
   'use strict';
   
   $(function() {
-    console.log('Theme toggle script loaded');
-
-    // First check cookies (server preference)
-    const cookieTheme = getCookie('theme');
-    console.log('Cookie theme detected:', cookieTheme);
-
-    // Then check localStorage (fallback)
-    const storedTheme = localStorage.getItem('theme');
-    console.log('LocalStorage theme detected:', storedTheme);
-
-    // Use cookie first, then localStorage, then default to light
-    const currentTheme = cookieTheme || storedTheme || 'light';
-    console.log('Using theme:', currentTheme);
-    
-    // IMPORTANT: Apply the theme immediately when page loads
+    // Apply theme on initial page load to prevent flashing
+    const currentTheme = localStorage.getItem('theme') || 'light';
     applyTheme(currentTheme);
     
     // Theme toggle click handler
     $('#theme-toggle').on('click', function() {
-      console.log('Theme toggle clicked');
       const newTheme = $('body').hasClass('dark-theme') ? 'light' : 'dark';
-      console.log('Switching to theme:', newTheme);
-      
       applyTheme(newTheme);
       
       // Save to localStorage for client-side persistence
       localStorage.setItem('theme', newTheme);
-      console.log('Theme saved to localStorage');
       
       // Save to cookies for server-side rendering
       setCookie('theme', newTheme, 365);
-      console.log('Theme saved to cookie for 365 days');
     });
     
     // Function to apply theme
     function applyTheme(theme) {
-      // Remove both theme classes from html and body
+      // Remove all theme classes
       $('html, body').removeClass('light-theme dark-theme');
       
+      // Remove navbar specific classes that Star Admin 2 might be applying
+      $('.navbar').removeClass('navbar-light navbar-dark navbar-primary navbar-success navbar-info navbar-warning navbar-danger');
+      $('.navbar-brand-wrapper').css('background-color', '');
+      $('.navbar-menu-wrapper').css('background-color', '');
+      
       if (theme === 'dark') {
-        // Add dark theme to both html and body
+        // Add dark theme to HTML and body
         $('html, body').addClass('dark-theme');
+        
+        // Apply dark styling to navbar components
         $('.navbar').addClass('navbar-dark');
+        $('.navbar-brand-wrapper').css('background-color', '#2d2d2d');
+        $('.navbar-menu-wrapper').css('background-color', '#2d2d2d');
+        $('.text-center.navbar-brand-wrapper').css('background-color', '#2d2d2d');
         
         // Update icon
         $('#theme-toggle i').removeClass('mdi-brightness-6').addClass('mdi-white-balance-sunny');
       } else {
-        // Add light theme to both html and body
+        // Add light theme to HTML and body
         $('html, body').addClass('light-theme');
-        $('.navbar').removeClass('navbar-dark');
+        
+        // Clear inline styles and let Star Admin 2's default light styling take over
+        $('.navbar-brand-wrapper').css('background-color', '');
+        $('.navbar-menu-wrapper').css('background-color', '');
+        $('.text-center.navbar-brand-wrapper').css('background-color', '');
         
         // Update icon
         $('#theme-toggle i').removeClass('mdi-white-balance-sunny').addClass('mdi-brightness-6');
       }
     }
     
-    // Helper function to set cookies with proper attributes
+    // Helper function to set cookies
     function setCookie(name, value, days) {
       let expires = '';
       if (days) {
@@ -66,24 +62,7 @@
         date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
         expires = '; expires=' + date.toUTCString();
       }
-      // Set more cookie attributes to ensure browser compatibility
       document.cookie = name + '=' + value + expires + '; path=/; SameSite=Lax';
-      
-      // Verify the cookie was set by immediately trying to read it
-      const verifySet = getCookie(name);
-      console.log('Verified cookie set:', name, '=', verifySet);
-    }
-    
-    // Helper function to get cookie values
-    function getCookie(name) {
-      const nameEQ = name + '=';
-      const ca = document.cookie.split(';');
-      for(let i=0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-      }
-      return null;
     }
   });
 })(jQuery);

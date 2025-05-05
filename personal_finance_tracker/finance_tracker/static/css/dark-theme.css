@@ -265,3 +265,33 @@ body.dark-theme .clickable-row:hover {
 body.dark-theme .collapse td {
   background-color: #333 !important;
 }
+
+/* Explicitly target navbar components to prevent flashing */
+html.dark-theme .navbar,
+body.dark-theme .navbar {
+  background-color: #2d2d2d !important;
+  color: #e1e1e1 !important;
+}
+
+html.dark-theme .text-center.navbar-brand-wrapper, 
+body.dark-theme .text-center.navbar-brand-wrapper {
+  background-color: #2d2d2d !important;
+}
+
+html.dark-theme .navbar-menu-wrapper,
+body.dark-theme .navbar-menu-wrapper {
+  background-color: #2d2d2d !important;
+}
+
+html.dark-theme .navbar-brand-wrapper,
+body.dark-theme .navbar-brand-wrapper {
+  background-color: #2d2d2d !important;
+}
+
+/* Make sure these styles have high specificity to override Star Admin 2 defaults */
+html.dark-theme .navbar.fixed-top,
+body.dark-theme .navbar.fixed-top,
+html.dark-theme .navbar.default-layout,
+body.dark-theme .navbar.default-layout {
+  background-color: #2d2d2d !important;
+}
