@@ -11,6 +11,7 @@ from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
 from decimal import Decimal
 from django.utils import timezone
+from django.http import JsonResponse
 
 
 
@@ -459,6 +460,14 @@ def manage_account(request):
     user = request.user
 
     if request.method == "POST":
+        if "theme_preference" in request.POST:
+            theme = request.POST.get('theme')
+            if theme in ['light', 'dark']:
+                user.theme = theme
+                user.save()
+                return JsonResponse({'status': 'success'})
+            return JsonResponse({'status': 'error'}, status=400)
+
         if "update_account" in request.POST:
             form = AccountManagementForm(request.POST, instance=user)
             password_form = PasswordChangeForm(user)

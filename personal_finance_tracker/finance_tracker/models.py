@@ -63,6 +63,7 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    theme = models.CharField(max_length=20, default="light", choices=[("light", "Light"), ("dark", "Dark")])
 
     objects = UserManager()
 

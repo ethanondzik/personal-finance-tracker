@@ -3,19 +3,16 @@
   
   $(function() {
     // Apply theme on initial page load to prevent flashing
-    const currentTheme = localStorage.getItem('theme') || 'light';
+    const currentTheme = $('body').hasClass('dark-theme') ? 'dark' : 'light';
     applyTheme(currentTheme);
     
     // Theme toggle click handler
     $('#theme-toggle').on('click', function() {
       const newTheme = $('body').hasClass('dark-theme') ? 'light' : 'dark';
       applyTheme(newTheme);
-      
-      // Save to localStorage for client-side persistence
-      localStorage.setItem('theme', newTheme);
-      
-      // Save to cookies for server-side rendering
-      setCookie('theme', newTheme, 365);
+
+      // Save theme preferences to DB
+      saveThemePreference(newTheme);
     });
     
     // Function to apply theme
@@ -53,16 +50,24 @@
         $('#theme-toggle i').removeClass('mdi-white-balance-sunny').addClass('mdi-brightness-6');
       }
     }
-    
-    // Helper function to set cookies
-    function setCookie(name, value, days) {
-      let expires = '';
-      if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = '; expires=' + date.toUTCString();
-      }
-      document.cookie = name + '=' + value + expires + '; path=/; SameSite=Lax';
+
+    // Helper function to save theme preference to user account
+    function saveThemePreference(theme) {
+      $.ajax({
+        url: '/manage_account/',  // Using existing view
+        type: 'POST',
+        data: {
+          'theme_preference': true,
+          'theme': theme,
+          'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        success: function(response) {
+          console.log('Theme preference saved');
+        },
+        error: function(xhr, status, error) {
+          console.error('Error saving theme preference');
+        }
+      });
     }
   });
 })(jQuery);
