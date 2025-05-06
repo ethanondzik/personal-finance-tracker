@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from .models import Transaction, Account, Category, Subscription
 from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm
 from django.contrib.auth import login, update_session_auth_hash
@@ -460,14 +461,6 @@ def manage_account(request):
     user = request.user
 
     if request.method == "POST":
-        if "theme_preference" in request.POST:
-            theme = request.POST.get('theme')
-            if theme in ['light', 'dark']:
-                user.theme = theme
-                user.save()
-                return JsonResponse({'status': 'success'})
-            return JsonResponse({'status': 'error'}, status=400)
-
         if "update_account" in request.POST:
             form = AccountManagementForm(request.POST, instance=user)
             password_form = PasswordChangeForm(user)
@@ -574,3 +567,23 @@ def update_subscription(request, subscription_id):
         'form': form,
         'subscription': subscription
     })
+
+
+@login_required
+@require_POST
+def update_theme_preference(request):
+    """
+    Updates the user's theme preference.
+    
+    Args:
+        request (HttpRequest): The HTTP request containing the theme preference.
+        
+    Returns:
+        JsonResponse: A response indicating whether the operation was successful.
+    """
+    theme = request.POST.get('theme')
+    if theme in ['light', 'dark']:
+        request.user.theme = theme
+        request.user.save()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid theme'}, status=400)

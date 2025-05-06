@@ -54,7 +54,7 @@
     // Helper function to save theme preference to user account
     function saveThemePreference(theme) {
       $.ajax({
-        url: '/manage_account/',  // Using existing view
+        url: '/update-theme-preference/',
         type: 'POST',
         data: {
           'theme_preference': true,
