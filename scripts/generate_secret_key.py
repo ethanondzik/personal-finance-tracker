@@ -23,8 +23,12 @@ def generate_env_file():
     # Create the .env content
     env_content = f"SECRET_KEY={secret_key}" + database_info
 
-    # Write to .env file
-    env_file_path = os.path.join(os.getcwd(), ".env")
+    # Determine project root directory (one level up from scripts)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+
+    # Write to .env file in the project root
+    env_file_path = os.path.join(project_root, ".env")
     with open(env_file_path, "w") as env_file:
         env_file.write(env_content.strip())
 

@@ -75,9 +75,8 @@ source .venv/bin/activate #for macOS/Linux
 3. Install dependencies:
 `pip install -r requirements.txt`
 
-4. Generate a secret key
-From the root directory execute this command:
-`python3 generate_secret_key.py`
+4. Generate a secret key:
+`python3 personal_finance_tracker/manage.py generate_env`
 
 5. Install postgreSQL (if not already present)
 ```
@@ -113,9 +112,13 @@ Then run: `python3 manage.py runserver`
 This will run a server that is accessable at http://127.0.0.1:8000/
 
 ## Make a test user
-Running the the python script `populate_sample_user.py` located in the project root directory will populate a user instance with predefined categories and bank accounts.
-Email: test.user@example.com
+Running the custom Django command `python3 manage.py populate_sample_user` will populate a user instance with predefined categories and bank accounts.  
+Email: test.user@example.com  
 Password: Test1234$
+
+## Generate Test CSV Data
+You can generate random transaction data for testing by running the following custom Django command:
+`python3 manage.py generate_transactions`
 
 ## Accessing the database
 Open the POSTGRESQL SQL terminal: `sudo -u postgres psql`

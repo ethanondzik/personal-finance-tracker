@@ -3,23 +3,22 @@ import sys
 import django
 
 # Set up project paths
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARENT_DIR = os.path.join(PROJECT_ROOT, "personal_finance_tracker")
-sys.path.append(PARENT_DIR) #~/personal-finance-tracker/personal_finance_tracker
+sys.path.append(PARENT_DIR)
 
-# Set up Django environment so we can access everything without manage.py
+# Set up Django environment
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'personal_finance_tracker.settings')
 django.setup()
 
-
-#from django.contrib.auth.models import User
+# Import after Django setup
 from finance_tracker.models import Account, Category, User
 
 def populate_sample_data():
     # Create a sample user
-    username = "Ethan"
-    email = "ethan.ondzik@gmail.com"
-    name = "Ethan Ondzik" 
+    username = "test_user"
+    email = "test.user@example.com"
+    name = "Test User"
     password = "Test1234$"
 
     if not User.objects.filter(username=username).exists():
@@ -80,6 +79,7 @@ def populate_sample_data():
             print(f"Account {account.account_number} already exists.")
 
     print("Sample data population complete.")
+
 
 if __name__ == "__main__":
     populate_sample_data()
