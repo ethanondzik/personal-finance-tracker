@@ -1,9 +1,10 @@
 from django.core.management.base import BaseCommand
 from finance_tracker.models import Account, Category, User
-
+from django.conf import settings
+from django.db import IntegrityError
 
 class Command(BaseCommand):
-    help = 'Populates the database with a sample user, categories, and accounts'
+    help = 'Populates the database with a sample user, categories, and bank accounts'
 
     def handle(self, *args, **kwargs):
         self.stdout.write("Creating sample user data...")
@@ -13,7 +14,7 @@ class Command(BaseCommand):
     def populate_sample_data(self):
         # Create a sample user
         username = "test_user"
-        email = "test.user@example.com"
+        email = "testuser@example.com"
         name = "Test User"
         password = "Test1234$"
 
@@ -61,15 +62,26 @@ class Command(BaseCommand):
 
         # Add accounts to the database
         for account_data in accounts:
-            account, created = Account.objects.get_or_create(
-                user=user,
-                account_number=account_data["account_number"],
-                defaults={
-                    "account_type": account_data["account_type"],
-                    "balance": account_data["balance"],
-                }
-            )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"Added account: {account.account_number}"))
-            else:
-                self.stdout.write(self.style.NOTICE(f"Account {account.account_number} already exists."))
+            try:
+                account, created = Account.objects.get_or_create(
+                    user=user,
+                    account_number=account_data["account_number"],
+                    defaults={
+                        "account_type": account_data["account_type"],
+                        "balance": account_data["balance"],
+                    }
+                )
+        
+                if created:
+                    self.stdout.write(f"Added account: {account.account_number}")
+                else:
+                    self.stdout.write(f"Account {account.account_number} already exists.")
+            except IntegrityError as e:
+                existing_account = Account.objects.filter(account_number=account_data["account_number"]).first()
+                if existing_account:
+                    self.stdout.write(f"Account {existing_account.account_number} already exists.")
+                else:
+                    self.stdout.write(f"Account {account_data['account_number']} conflicts with existing data.")
+                
+            except Exception as e:
+                raise e #If any other error occues that is not an Integrity Error, raise it

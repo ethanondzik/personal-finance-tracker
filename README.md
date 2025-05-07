@@ -141,3 +141,10 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ### Third-Party Licenses
 This project uses third-party libraries and assets. See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for details.
+
+
+## Troubleshooting
+If you are getting authentication errors that state that DB_USER is something other than what is specified in the .env file (and you successfully created the user in postgres), then run the command `unset DB_USER`. It is likely that there is a DB_USER environment variable somewhere else on your computer overwriting the DB_USER setting in the project directory. Because the project is using python decouple to get the DB_USER directly from the .env file it should work from here.
+
+If this still doesn't work, try restarting your computer.
+
