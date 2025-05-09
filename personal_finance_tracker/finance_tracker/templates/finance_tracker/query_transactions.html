@@ -1,74 +1,198 @@
 {% extends "authenticated_base.html" %}
 {% load static %}
 {% block content %}
-<div class="container mt-5">
-    <h2 class="text-center">Query Transactions</h2>
-    <form method="get" class="mb-4">
-        {{ form.as_p }}
+<div class="container d-flex flex-column align-items-center justify-content-center mt-5">
+    <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 900px;">
+        <h2 class="card-title text-center mb-4">Query Transactions</h2>
+
+        <!-- Query Form Card -->
+        <div class="card border-primary mb-4">
+            <div class="card-header bg-primary text-white text-center">
+                <h5 class="mb-0">Search Filters</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_keyword" class="form-label">Keyword</label>
+                            {{ form.keyword }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_date_range" class="form-label">Date Range</label>
+                            {{ form.date_range }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_start_date" class="form-label">Start Date</label>
+                            {{ form.start_date }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_end_date" class="form-label">End Date</label>
+                            {{ form.end_date }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_min_amount" class="form-label">Min Amount</label>
+                            {{ form.min_amount }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_max_amount" class="form-label">Max Amount</label>
+                            {{ form.max_amount }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_transaction_type" class="form-label">Transaction Type</label>
+                            {{ form.transaction_type }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="id_transaction_method" class="form-label">Transaction Method</label>
+                            {{ form.transaction_method }}
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="mdi mdi-magnify me-2"></i>Search Transactions
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card border-secondary">
+            <div class="card-header bg-secondary text-white text-center">
+                <h5 class="mb-0">Search Results</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Account</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr class="clickable-row" onclick="toggleDetails('{{ transaction.id }}')">
+                                <td>
+                                    <i class="mdi mdi-chevron-down"></i>
+                                    {{ transaction.date }}
+                                </td>
+                                <td>{{ transaction.account.account_number|default:"N/A" }}</td>
+                                <td>{{ transaction.get_transaction_type_display }}</td>
+                                <td>{{ transaction.amount }}</td>
+                                <td>{{ transaction.description }}</td>
+                                <td>{{ transaction.category }}</td>
+                                <td>{{ transaction.method }}</td>
+                            </tr>
+                            <!-- EXPANDED TRANSACTION DETAILS-->
+                            <tr id="details{{ transaction.id }}" class="collapse">
+                                <td colspan="7" class="details-cell">
+                                    <div class="details-content">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>Category:</strong> {{ transaction.category }}</p>
+                                                <p><strong>Account Number:</strong> {{ transaction.account.account_number|default:"N/A" }}</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>Account Type:</strong> {{ transaction.account.account_type|default:"N/A" }}</p>
+                                                <p><strong>Account Balance:</strong> ${{ transaction.account.balance|default:"0.00" }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>                               
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">No transactions found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Return to Dashboard Button -->
         <div class="d-flex flex-column gap-3 align-items-center mt-4">
-            <button type="submit" class="btn btn-primary w-75">
-                <i class="mdi mdi-magnify me-2"></i>Search
-            </button>
             <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
                 <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
             </a>
         </div>
-    </form>
-
-    <h3 class="mt-5">Results</h3>
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Account</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                    <th>Method</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for transaction in transactions %}
-                <tr class="clickable-row" onclick="toggleDetails('{{ transaction.id }}')">
-                    <td>
-                        <i class="mdi mdi-chevron-down"></i>
-                        {{ transaction.date }}
-                    </td>
-                    <td>{{ transaction.account.account_number|default:"N/A" }}</td>
-                    <td>{{ transaction.get_transaction_type_display }}</td>
-                    <td>{{ transaction.amount }}</td>
-                    <td>{{ transaction.description }}</td>
-                    <td>{{ transaction.category }}</td>
-                    <td>{{ transaction.method }}</td>
-                </tr>
-                <!-- EXPANDED TRANSACTION DETAILS-->
-                <tr id="details{{ transaction.id }}" class="collapse">
-                    <td colspan="7">
-                        <strong>Category:</strong> {{ transaction.category }}<br>
-                        <strong>Account Number:</strong> {{ transaction.account.account_number|default:"N/A" }}<br>
-                        <strong>Account Type:</strong> {{ transaction.account.account_type|default:"N/A" }}<br>
-                        <strong>Account Balance:</strong> ${{ transaction.account.balance|default:"0.00" }}<br>
-                    </td>                               
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center">No transactions found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
 
+<style>
+    .collapse {
+        display: none;
+    }
+    .collapse.show {
+        display: table-row;
+    }
+    .clickable-row {
+        cursor: pointer;
+    }
+    tr[id^="details"] {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    .details-cell {
+        padding: 15px 25px;
+    }
+    .details-content {
+        background: rgba(0, 0, 0, 0.01);
+        padding: 15px;
+        border-radius: 8px;
+    }
+    .mdi-chevron-down {
+        font-size: 16px;
+        margin-right: 5px;
+        transition: transform 0.2s;
+    }
+    .expanded .mdi-chevron-down {
+        transform: rotate(180deg);
+    }
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    /* For dark mode compatibility */
+    body.dark-theme tr[id^="details"] {
+        background-color: #333 !important;
+        color: #e1e1e1 !important;
+    }
+    body.dark-theme .details-content {
+        background-color: #3a3a3a !important;
+    }
+    body.dark-theme .collapse {
+        background-color: #2d2d2d !important;
+    }
+    body.dark-theme .clickable-row:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+</style>
+
 <script>
     // JavaScript to handle the date range selection
-    // and update the start_date and end_date fields accordingly
     document.addEventListener("DOMContentLoaded", function () {
         const dateRangeField = document.getElementById("id_date_range");
         const startDateField = document.getElementById("id_start_date");
         const endDateField = document.getElementById("id_end_date");
+        
+        // Initial state
+        if (dateRangeField.value !== "custom") {
+            startDateField.disabled = true;
+            endDateField.disabled = true;
+        }
 
         dateRangeField.addEventListener("change", function () {
             const today = new Date();
@@ -76,17 +200,29 @@
             let endDate = today.toISOString().split("T")[0]; // Today's date in YYYY-MM-DD format
 
             if (this.value === "4weeks") {
-                const fourWeeksAgo = new Date(today.setDate(today.getDate() - 28));
+                const fourWeeksAgo = new Date();
+                fourWeeksAgo.setDate(today.getDate() - 28);
                 startDate = fourWeeksAgo.toISOString().split("T")[0];
+                startDateField.disabled = true;
+                endDateField.disabled = true;
             } else if (this.value === "3m") {
-                const threeMonthsAgo = new Date(today.setMonth(today.getMonth() - 3));
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(today.getMonth() - 3);
                 startDate = threeMonthsAgo.toISOString().split("T")[0];
+                startDateField.disabled = true;
+                endDateField.disabled = true;
             } else if (this.value === "6m") {
-                const sixMonthsAgo = new Date(today.setMonth(today.getMonth() - 6));
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(today.getMonth() - 6);
                 startDate = sixMonthsAgo.toISOString().split("T")[0];
+                startDateField.disabled = true;
+                endDateField.disabled = true;
             } else if (this.value === "12m") {
-                const twelveMonthsAgo = new Date(today.setMonth(today.getMonth() - 12));
+                const twelveMonthsAgo = new Date();
+                twelveMonthsAgo.setMonth(today.getMonth() - 12);
                 startDate = twelveMonthsAgo.toISOString().split("T")[0];
+                startDateField.disabled = true;
+                endDateField.disabled = true;
             } else if (this.value === "custom") {
                 startDateField.disabled = false;
                 endDateField.disabled = false;
@@ -96,8 +232,10 @@
             }
 
             // Update the start_date and end_date fields
-            startDateField.value = startDate;
-            endDateField.value = endDate;
+            if (this.value !== "custom") {
+                startDateField.value = startDate;
+                endDateField.value = endDate;
+            }
         });
     });
 </script>
@@ -113,5 +251,4 @@
     });
 </script>
 <script src="{% static 'js/theme-toggle.js' %}"></script>
-
 {% endblock %}
