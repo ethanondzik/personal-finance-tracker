@@ -1,0 +1,262 @@
+{% extends "finance_tracker/authenticated_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        width: 4px;
+        background-color: var(--bs-primary);
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        margin-left: -2px;
+    }
+    
+    .timeline-container {
+        position: relative;
+        background-color: inherit;
+        width: 50%;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-container.left {
+        left: 0;
+        padding-right: 40px;
+    }
+    
+    .timeline-container.right {
+        left: 50%;
+        padding-left: 40px;
+    }
+    
+    .timeline-container::after {
+        content: '';
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        background-color: white;
+        border: 4px solid var(--bs-primary);
+        top: 24px;
+        border-radius: 50%;
+        z-index: 1;
+    }
+    
+    .timeline-container.left::after {
+        right: 32px;
+    }
+    
+    .timeline-container.right::after {
+        left: 32px;
+    }
+    
+    .timeline-content {
+        padding: 15px 20px;
+        background-color: var(--bs-body-bg);
+        position: relative;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .timeline-content::before {
+        content: '';
+        position: absolute;
+        top: 22px;
+        width: 0;
+        border-style: solid;
+        border-width: 10px;
+    }
+    
+    .timeline-container.left .timeline-content::before {
+        right: 30px;
+        border-color: transparent transparent transparent var(--bs-body-bg);
+    }
+    
+    .timeline-container.right .timeline-content::before {
+        left: 30px;
+        border-color: transparent var(--bs-body-bg) transparent transparent;
+    }
+    
+    .timeline-date {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: var(--bs-primary);
+        color: white;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .timeline-income {
+        border-left: 4px solid #4CAF50;
+    }
+    
+    .timeline-expense {
+        border-left: 4px solid #F44336;
+    }
+    
+    .timeline-amount {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .timeline-description {
+        margin-bottom: 10px;
+    }
+    
+    .timeline-category {
+        font-size: 0.85rem;
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background-color: rgba(var(--bs-primary-rgb), 0.1);
+    }
+    
+    /* Mobile responsiveness */
+    @media screen and (max-width: 600px) {
+        .timeline::before {
+            left: 31px;
+        }
+        .timeline-container {
+            width: 100%;
+            padding-left: 70px;
+            padding-right: 25px;
+        }
+        .timeline-container.right,
+        .timeline-container.left {
+            left: 0;
+        }
+        .timeline-container.left::after,
+        .timeline-container.right::after {
+            left: 22px;
+        }
+        .timeline-container.left .timeline-content::before,
+        .timeline-container.right .timeline-content::before {
+            left: 60px;
+            border-color: transparent var(--bs-body-bg) transparent transparent;
+        }
+    }
+    
+    /* Dark Mode Support */
+    body.dark-theme .timeline-container::after {
+        background-color: #333;
+    }
+    body.dark-theme .timeline-container.left .timeline-content::before {
+        border-color: transparent transparent transparent #2d2d2d;
+    }
+    body.dark-theme .timeline-container.right .timeline-content::before {
+        border-color: transparent #2d2d2d transparent transparent;
+    }
+    body.dark-theme .timeline-content {
+        background-color: #2d2d2d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-scroller">
+    <div class="container-fluid page-body-wrapper">
+        <nav class="sidebar sidebar-offcanvas" id="sidebar">
+            <ul class="nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard' %}">
+                        <i class="mdi mdi-view-dashboard menu-icon"></i>
+                        <span class="menu-title">Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'query_transactions' %}">
+                        <i class="mdi mdi-magnify menu-icon"></i>
+                        <span class="menu-title">Query Transactions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'manage_subscriptions' %}">
+                        <i class="mdi mdi-calendar-clock menu-icon"></i>
+                        <span class="menu-title">Subscriptions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'transaction_calendar' %}">
+                        <i class="mdi mdi-calendar-month menu-icon"></i>
+                        <span class="menu-title">Calendar View</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'transaction_timeline' %}">
+                        <i class="mdi mdi-timeline menu-icon"></i>
+                        <span class="menu-title">Timeline View</span>
+                    </a>
+                </li>         
+            </ul>
+        </nav>
+
+        <div class="main-panel">
+            <div class="content-wrapper">
+                <div class="row">
+                    <div class="col-12 grid-margin stretch-card">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h2 class="card-title mb-0">Transaction Timeline</h2>
+                                    
+                                    <!-- View toggle buttons -->
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">List View</a>
+                                        <a href="{% url 'transaction_calendar' %}" class="btn btn-outline-primary">Calendar</a>
+                                        <a href="{% url 'transaction_timeline' %}" class="btn btn-primary">Timeline</a>
+                                    </div>
+                                </div>
+                                
+                                <div class="timeline">
+                                    {% for transaction in transactions %}
+                                    <div class="timeline-container {% cycle 'left' 'right' %}">
+                                        <div class="timeline-content timeline-{% if transaction.transaction_type == 'income' %}income{% else %}expense{% endif %}">
+                                            <div class="timeline-date">{{ transaction.date }}</div>
+                                            <div class="timeline-amount {% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                                {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                                            </div>
+                                            <div class="timeline-description">{{ transaction.description }}</div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="timeline-category">{{ transaction.category.name|default:"Uncategorized" }}</div>
+                                                <div class="timeline-actions">
+                                                    <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="mdi mdi-pencil"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div class="text-muted mt-2 small">
+                                                <i class="mdi mdi-bank"></i> {{ transaction.account.account_number|default:"No Account" }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-center py-5">
+                                        <i class="mdi mdi-alert-circle-outline text-muted" style="font-size: 48px;"></i>
+                                        <p class="mt-2">No transactions found</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Back button -->
+                                <div class="mt-4">
+                                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                        <i class="mdi mdi-arrow-left me-2"></i>Back to Dashboard
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

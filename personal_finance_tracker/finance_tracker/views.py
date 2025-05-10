@@ -587,3 +587,62 @@ def update_theme_preference(request):
         request.user.save()
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error', 'message': 'Invalid theme'}, status=400)
+
+        
+@login_required
+def transaction_calendar(request):
+    """
+    Renders a calendar view of transactions for the logged-in user.
+    
+    - Prepares transaction data for display in a calendar format
+    - Passes the data as JSON for the JavaScript calendar library
+    
+    Args:
+        request (HttpRequest): The HTTP request object.
+        
+    Returns:
+        HttpResponse: The rendered calendar view page.
+    """
+    transactions = Transaction.objects.filter(user=request.user).select_related('account', 'category').order_by('-date')
+    
+    # Prepare transaction data for the calendar
+    transaction_data = []
+    for t in transactions:
+        transaction_data.append({
+            'id': t.id,
+            'date': t.date.strftime('%Y-%m-%d'),
+            'description': t.description or f"{t.get_transaction_type_display()} transaction",
+            'amount': float(t.amount),
+            'transaction_type': t.transaction_type,
+            'category_name': t.category.name if t.category else 'Uncategorized',
+            'account_number': t.account.account_number if t.account else 'N/A',
+            'account_type': t.account.get_account_type_display() if t.account else 'N/A',
+            'account_balance': float(t.account.balance) if t.account else 0.0
+        })
+
+    print(f"Sending {(transaction_data)} transactions to calendar view")
+
+    
+    return render(request, 'finance_tracker/transaction_calendar.html', {
+        'transaction_data': transaction_data
+    })
+
+
+@login_required
+def transaction_timeline(request):
+    """
+    Renders a timeline view of transactions for the logged-in user.
+    
+    - Displays transactions in chronological order in a visual timeline
+    
+    Args:
+        request (HttpRequest): The HTTP request object.
+        
+    Returns:
+        HttpResponse: The rendered timeline view page.
+    """
+    transactions = Transaction.objects.filter(user=request.user).select_related('account', 'category').order_by('-date')
+    
+    return render(request, 'finance_tracker/transaction_timeline.html', {
+        'transactions': transactions
+    })

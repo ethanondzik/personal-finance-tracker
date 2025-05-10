@@ -97,7 +97,19 @@
                   <i class="mdi mdi-calendar-clock menu-icon"></i>
                   <span class="menu-title">Subscriptions</span>
               </a>
-            </li>      
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'transaction_calendar' %}">
+                  <i class="mdi mdi-calendar-month menu-icon"></i>
+                  <span class="menu-title">Calendar View</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'transaction_timeline' %}">
+                  <i class="mdi mdi-calendar-month menu-icon"></i>
+                  <span class="menu-title">Timeline View</span>
+              </a>
+            </li>         
           </ul>
         </nav>
 
