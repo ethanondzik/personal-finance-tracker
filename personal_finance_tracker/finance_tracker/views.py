@@ -619,9 +619,6 @@ def transaction_calendar(request):
             'account_type': t.account.get_account_type_display() if t.account else 'N/A',
             'account_balance': float(t.account.balance) if t.account else 0.0
         })
-
-    print(f"Sending {(transaction_data)} transactions to calendar view")
-
     
     return render(request, 'finance_tracker/transaction_calendar.html', {
         'transaction_data': transaction_data

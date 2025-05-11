@@ -28,6 +28,7 @@
     <link rel="shortcut icon" href="{% static 'images/favicon.png' %}" />
     
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    {% block extra_css %}{% endblock %}
   </head>
   <body class="with-welcome-text {{ request.theme }}-theme">
     <div class="container-scroller">
