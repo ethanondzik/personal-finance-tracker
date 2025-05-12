@@ -50,6 +50,8 @@ def dashboard(request):
     accounts = Account.objects.filter(user=request.user).values(
         'account_number', 'account_type', 'balance'
     )
+    categories = Category.objects.filter(user=request.user)
+
     
     #Total income and expenses for the logged-in user
     total_income = transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
@@ -108,12 +110,27 @@ def dashboard(request):
     for subscription in upcoming_subscriptions:
         delta = subscription.next_payment_date - today
         subscription.days_until = delta.days
+
+    # Filtering logic
+    tx_type = request.GET.get("type")
+    if tx_type in ("income", "expense"):
+        transactions = transactions.filter(transaction_type=tx_type)
+    category_id = request.GET.get("category")
+    if category_id:
+        transactions = transactions.filter(category_id=category_id)
+    start = request.GET.get("start")
+    if start:
+        transactions = transactions.filter(date__gte=start)
+    end = request.GET.get("end")
+    if end:
+        transactions = transactions.filter(date__lte=end)
     
     # Return the rendered template with ALL context data
     return render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
         'chart_data': chart_data,   
         'accounts': accounts,
+        'categories': categories,
         'upcoming_subscriptions': upcoming_subscriptions,
         'today': today,
     })

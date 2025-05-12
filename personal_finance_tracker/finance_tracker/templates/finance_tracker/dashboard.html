@@ -285,6 +285,44 @@
 
             <!-- Tab Content -->
             <div class="tab-content mt-4">
+              <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="mb-0">Filter Transaction List</h5>
+                </div>
+                <div class="card-body">
+                  <form method="get" class="row g-3" action="{% url 'dashboard' %}#table-view">
+                    <div class="col-md-3">
+                      <label for="filter_type" class="form-label">Type</label>
+                      <select name="type" id="filter_type" class="form-select">
+                        <option value="">All</option>
+                        <option value="income" {% if request.GET.type == "income" %}selected{% endif %}>Income</option>
+                        <option value="expense" {% if request.GET.type == "expense" %}selected{% endif %}>Expense</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filter_category" class="form-label">Category</label>
+                      <select name="category" id="filter_category" class="form-select">
+                        <option value="">All</option>
+                        {% for cat in categories %}
+                          <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filter_start" class="form-label">Start Date</label>
+                      <input type="date" name="start" id="filter_start" class="form-control" value="{{ request.GET.start }}">
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filter_end" class="form-label">End Date</label>
+                      <input type="date" name="end" id="filter_end" class="form-control" value="{{ request.GET.end }}">
+                    </div>
+                    <div class="col-12">
+                      <button type="submit" class="btn btn-primary">Apply Filters</button>
+                      <a href="{% url 'dashboard' %}" class="btn btn-secondary">Reset</a>
+                    </div>
+                  </form>
+                </div>
+              </div>
               <!-- Transactions Table -->
               <div class="tab-pane fade show active" id="table-view" role="tabpanel" aria-labelledby="table-tab">
                 <div class="row">
