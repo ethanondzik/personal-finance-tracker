@@ -5,6 +5,16 @@
     <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 900px;">
         <h2 class="card-title text-center mb-4">Query Transactions</h2>
 
+        <div class="alert alert-info mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1">Enable Notifications</h5>
+                    <p class="mb-0">Get notified about important financial events.</p>
+                </div>
+                <button id="enable-notifications" class="btn btn-outline-primary">Enable Notifications</button>
+            </div>
+        </div>
+
         <!-- Query Form Card -->
         <div class="card border-primary mb-4">
             <div class="card-header bg-primary text-white text-center">
@@ -250,5 +260,54 @@
         });
     });
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if notifications are supported
+        const notificationBtn = document.getElementById('enable-notifications');
+        
+        if (notificationBtn) {
+            if (!window.NotificationManager || !window.NotificationManager.isSupported()) {
+                notificationBtn.textContent = 'Notifications Not Supported';
+                notificationBtn.disabled = true;
+                return;
+            }
+            
+            // Update button state based on permission
+            updateNotificationButtonState();
+            
+            // Handle notification button click
+            notificationBtn.addEventListener('click', function() {
+                window.NotificationManager.requestPermission(function(granted) {
+                    updateNotificationButtonState();
+                    if (granted) {
+                        // Show a test notification
+                        window.NotificationManager.show('Notifications Enabled', {
+                            body: 'You will now receive notifications for important financial events.',
+                            icon: '/static/images/favicon.png'
+                        });
+                    }
+                });
+            });
+        }
+        
+        // Update button state
+        function updateNotificationButtonState() {
+            if (Notification.permission === 'granted') {
+                notificationBtn.textContent = 'Notifications Enabled';
+                notificationBtn.classList.remove('btn-outline-primary');
+                notificationBtn.classList.add('btn-success');
+            } else if (Notification.permission === 'denied') {
+                notificationBtn.textContent = 'Notifications Blocked';
+                notificationBtn.classList.remove('btn-outline-primary');
+                notificationBtn.classList.add('btn-danger');
+                notificationBtn.disabled = true;
+            } else {
+                notificationBtn.textContent = 'Enable Notifications';
+            }
+        }
+    });
+</script>
+
 <script src="{% static 'js/theme-toggle.js' %}"></script>
 {% endblock %}

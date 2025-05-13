@@ -22,4 +22,5 @@ urlpatterns = [
     path('update-theme-preference/', views.update_theme_preference, name='update_theme_preference'),
     path('transactions/calendar/', views.transaction_calendar, name='transaction_calendar'),
     path('transactions/timeline/', views.transaction_timeline, name='transaction_timeline'),
+    path('notifications/', views.notification_settings, name='notification_settings'),
 ]

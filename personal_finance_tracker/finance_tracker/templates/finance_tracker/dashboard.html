@@ -109,6 +109,12 @@
                   <i class="mdi mdi-calendar-month menu-icon"></i>
                   <span class="menu-title">Timeline View</span>
               </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'notification_settings' %}">
+                <i class="mdi mdi-bell menu-icon"></i>
+                <span class="menu-title">Notifications</span>
+              </a>
             </li>         
           </ul>
         </nav>
@@ -456,9 +462,119 @@
     <script src="{% static 'js/greetings.js' %}"></script>
     <script src="{% static 'js/scroll_to_top.js' %}"></script>
     <script src="{% static 'js/theme-toggle.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
 
     <!-- Chart Data -->
     {{ chart_data|json_script:"chart-data" }}
+
+    <script>
+      // Show notification for upcoming subscription payment
+      function notifySubscriptionDue(subscription) {
+        if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('subscription')) {
+          // Get user preference for days threshold (default to 3)
+          const daysThreshold = parseInt(localStorage.getItem('subscription_days') || '3', 10);
+          
+          // Only notify if within threshold
+          if (subscription.days_until <= daysThreshold) {
+            window.NotificationManager.show('Subscription Payment Due Soon', {
+              body: `${subscription.name} payment of $${subscription.amount} due in ${subscription.days_until} days`,
+              requireInteraction: true,
+              tag: `subscription-${subscription.id}`, // Prevents duplicate notifications
+              onclick: function() {
+                window.location.href = '/manage-subscriptions/';
+              }
+            });
+          }
+        }
+      }
+
+      // For low balance warning
+      function checkAccountBalances() {
+        if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('balance')) {
+          const threshold = parseFloat(localStorage.getItem('balance_threshold') || '100');
+          const accounts = JSON.parse(document.getElementById('accounts-data').textContent || '[]');
+          
+          accounts.forEach(account => {
+            if (parseFloat(account.balance) < threshold) {
+              window.NotificationManager.show('Low Account Balance', {
+                body: `Your ${account.account_type} account ${account.account_number} balance is below $${threshold}.`,
+                requireInteraction: true,
+                tag: `low-balance-${account.id}`,
+                onclick: function() {
+                  window.location.href = '/manage-bank-accounts/';
+                }
+              });
+            }
+          });
+        }
+      }
+
+      // For budget limit warning
+      function checkBudgetLimits() {
+        if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('budget')) {
+          const percentage = parseInt(localStorage.getItem('budget_percentage') || '75', 10);
+          const categories = JSON.parse(document.getElementById('budget-data').textContent || '[]');
+          
+          categories.forEach(category => {
+            if (category.budget && category.spent) {
+              const spentPercentage = (category.spent / category.budget) * 100;
+              if (spentPercentage >= percentage) {
+                window.NotificationManager.show('Budget Limit Warning', {
+                  body: `You've spent ${spentPercentage.toFixed(1)}% of your budget for ${category.name}.`,
+                  requireInteraction: false,
+                  tag: `budget-${category.id}`,
+                  onclick: function() {
+                    window.location.href = '/query-transactions/?category=' + category.id;
+                  }
+                });
+              }
+            }
+          });
+        }
+      }
+
+      // Pass upcoming subscriptions data to JS
+      document.addEventListener('DOMContentLoaded', function() {
+        // Get subscription data if available
+        const subscriptionsElement = document.getElementById('upcoming-subscriptions-data');
+        if (subscriptionsElement) {
+          const upcomingSubscriptions = JSON.parse(subscriptionsElement.textContent || '[]');
+          upcomingSubscriptions.forEach(subscription => {
+            notifySubscriptionDue(subscription);
+          });
+        }
+        
+        // Check account balances when page loads
+        checkAccountBalances();
+        
+        // Check budget limits when page loads
+        checkBudgetLimits();
+      });
+
+    </script>
     
+    {{ request.session.show_large_transaction_notification|json_script:"notification-data" }}
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const notificationEl = document.getElementById('notification-data');
+        if (notificationEl) {
+          try {
+            const notif = JSON.parse(notificationEl.textContent);
+            var threshold = parseFloat(localStorage.getItem('transaction_threshold') || '100');
+            
+            if (notif.amount >= threshold && window.NotificationManager && window.NotificationManager.isNotificationEnabled('transaction')) {
+              window.NotificationManager.show('Large Transaction Added', {
+                body: `A new transaction of $${notif.amount} was added: ${notif.description}`,
+                icon: '/static/images/favicon.png',
+                tag: `large-transaction-${notif.id}`
+              });
+            }
+          } catch(e) {
+            console.error('Error showing notification:', e);
+          }
+        }
+      });
+    </script>
   </body>
 </html>

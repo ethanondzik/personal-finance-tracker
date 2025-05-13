@@ -1,0 +1,273 @@
+{% extends "authenticated_base.html" %}
+{% load static %}
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-scroller">
+  <div class="container-fluid page-body-wrapper">
+    <div class="main-panel">
+      <div class="content-wrapper">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h2 class="card-title mb-0">Notification Settings</h2>
+            </div>
+
+            <div class="alert alert-info mb-4">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="mb-1">Browser Notifications</h5>
+                  <p class="mb-0">Enable notifications to stay informed about important financial events.</p>
+                </div>
+                <button id="enable-notifications" class="btn btn-outline-primary">Loading...</button>
+              </div>
+            </div>
+
+            <div class="card border-primary mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Configure Notifications</h5>
+              </div>
+              <div class="card-body">
+                <p class="text-muted mb-4">Choose which notifications you want to receive:</p>
+                
+                <div class="list-group">
+                  <!-- Subscription notifications -->
+                  <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-1">Subscription Payment Reminders</h6>
+                        <p class="text-muted mb-0 small">Get notified when subscription payments are due soon</p>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="subscription-notifications" checked>
+                      </div>
+                    </div>
+                    <div class="mt-3">
+                      <label class="form-label">Days before to notify:</label>
+                      <select id="subscription-days" class="form-select">
+                        <option value="1">1 day before</option>
+                        <option value="3" selected>3 days before</option>
+                        <option value="5">5 days before</option>
+                        <option value="7">7 days before</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Low balance notifications -->
+                  <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-1">Low Balance Alerts</h6>
+                        <p class="text-muted mb-0 small">Get notified when your account balance falls below a threshold</p>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="balance-notifications" checked>
+                      </div>
+                    </div>
+                    <div class="mt-3">
+                      <label class="form-label">Threshold amount:</label>
+                      <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" id="balance-threshold" class="form-control" value="100" min="0" step="10">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Budget limit notifications -->
+                  <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-1">Budget Limit Alerts</h6>
+                        <p class="text-muted mb-0 small">Get notified when you're approaching your category spending limits</p>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="budget-notifications" checked>
+                      </div>
+                    </div>
+                    <div class="mt-3">
+                      <label class="form-label">Notify when reaching:</label>
+                      <select id="budget-percentage" class="form-select">
+                        <option value="50">50% of budget</option>
+                        <option value="75" selected>75% of budget</option>
+                        <option value="90">90% of budget</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Transaction notifications -->
+                  <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-1">New Transaction Alerts</h6>
+                        <p class="text-muted mb-0 small">Get notified when a new large transaction is added</p>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="transaction-notifications" checked>
+                      </div>
+                    </div>
+                    <div class="mt-3">
+                      <label class="form-label">Minimum amount:</label>
+                      <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" id="transaction-threshold" class="form-control" value="100" min="0" step="10">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <button id="save-settings" class="btn btn-primary">Save Settings</button>
+              <button id="test-notification" class="btn btn-secondary ms-2">Test Notification</button>
+              <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary ms-2">Back to Dashboard</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if notifications are supported
+    const notificationBtn = document.getElementById('enable-notifications');
+    const testBtn = document.getElementById('test-notification');
+    const saveBtn = document.getElementById('save-settings');
+    
+    // Load previous settings
+    loadNotificationSettings();
+    
+    if (!window.NotificationManager || !window.NotificationManager.isSupported()) {
+      notificationBtn.textContent = 'Notifications Not Supported';
+      notificationBtn.disabled = true;
+      testBtn.disabled = true;
+      return;
+    }
+    
+    // Update button state based on permission
+    updateNotificationButtonState();
+    
+    // Handle notification button click
+    notificationBtn.addEventListener('click', function() {
+      window.NotificationManager.requestPermission(function(granted) {
+        updateNotificationButtonState();
+        if (granted) {
+          window.NotificationManager.show('Notifications Enabled', {
+            body: 'You will now receive notifications for important financial events.',
+            icon: '/static/images/favicon.png'
+          });
+        }
+      });
+    });
+    
+    // Handle test button click
+    testBtn.addEventListener('click', function() {
+      if (window.NotificationManager && Notification.permission === 'granted') {
+        window.NotificationManager.show('Test Notification', {
+          body: 'This is a test notification from Personal Finance Tracker.',
+          icon: '/static/images/favicon.png'
+        });
+      } else {
+        alert('Please enable notifications first');
+      }
+    });
+    
+    // Handle save button click
+    saveBtn.addEventListener('click', function() {
+      saveNotificationSettings();
+      
+      // Show confirmation
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+      
+      Toast.fire({
+        icon: 'success',
+        title: 'Notification settings saved successfully!'
+      });
+    });
+    
+    // Update button state
+    function updateNotificationButtonState() {
+      if (Notification.permission === 'granted') {
+        notificationBtn.textContent = 'Notifications Enabled';
+        notificationBtn.classList.remove('btn-outline-primary');
+        notificationBtn.classList.add('btn-success');
+      } else if (Notification.permission === 'denied') {
+        notificationBtn.textContent = 'Notifications Blocked';
+        notificationBtn.classList.remove('btn-outline-primary');
+        notificationBtn.classList.add('btn-danger');
+        notificationBtn.disabled = true;
+      } else {
+        notificationBtn.textContent = 'Enable Notifications';
+      }
+    }
+    
+    // Save settings to localStorage
+    function saveNotificationSettings() {
+      if (!window.NotificationManager) return;
+      
+      // Subscription notifications
+      window.NotificationManager.setNotificationPreference('subscription', 
+        document.getElementById('subscription-notifications').checked);
+      localStorage.setItem('subscription_days', 
+        document.getElementById('subscription-days').value);
+      
+      // Balance notifications
+      window.NotificationManager.setNotificationPreference('balance', 
+        document.getElementById('balance-notifications').checked);
+      localStorage.setItem('balance_threshold', 
+        document.getElementById('balance-threshold').value);
+      
+      // Budget notifications
+      window.NotificationManager.setNotificationPreference('budget', 
+        document.getElementById('budget-notifications').checked);
+      localStorage.setItem('budget_percentage', 
+        document.getElementById('budget-percentage').value);
+      
+      // Transaction notifications
+      window.NotificationManager.setNotificationPreference('transaction', 
+        document.getElementById('transaction-notifications').checked);
+      localStorage.setItem('transaction_threshold', 
+        document.getElementById('transaction-threshold').value);
+    }
+    
+    // Load settings from localStorage
+    function loadNotificationSettings() {
+      if (!window.NotificationManager) return;
+      
+      // Subscription notifications
+      document.getElementById('subscription-notifications').checked = 
+        window.NotificationManager.isNotificationEnabled('subscription');
+      const subDays = localStorage.getItem('subscription_days') || '3';
+      document.getElementById('subscription-days').value = subDays;
+      
+      // Balance notifications
+      document.getElementById('balance-notifications').checked = 
+        window.NotificationManager.isNotificationEnabled('balance');
+      const balThreshold = localStorage.getItem('balance_threshold') || '100';
+      document.getElementById('balance-threshold').value = balThreshold;
+      
+      // Budget notifications
+      document.getElementById('budget-notifications').checked = 
+        window.NotificationManager.isNotificationEnabled('budget');
+      const budgetPct = localStorage.getItem('budget_percentage') || '75';
+      document.getElementById('budget-percentage').value = budgetPct;
+      
+      // Transaction notifications
+      document.getElementById('transaction-notifications').checked = 
+        window.NotificationManager.isNotificationEnabled('transaction');
+      const txThreshold = localStorage.getItem('transaction_threshold') || '100';
+      document.getElementById('transaction-threshold').value = txThreshold;
+    }
+  });
+</script>
+{% endblock %}

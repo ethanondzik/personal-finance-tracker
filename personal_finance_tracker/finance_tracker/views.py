@@ -126,7 +126,7 @@ def dashboard(request):
         transactions = transactions.filter(date__lte=end)
     
     # Return the rendered template with ALL context data
-    return render(request, 'finance_tracker/dashboard.html', {
+    response = render(request, 'finance_tracker/dashboard.html', {
         'transactions': transactions,
         'chart_data': chart_data,   
         'accounts': accounts,
@@ -134,6 +134,11 @@ def dashboard(request):
         'upcoming_subscriptions': upcoming_subscriptions,
         'today': today,
     })
+
+    # Clear the notification flag after rendering
+    if 'show_large_transaction_notification' in request.session:
+        del request.session['show_large_transaction_notification']
+    return response
 
 @login_required
 def add_transaction(request):
@@ -157,6 +162,18 @@ def add_transaction(request):
             transaction.user = request.user
             transaction.save()
             messages.success(request, "Transaction added successfully!")
+
+            try:
+                threshold = float(request.POST.get('transaction_threshold', 100))
+            except ValueError:
+                threshold = 100
+            if float(transaction.amount) >= threshold:
+                request.session['show_large_transaction_notification'] = {
+                    'amount': float(transaction.amount),
+                    'description': transaction.description,
+                    'id': transaction.id
+                }
+            
             return redirect('dashboard')
     else:
         form = TransactionForm(user=request.user)
@@ -660,3 +677,19 @@ def transaction_timeline(request):
     return render(request, 'finance_tracker/transaction_timeline.html', {
         'transactions': transactions
     })
+
+
+@login_required
+def notification_settings(request):
+    """
+    Renders the notification settings page.
+    
+    Allows the user to configure their notification preferences.
+    
+    Args:
+        request (HttpRequest): The HTTP request object.
+        
+    Returns:
+        HttpResponse: The rendered notification settings page.
+    """
+    return render(request, 'finance_tracker/notification_settings.html')
