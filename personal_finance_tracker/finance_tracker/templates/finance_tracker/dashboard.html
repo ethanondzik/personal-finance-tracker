@@ -467,6 +467,8 @@
     <!-- Chart Data -->
     {{ chart_data|json_script:"chart-data" }}
 
+    {{ accounts|json_script:"accounts-data" }}
+
     <script>
       // Show notification for upcoming subscription payment
       function notifySubscriptionDue(subscription) {
@@ -493,19 +495,34 @@
         if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('balance')) {
           const threshold = parseFloat(localStorage.getItem('balance_threshold') || '100');
           const accounts = JSON.parse(document.getElementById('accounts-data').textContent || '[]');
-          
+          // Get or initialize the notified accounts list
+          let notified = JSON.parse(localStorage.getItem('low_balance_notified') || '[]');
+
           accounts.forEach(account => {
-            if (parseFloat(account.balance) < threshold) {
+            const accountId = account.account_number; // Use a unique identifier (account_number or id)
+            const balance = parseFloat(account.balance);
+
+            // If below threshold and not already notified, show notification and add to notified list
+            if (balance < threshold && !notified.includes(accountId)) {
               window.NotificationManager.show('Low Account Balance', {
                 body: `Your ${account.account_type} account ${account.account_number} balance is below $${threshold}.`,
                 requireInteraction: true,
-                tag: `low-balance-${account.id}`,
+                tag: `low-balance-${accountId}`,
                 onclick: function() {
                   window.location.href = '/manage-bank-accounts/';
                 }
               });
+              notified.push(accountId);
+            }
+
+            // If balance is now above threshold and was previously notified, remove from notified list
+            if (balance >= threshold && notified.includes(accountId)) {
+              notified = notified.filter(id => id !== accountId);
             }
           });
+
+          // Save the updated notified list
+          localStorage.setItem('low_balance_notified', JSON.stringify(notified));
         }
       }
 

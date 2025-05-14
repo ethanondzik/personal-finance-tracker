@@ -47,9 +47,9 @@ def dashboard(request):
 
     #Shows all income and all expenses on the same day for each day
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
-    accounts = Account.objects.filter(user=request.user).values(
+    accounts = list(Account.objects.filter(user=request.user).values(
         'account_number', 'account_type', 'balance'
-    )
+    ))
     categories = Category.objects.filter(user=request.user)
 
     
