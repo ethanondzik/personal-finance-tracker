@@ -115,7 +115,13 @@
                 <i class="mdi mdi-bell menu-icon"></i>
                 <span class="menu-title">Notifications</span>
               </a>
-            </li>         
+            </li> 
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'manage_budgets' %}">
+                <i class="mdi mdi-cash-multiple menu-icon"></i>
+                <span class="menu-title">Budgets</span>
+              </a>
+            </li>        
           </ul>
         </nav>
 
@@ -283,6 +289,55 @@
                           </div>
                         </div>
                       </div>
+                      <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                          <h5 class="mb-0">Budgets</h5>
+                        </div>
+                        <div class="card-body">
+                          <table class="table table-bordered mb-0">
+                            <thead>
+                              <tr>
+                                <th>Category</th>
+                                <th>Budgeted</th>
+                                <th>Spent</th>
+                                <th>Remaining</th>
+                                <th>Progress</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for b in budget_data %}
+                              <tr>
+                                <td>{{ b.name }}</td>
+                                <td>${{ b.budget|floatformat:2 }}</td>
+                                <td>${{ b.spent|floatformat:2 }}</td>
+                                <td>${{ b.remaining|floatformat:2 }}</td>
+                                <td>
+                                  <div class="progress" style="height: 18px;">
+                                    <div class="progress-bar
+                                      {% if b.spent > b.budget %}bg-danger
+                                      {% elif b.progress > 0.75 %}bg-warning
+                                      {% else %}bg-success
+                                      {% endif %}"
+                                      role="progressbar"
+                                      style="width: {% widthratio b.spent b.budget 100 %}%;"
+                                      aria-valuenow="{% widthratio b.spent b.budget 100 %}"
+                                      aria-valuemin="0" aria-valuemax="100">
+                                      {{ b.spent|floatformat:2 }}/{{ b.budget|floatformat:2 }}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                              {% empty %}
+                              <tr>
+                                <td colspan="5" class="text-center text-muted">No budgets set.</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      
+                      {{ budget_data|json_script:"budget-data" }}
                     </div>
                   </div>
                 </div>

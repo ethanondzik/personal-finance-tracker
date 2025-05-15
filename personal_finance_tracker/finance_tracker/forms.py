@@ -1,5 +1,5 @@
 from django import forms
-from .models import Transaction, Account, Category, User, Subscription
+from .models import Transaction, Account, Category, User, Subscription, Budget
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
@@ -436,3 +436,15 @@ class SubscriptionForm(forms.ModelForm):
         if billing_date < 1 or billing_date > 31:
             raise forms.ValidationError("Billing date must be between 1 and 31.")
         return billing_date
+    
+
+class BudgetForm(forms.ModelForm):
+    class Meta:
+        model = Budget
+        fields = ['category', 'amount', 'period']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['category'].queryset = Category.objects.filter(user=user, type='expense')

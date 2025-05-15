@@ -384,6 +384,22 @@ class Subscription(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.get_frequency_display()}: ${self.amount})"
+    
+
+class Budget(models.Model):
+    PERIOD_CHOICES = [
+        ('monthly', 'Monthly'),
+        ('weekly', 'Weekly'),
+        ('yearly', 'Yearly'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    period = models.CharField(max_length=10, choices=PERIOD_CHOICES, default='monthly')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.category.name} - {self.amount} ({self.period})"
 
 
 #implement the following models in the future...

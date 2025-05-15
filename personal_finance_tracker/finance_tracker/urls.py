@@ -23,4 +23,6 @@ urlpatterns = [
     path('transactions/calendar/', views.transaction_calendar, name='transaction_calendar'),
     path('transactions/timeline/', views.transaction_timeline, name='transaction_timeline'),
     path('notifications/', views.notification_settings, name='notification_settings'),
+    path('manage-budgets/', views.manage_budgets, name='manage_budgets'),
+
 ]

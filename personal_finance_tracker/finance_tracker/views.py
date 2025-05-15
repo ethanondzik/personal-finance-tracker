@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from .models import Transaction, Account, Category, Subscription
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm
+from .models import Transaction, Account, Category, Subscription, Budget
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
@@ -124,6 +124,29 @@ def dashboard(request):
     end = request.GET.get("end")
     if end:
         transactions = transactions.filter(date__lte=end)
+
+    budgets = Budget.objects.filter(user=request.user)
+    first_of_month = today.replace(day=1)
+
+    budget_data = []
+    
+    for budget in budgets:
+        spent = Transaction.objects.filter(
+            user=request.user,
+            category=budget.category,
+            date__gte=first_of_month,  # for monthly budgets
+            date__lte=today,
+            transaction_type='expense'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        progress = float(spent) / float(budget.amount) if budget.amount else 0
+        budget_data.append({
+            'id': budget.category.id,
+            'name': budget.category.name,
+            'budget': float(budget.amount),
+            'spent': float(spent),
+            'progress': progress,
+            'remaining': float(budget.amount) - float(spent),
+        })
     
     # Return the rendered template with ALL context data
     response = render(request, 'finance_tracker/dashboard.html', {
@@ -133,6 +156,7 @@ def dashboard(request):
         'categories': categories,
         'upcoming_subscriptions': upcoming_subscriptions,
         'today': today,
+        'budget_data': budget_data
     })
 
     # Clear the notification flag after rendering
@@ -693,3 +717,29 @@ def notification_settings(request):
         HttpResponse: The rendered notification settings page.
     """
     return render(request, 'finance_tracker/notification_settings.html')
+
+
+
+
+@login_required
+def manage_budgets(request):
+    budgets = Budget.objects.filter(user=request.user).select_related('category')
+    if request.method == 'POST':
+        if 'delete_budget' in request.POST:
+            budget_id = request.POST.get('budget_id')
+            Budget.objects.filter(id=budget_id, user=request.user).delete()
+            messages.success(request, "Budget deleted successfully!")
+            return redirect('manage_budgets')
+        else:
+            form = BudgetForm(request.POST, user=request.user)
+            form.instance.user = request.user
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Budget saved successfully!")
+                return redirect('manage_budgets')
+    else:
+        form = BudgetForm(user=request.user)
+    return render(request, 'finance_tracker/manage_budgets.html', {
+        'budgets': budgets,
+        'form': form,
+    })
