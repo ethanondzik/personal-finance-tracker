@@ -144,7 +144,7 @@ def dashboard(request):
             'name': budget.category.name,
             'budget': float(budget.amount),
             'spent': float(spent),
-            'progress': progress,
+            'progress': progress * 100,
             'remaining': float(budget.amount) - float(spent),
         })
     

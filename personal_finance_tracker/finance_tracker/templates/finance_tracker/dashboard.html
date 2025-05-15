@@ -312,18 +312,23 @@
                                 <td>${{ b.spent|floatformat:2 }}</td>
                                 <td>${{ b.remaining|floatformat:2 }}</td>
                                 <td>
-                                  <div class="progress" style="height: 18px;">
-                                    <div class="progress-bar
-                                      {% if b.spent > b.budget %}bg-danger
-                                      {% elif b.progress > 0.75 %}bg-warning
-                                      {% else %}bg-success
-                                      {% endif %}"
-                                      role="progressbar"
-                                      style="width: {% widthratio b.spent b.budget 100 %}%;"
-                                      aria-valuenow="{% widthratio b.spent b.budget 100 %}"
-                                      aria-valuemin="0" aria-valuemax="100">
-                                      {{ b.spent|floatformat:2 }}/{{ b.budget|floatformat:2 }}
+                                  <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1" style="height: 18px; min-width: 80px;">
+                                      <div class="progress-bar
+                                        {% if b.spent > b.budget %}bg-danger
+                                        {% elif b.progress > 75 %}bg-warning
+                                        {% else %}bg-success
+                                        {% endif %}"
+                                        role="progressbar"
+                                        style="width: {% widthratio b.spent b.budget 100 %}%;"
+                                        aria-valuenow="{% widthratio b.spent b.budget 100 %}"
+                                        aria-valuemin="0" aria-valuemax="100">
+                                      </div>
                                     </div>
+                                    <span class="ms-2 small">
+                                      {{ b.spent|floatformat:2 }}/{{ b.budget|floatformat:2 }}
+                                      ({{ b.progress|floatformat:0 }}%)
+                                    </span>
                                   </div>
                                 </td>
                               </tr>
