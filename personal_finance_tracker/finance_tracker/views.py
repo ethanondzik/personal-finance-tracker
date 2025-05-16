@@ -13,6 +13,7 @@ from django.db.models.functions import TruncMonth
 from decimal import Decimal
 from django.utils import timezone
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 
 
 
@@ -491,9 +492,15 @@ def query_transactions(request):
             transactions = transactions.filter(method=transaction_method)
         
 
+    # Pagination
+    transactions = transactions.order_by('-date', '-id')
+
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
     return render(request, "finance_tracker/query_transactions.html", {
         "form": form,
-        "transactions": transactions,
+        "transactions": transactions_page,
     })
 
 

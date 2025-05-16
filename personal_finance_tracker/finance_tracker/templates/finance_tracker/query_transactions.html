@@ -5,7 +5,7 @@
     <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 900px;">
         <h2 class="card-title text-center mb-4">Query Transactions</h2>
 
-        <div class="alert alert-info mb-4">
+        <!-- <div class="alert alert-info mb-4">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h5 class="mb-1">Enable Notifications</h5>
@@ -13,7 +13,7 @@
                 </div>
                 <button id="enable-notifications" class="btn btn-outline-primary">Enable Notifications</button>
             </div>
-        </div>
+        </div> -->
 
         <!-- Query Form Card -->
         <div class="card border-primary mb-4">
@@ -128,6 +128,54 @@
                             {% endfor %}
                         </tbody>
                     </table>
+
+                    <!-- Pagination Controls -->
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center pagination-lg">
+                          {% if transactions.has_previous %}
+                            <li class="page-item">
+                              <a class="page-link rect-page-link" href="?page={{ transactions.previous_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}" aria-label="Previous">
+                                <span aria-hidden="true"><i class="mdi mdi-chevron-left"></i></span>
+                              </a>
+                            </li>
+                          {% else %}
+                            <li class="page-item disabled">
+                              <span class="page-link rect-page-link"><i class="mdi mdi-chevron-left"></i></span>
+                            </li>
+                          {% endif %}
+                      
+                          {% for num in transactions.paginator.page_range %}
+                            {% if num == transactions.number %}
+                              <li class="page-item active">
+                                <span class="page-link rect-page-link bg-primary border-primary text-white">{{ num }}</span>
+                              </li>
+                            {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
+                              <li class="page-item">
+                                <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">{{ num }}</a>
+                              </li>
+                            {% elif num == 1 or num == transactions.paginator.num_pages %}
+                              <li class="page-item">
+                                <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">{{ num }}</a>
+                              </li>
+                              {% if num < transactions.number|add:'-3' or num > transactions.number|add:'3' %}
+                                <li class="page-item disabled"><span class="page-link rect-page-link">…</span></li>
+                              {% endif %}
+                            {% endif %}
+                          {% endfor %}
+                      
+                          {% if transactions.has_next %}
+                            <li class="page-item">
+                              <a class="page-link rect-page-link" href="?page={{ transactions.next_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}" aria-label="Next">
+                                <span aria-hidden="true"><i class="mdi mdi-chevron-right"></i></span>
+                              </a>
+                            </li>
+                          {% else %}
+                            <li class="page-item disabled">
+                              <span class="page-link rect-page-link"><i class="mdi mdi-chevron-right"></i></span>
+                            </li>
+                          {% endif %}
+                        </ul>
+                      </nav>
                 </div>
             </div>
         </div>
@@ -141,6 +189,34 @@
     </div>
 </div>
 
+<!-- For pagination styling -->
+<style>
+    .rect-page-link {
+      border-radius: 4px !important;
+      margin: 0 2px;
+      min-width: 44px;
+      text-align: center;
+      font-weight: 500;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      transition: background 0.2s, color 0.2s;
+    }
+    .pagination-lg .rect-page-link {
+      font-size: 1.1rem;
+      padding: 0.75rem 1.25rem;
+    }
+    .page-item.active .rect-page-link,
+    .rect-page-link.bg-primary {
+      background: var(--bs-primary, #4B49AC) !important;
+      color: #fff !important;
+      border-color: var(--bs-primary, #4B49AC) !important;
+    }
+    .rect-page-link:focus {
+      box-shadow: 0 0 0 2px #b3b3ff;
+    }
+</style>
+
+
+<!-- For table styling -->
 <style>
     .collapse {
         display: none;
@@ -261,7 +337,7 @@
     });
 </script>
 
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Check if notifications are supported
         const notificationBtn = document.getElementById('enable-notifications');
@@ -307,7 +383,7 @@
             }
         }
     });
-</script>
+</script> -->
 
 <script src="{% static 'js/theme-toggle.js' %}"></script>
 {% endblock %}
