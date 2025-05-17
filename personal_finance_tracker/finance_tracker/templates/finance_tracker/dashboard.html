@@ -294,51 +294,53 @@
                           <h5 class="mb-0">Budgets</h5>
                         </div>
                         <div class="card-body">
-                          <table class="table table-bordered mb-0">
-                            <thead>
-                              <tr>
-                                <th>Category</th>
-                                <th>Budgeted</th>
-                                <th>Spent</th>
-                                <th>Remaining</th>
-                                <th>Progress</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {% for b in budget_data %}
-                              <tr>
-                                <td>{{ b.name }}</td>
-                                <td>${{ b.budget|floatformat:2 }}</td>
-                                <td>${{ b.spent|floatformat:2 }}</td>
-                                <td>${{ b.remaining|floatformat:2 }}</td>
-                                <td>
-                                  <div class="d-flex align-items-center">
-                                    <div class="progress flex-grow-1" style="height: 18px; min-width: 80px;">
-                                      <div class="progress-bar
-                                        {% if b.spent > b.budget %}bg-danger
-                                        {% elif b.progress > 75 %}bg-warning
-                                        {% else %}bg-success
-                                        {% endif %}"
-                                        role="progressbar"
-                                        style="width: {% widthratio b.spent b.budget 100 %}%;"
-                                        aria-valuenow="{% widthratio b.spent b.budget 100 %}"
-                                        aria-valuemin="0" aria-valuemax="100">
+                          <div class="table-responsive">
+                            <table class="table table-bordered mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Category</th>
+                                  <th>Budgeted</th>
+                                  <th>Spent</th>
+                                  <th>Remaining</th>
+                                  <th>Progress</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for b in budget_data %}
+                                <tr>
+                                  <td>{{ b.name }}</td>
+                                  <td>${{ b.budget|floatformat:2 }}</td>
+                                  <td>${{ b.spent|floatformat:2 }}</td>
+                                  <td>${{ b.remaining|floatformat:2 }}</td>
+                                  <td>
+                                    <div class="d-flex align-items-center">
+                                      <div class="progress flex-grow-1" style="height: 18px; min-width: 80px;">
+                                        <div class="progress-bar
+                                          {% if b.spent > b.budget %}bg-danger
+                                          {% elif b.progress > 75 %}bg-warning
+                                          {% else %}bg-success
+                                          {% endif %}"
+                                          role="progressbar"
+                                          style="width: {% widthratio b.spent b.budget 100 %}%;"
+                                          aria-valuenow="{% widthratio b.spent b.budget 100 %}"
+                                          aria-valuemin="0" aria-valuemax="100">
+                                        </div>
                                       </div>
+                                      <span class="ms-2 small">
+                                        {{ b.spent|floatformat:2 }}/{{ b.budget|floatformat:2 }}
+                                        ({{ b.progress|floatformat:0 }}%)
+                                      </span>
                                     </div>
-                                    <span class="ms-2 small">
-                                      {{ b.spent|floatformat:2 }}/{{ b.budget|floatformat:2 }}
-                                      ({{ b.progress|floatformat:0 }}%)
-                                    </span>
-                                  </div>
-                                </td>
-                              </tr>
-                              {% empty %}
-                              <tr>
-                                <td colspan="5" class="text-center text-muted">No budgets set.</td>
-                              </tr>
-                              {% endfor %}
-                            </tbody>
-                          </table>
+                                  </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                  <td colspan="5" class="text-center text-muted">No budgets set.</td>
+                                </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                       
@@ -456,11 +458,59 @@
                           <!-- Add a hidden input to include the 'confirm' key for the delete view-->
                           <input type="hidden" name="confirm" value="true">
                         </form>
+                        
                         <div class="d-flex mt-3">
                           <a href="{% url 'add_transaction' %}" class="btn btn-primary ms-3">Add Transaction</a>
                           <a href="{% url 'upload_transactions' %}" class="btn btn-secondary ms-3">Upload CSV</a>
                           <button type="button" id="delete-selected-btn" class="btn btn-danger ms-3" onclick="prepareDeleteMultiple()">Delete Selected</button>
                         </div>
+                        <!-- Pagination Controls -->
+                        <nav aria-label="Page navigation" class="mt-4">
+                          <ul class="pagination justify-content-center pagination-lg">
+                            {% if transactions.has_previous %}
+                              <li class="page-item">
+                                <a class="page-link rect-page-link" href="?page={{ transactions.previous_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view" aria-label="Previous">
+                                  <span aria-hidden="true"><i class="mdi mdi-chevron-left"></i></span>
+                                </a>
+                              </li>
+                            {% else %}
+                              <li class="page-item disabled">
+                                <span class="page-link rect-page-link"><i class="mdi mdi-chevron-left"></i></span>
+                              </li>
+                            {% endif %}
+                        
+                            {% for num in transactions.paginator.page_range %}
+                              {% if num == transactions.number %}
+                                <li class="page-item active">
+                                  <span class="page-link rect-page-link bg-primary border-primary text-white">{{ num }}</span>
+                                </li>
+                              {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
+                                <li class="page-item">
+                                  <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view">{{ num }}</a>
+                                </li>
+                              {% elif num == 1 or num == transactions.paginator.num_pages %}
+                                <li class="page-item">
+                                  <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view">{{ num }}</a>
+                                </li>
+                                {% if num < transactions.number|add:'-3' or num > transactions.number|add:'3' %}
+                                  <li class="page-item disabled"><span class="page-link rect-page-link">…</span></li>
+                                {% endif %}
+                              {% endif %}
+                            {% endfor %}
+                        
+                            {% if transactions.has_next %}
+                              <li class="page-item">
+                                <a class="page-link rect-page-link" href="?page={{ transactions.next_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view" aria-label="Next">
+                                  <span aria-hidden="true"><i class="mdi mdi-chevron-right"></i></span>
+                                </a>
+                              </li>
+                            {% else %}
+                              <li class="page-item disabled">
+                                <span class="page-link rect-page-link"><i class="mdi mdi-chevron-right"></i></span>
+                              </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
                       </div>
                     </div>
                   </div>

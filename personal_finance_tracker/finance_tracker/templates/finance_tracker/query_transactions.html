@@ -76,7 +76,7 @@
             <div class="card-header bg-secondary text-white text-center">
                 <h5 class="mb-0">Search Results</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="table-view">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-light">
@@ -134,7 +134,7 @@
                         <ul class="pagination justify-content-center pagination-lg">
                           {% if transactions.has_previous %}
                             <li class="page-item">
-                              <a class="page-link rect-page-link" href="?page={{ transactions.previous_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}" aria-label="Previous">
+                              <a class="page-link rect-page-link" href="?page={{ transactions.previous_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view" aria-label="Previous">
                                 <span aria-hidden="true"><i class="mdi mdi-chevron-left"></i></span>
                               </a>
                             </li>
@@ -151,11 +151,11 @@
                               </li>
                             {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
                               <li class="page-item">
-                                <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">{{ num }}</a>
+                                <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view">{{ num }}</a>
                               </li>
                             {% elif num == 1 or num == transactions.paginator.num_pages %}
                               <li class="page-item">
-                                <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}">{{ num }}</a>
+                                <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view">{{ num }}</a>
                               </li>
                               {% if num < transactions.number|add:'-3' or num > transactions.number|add:'3' %}
                                 <li class="page-item disabled"><span class="page-link rect-page-link">…</span></li>
@@ -165,7 +165,7 @@
                       
                           {% if transactions.has_next %}
                             <li class="page-item">
-                              <a class="page-link rect-page-link" href="?page={{ transactions.next_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}" aria-label="Next">
+                              <a class="page-link rect-page-link" href="?page={{ transactions.next_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view" aria-label="Next">
                                 <span aria-hidden="true"><i class="mdi mdi-chevron-right"></i></span>
                               </a>
                             </li>

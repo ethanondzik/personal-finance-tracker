@@ -148,10 +148,15 @@ def dashboard(request):
             'progress': progress * 100,
             'remaining': float(budget.amount) - float(spent),
         })
+
+    # Pagination
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
     
     # Return the rendered template with ALL context data
     response = render(request, 'finance_tracker/dashboard.html', {
-        'transactions': transactions,
+        'transactions': transactions_page,
         'chart_data': chart_data,   
         'accounts': accounts,
         'categories': categories,
