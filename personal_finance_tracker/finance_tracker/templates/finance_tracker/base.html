@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Fixed light theme for unauthenticated pages -->
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{% static 'images/favicon-32x32.png' %}"/>
     <title>Finance Tracker</title>
     
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
@@ -14,7 +14,6 @@
     {% block content %}{% endblock %}
     
     <!-- Base scripts -->
-    <script src="{% static 'js/jquery-3.6.0.min.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
