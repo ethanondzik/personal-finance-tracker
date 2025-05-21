@@ -37,11 +37,13 @@
                         <td>${{ budget.amount|floatformat:2 }}</td>
                         <td>{{ budget.get_period_display }}</td>
                         <td>
-                            <form method="post" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="budget_id" value="{{ budget.id }}">
-                                <button type="submit" name="delete_budget" class="btn btn-danger btn-sm">Delete</button>
-                            </form>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteModal"
+                                data-budget-id="{{ budget.id }}"
+                                data-budget-category="{{ budget.category.name }}">
+                                <i class="mdi mdi-delete"></i> Delete
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -52,8 +54,18 @@
             {% endif %}
         </div>
 
-        <!-- Add Budget Form -->
-        <div class="card border-primary mt-4">
+        <!-- Buttons -->
+        <div class="d-flex flex-column gap-3 align-items-center mt-4">
+            <button id="show-form-btn" class="btn btn-primary w-75">
+                <i class="mdi mdi-bank-plus me-2"></i>Add New Budget
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+            </a>
+        </div>
+
+        <!-- Add Budget Form (hidden by default) -->
+        <div id="add-budget-form-container" class="card border-primary mt-4" style="display: none;">
             <div class="card-header bg-primary text-white text-center">
                 <h5 class="mb-0">Add New Budget</h5>
             </div>
@@ -68,11 +80,64 @@
             </div>
         </div>
 
-        <div class="d-flex flex-column gap-3 align-items-center mt-4">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
-                <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
-            </a>
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to delete the budget for <strong id="modal-category-name"></strong>?
+                    </div>
+                    <div class="modal-footer">
+                        <form method="post" action="{% url 'manage_budgets' %}" id="delete-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="budget_id" id="modal-budget-id">
+                            <button type="submit" name="delete_budget" class="btn btn-danger">Delete</button>
+                        </form>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const showFormButton = document.getElementById('show-form-btn');
+    const formContainer = document.getElementById('add-budget-form-container');
+    const deleteModal = document.getElementById('deleteModal');
+    const modalCategoryName = document.getElementById('modal-category-name');
+    const modalBudgetId = document.getElementById('modal-budget-id');
+
+    // Hide form by default, show on button click
+    showFormButton.addEventListener('click', function () {
+        if (formContainer.style.display === 'none' || formContainer.style.display === '') {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        } else {
+            formContainer.style.display = 'none';
+            showFormButton.textContent = 'Add New Budget';
+        }
+    });
+
+    // Show form if there are validation errors
+    if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+        formContainer.style.display = 'block';
+        showFormButton.textContent = 'Hide Form';
+    }
+
+    // Populate modal with budget info
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const budgetId = button.getAttribute('data-budget-id');
+        const categoryName = button.getAttribute('data-budget-category');
+        modalCategoryName.textContent = categoryName;
+        modalBudgetId.value = budgetId;
+    });
+});
+</script>
 {% endblock %}
