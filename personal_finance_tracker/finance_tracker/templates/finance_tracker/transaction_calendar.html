@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         // Update the edit link
-        document.getElementById('editTransactionLink').href = `/update-transaction/${transaction.transactionId}/`;
+        document.getElementById('editTransactionLink').href = `/update_transaction/${transaction.transactionId}/?next={% url 'transaction_calendar' %}`;
         
         // Show the modal
         const modal = new bootstrap.Modal(document.getElementById('transactionDetailsModal'));

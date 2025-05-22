@@ -267,18 +267,21 @@ def update_transaction(request, transaction_id):
         HttpResponseRedirect: Redirects to the dashboard if the transaction is successfully updated.
     """
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+    next_url = request.GET.get('next') or request.POST.get('next')
 
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=transaction)
         if form.is_valid():
             form.save()
+            if next_url:
+                return redirect(next_url)
             return redirect('dashboard')
         else:
             messages.error(request, "Error updating transaction. Please try again.")
     else:
         form = TransactionForm(instance=transaction)
 
-    return render(request, 'finance_tracker/update_transaction.html', {'form': form, 'transaction': transaction})
+    return render(request, 'finance_tracker/update_transaction.html', {'form': form, 'transaction': transaction, 'next': next_url})
 
 
 
