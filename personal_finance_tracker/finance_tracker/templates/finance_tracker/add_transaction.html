@@ -20,6 +20,9 @@
 
                         <form method="post" action="{% url 'add_transaction' %}">
                             {% csrf_token %}
+                            {% if next %}
+                                <input type="hidden" name="next" value="{{ next }}">
+                            {% endif %}
                             {% for field in form %}
                             <div class="form-group">
                                 <label for="{{ field.id_for_label }}">
@@ -43,9 +46,15 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="mdi mdi-content-save me-2"></i>Add Transaction
                                 </button>
-                                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-                                    <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
-                                </a>
+                                {% if next == '/transactions/calendar/' %}
+                                    <a href="{{ next }}" class="btn btn-outline-secondary">
+                                        <i class="mdi mdi-arrow-left me-2"></i>Return to Calendar
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                        <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+                                    </a>
+                                {% endif %}
                             </div>
                         </form>
                     </div>

@@ -185,7 +185,14 @@ def add_transaction(request):
         HttpResponse: The rendered add transaction page with the form.
         HttpResponseRedirect: Redirects to the dashboard if the transaction is successfully added.
     """
+    initial = {}
+    if 'date' in request.GET:
+        initial['date'] = request.GET['date']
+    
+    next_url = request.GET.get('next') or request.POST.get('next')
+
     if request.method == 'POST':
+        
         form = TransactionForm(request.POST, user=request.user)
         if form.is_valid():
             transaction = form.save(commit=False)
@@ -204,10 +211,12 @@ def add_transaction(request):
                     'id': transaction.id
                 }
             
+            if next_url:
+                return redirect(next_url)
             return redirect('dashboard')
     else:
-        form = TransactionForm(user=request.user)
-    return render(request, 'finance_tracker/add_transaction.html', {'form': form})
+        form = TransactionForm(user=request.user, initial=initial)
+    return render(request, 'finance_tracker/add_transaction.html', {'form': form, 'next': next_url})
     
 
 def register(request):
