@@ -3,129 +3,142 @@
 
 {% block extra_css %}
 <style>
-.timeline-horizontal {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  overflow-x: auto;
-  padding: 40px 0 60px 0;
-}
-.timeline-track {
-  display: flex;
-  align-items: center;
-  position: relative;
-  width: 100%;
-  min-width: 800px;
-  margin-bottom: 40px;
-}
-.timeline-dot {
-  width: 24px;
-  height: 24px;
-  background: var(--bs-primary, #1F3BB3);
-  border-radius: 50%;
-  border: 4px solid #fff;
-  box-shadow: 0 0 0 4px rgba(31,59,179,0.15);
-  z-index: 2;
-  transition: background 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.timeline-dot.income {
-  background: #4CAF50;
-  box-shadow: 0 0 0 4px rgba(76,175,80,0.15);
-}
-.timeline-dot.expense {
-  background: #F44336;
-  box-shadow: 0 0 0 4px rgba(244,67,54,0.15);
-}
-.timeline-line {
-  flex: 1;
-  height: 4px;
-  background: #e0e0e0;
-  margin: 0 0.5rem;
-  z-index: 1;
-}
+  /* Page layout: Prevent vertical scroll on the main content area for this page */
+  .main-panel > .content-wrapper {
+    overflow-y: hidden;
+    height: calc(100vh - 70px); /* Adjust 70px based on your actual navbar height */
+    display: flex;
+    flex-direction: column;
+  }
 
-.timeline-bubble {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.timeline-bubble:focus-within .timeline-card,
-.timeline-bubble:hover .timeline-card {
-  opacity: 1;
-  pointer-events: auto;
-}
-.timeline-card {
-  position: absolute;
-  top: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 220px;
-  max-width: 320px;
-  background: var(--bs-body-bg, #fff);
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-  padding: 1rem 1.25rem;
-  text-align: left;
-  transition: box-shadow 0.2s, opacity 0.2s;
-  border: 1px solid #e0e0e0;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-.timeline-horizontal {
-    overflow: visible !important;
-}
-.card-body {
-    overflow: visible !important;
-}
-.timeline-date {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--bs-primary, #1F3BB3);
-  margin-bottom: 0.5rem;
-}
-.timeline-amount {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-}
-.timeline-amount.income { color: #4CAF50; }
-.timeline-amount.expense { color: #F44336; }
-.timeline-description {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-.timeline-meta {
-  font-size: 0.9rem;
-  color: #888;
-  margin-bottom: 0.25rem;
-}
-.timeline-category {
-  display: inline-block;
-  background: #f0f4ff;
-  color: #1F3BB3;
-  border-radius: 8px;
-  padding: 2px 10px;
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
-}
-body.dark-theme .timeline-card {
-  background: #232323;
-  color: #e1e1e1;
-  border: 1px solid #444;
-}
-body.dark-theme .timeline-line {
-  background: #444;
-}
-body.dark-theme .timeline-category {
-  background: #1F3BB3;
-  color: #fff;
-}
+  .timeline-view-header {
+    padding: 0 1.5rem; /* Match typical content-wrapper padding */
+    flex-shrink: 0; /* Header should not shrink */
+  }
+
+  /* Horizontal Scrolling Card Timeline */
+  .horizontal-card-timeline-wrapper {
+    flex-grow: 1; /* Takes up available vertical space */
+    overflow-x: auto; /* Enables horizontal scrolling */
+    overflow-y: hidden; /* Prevents vertical scroll within this wrapper */
+    padding: 20px;
+    background-color: var(--bs-tertiary-bg, #f8f9fa); /* Light background for the scroll area */
+    border-radius: var(--bs-border-radius, 0.375rem);
+    margin: 0 1.5rem 1.5rem 1.5rem; /* Match typical content-wrapper padding */
+  }
+
+  .horizontal-card-track {
+    display: inline-flex; /* Allows track to be as wide as its content, enabling scroll */
+    gap: 20px; /* Space between cards */
+    padding-bottom: 15px; /* Space for scrollbar if it overlaps content */
+    min-height: 100%; /* Ensures track fills vertical space if cards are short */
+  }
+
+  .transaction-card-horizontal {
+    flex: 0 0 auto; /* Card doesn't shrink or grow, uses its defined width */
+    width: 320px; /* Fixed width for each card */
+    background: var(--bs-card-bg, #fff);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: var(--bs-card-border-radius, 0.5rem);
+    box-shadow: var(--bs-box-shadow-sm, 0 .125rem .25rem rgba(0,0,0,.075));
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  }
+  .transaction-card-horizontal:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--bs-box-shadow, 0 .5rem 1rem rgba(0,0,0,.15));
+  }
+
+  .card-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent, rgba(0,0,0,0.125));
+  }
+  .card-date {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color, #6c757d);
+  }
+  .card-type-icon .mdi {
+    font-size: 1.5rem;
+  }
+  .card-type-icon.income .mdi { color: var(--bs-success, #198754); }
+  .card-type-icon.expense .mdi { color: var(--bs-danger, #dc3545); }
+
+  .card-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .card-amount.income { color: var(--bs-success, #198754); }
+  .card-amount.expense { color: var(--bs-danger, #dc3545); }
+
+  .card-description {
+    font-size: 1rem;
+    color: var(--bs-body-color);
+    margin-bottom: 0.75rem;
+    flex-grow: 1; /* Allows description to take available space */
+    line-height: 1.4;
+  }
+  .card-category .badge {
+    font-size: 0.8rem;
+    padding: 0.4em 0.7em;
+  }
+  .card-account {
+    font-size: 0.85rem;
+    color: var(--bs-secondary-color, #6c757d);
+    margin-top: 0.75rem;
+  }
+  .card-account .mdi {
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .card-edit-btn {
+    margin-top: 1.25rem;
+    align-self: flex-start; /* Aligns button to the left */
+  }
+
+  .empty-timeline-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    color: var(--bs-secondary-color, #6c757d);
+  }
+  .empty-timeline-message .mdi {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Dark Theme Adjustments */
+  body.dark-theme .horizontal-card-timeline-wrapper {
+    background-color: #232323; /* Slightly different from main dark bg for contrast */
+  }
+  body.dark-theme .transaction-card-horizontal {
+    background: #2a2a2e;
+    border-color: #444;
+  }
+  body.dark-theme .card-header-flex {
+    border-bottom-color: #444;
+  }
+  body.dark-theme .card-date,
+  body.dark-theme .card-account {
+    color: #aaa;
+  }
+  body.dark-theme .card-description {
+    color: #ccc;
+  }
+  body.dark-theme .card-category .badge.bg-secondary { /* Ensure good contrast for default secondary badge */
+    background-color: var(--bs-gray-600, #6c757d) !important;
+    color: #fff !important;
+  }
 </style>
 {% endblock %}
 
@@ -133,69 +146,87 @@ body.dark-theme .timeline-category {
 <div class="container-scroller">
   <div class="container-fluid page-body-wrapper">
     <div class="main-panel">
-      <div class="content-wrapper">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h2 class="card-title mb-0">Transaction Timeline</h2>
-              <div class="btn-group" role="group">
-                <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">List View</a>
-                <a href="{% url 'transaction_calendar' %}" class="btn btn-outline-primary">Calendar</a>
-                <a href="{% url 'transaction_timeline' %}" class="btn btn-primary">Timeline</a>
-              </div>
-            </div>
-            <div class="timeline-horizontal">
-              <div class="timeline-track">
-                {% for transaction in transactions %}
-                  {% if not forloop.first %}
-                    <div class="timeline-line"></div>
-                  {% endif %}
-                  <div class="timeline-bubble">
-                    <div tabindex="0"
-                         class="timeline-dot {% if transaction.transaction_type == 'income' %}income{% else %}expense{% endif %}"
-                         aria-label="Transaction on {{ transaction.date }}">
-                      <i class="mdi {% if transaction.transaction_type == 'income' %}mdi-arrow-down-bold-circle{% else %}mdi-arrow-up-bold-circle{% endif %}" style="color:#fff;font-size:1.2rem;"></i>
-                    </div>
-                    <div class="timeline-card">
-                      <div class="timeline-date">{{ transaction.date }}</div>
-                      <div class="timeline-amount {% if transaction.transaction_type == 'income' %}income{% else %}expense{% endif %}">
-                        {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
-                      </div>
-                      <div class="timeline-description">{{ transaction.description }}</div>
-                      <div class="timeline-category">{{ transaction.category.name|default:"Uncategorized" }}</div>
-                      <div class="timeline-meta">
-                        <i class="mdi mdi-bank"></i> {{ transaction.account.account_number|default:"No Account" }}
-                      </div>
-                      <div class="timeline-meta">
-                        <i class="mdi mdi-wallet"></i> {{ transaction.account.get_account_type_display|default:"N/A" }}
-                      </div>
-                      <div class="timeline-meta">
-                        <i class="mdi mdi-cash"></i> Balance: ${{ transaction.account.balance|floatformat:2|default:"0.00" }}
-                      </div>
-                      <div class="timeline-meta mt-2">
-                        <a href="{% url 'update_transaction' transaction.id %}" class="btn btn-sm btn-outline-primary">
-                          <i class="mdi mdi-pencil"></i> Edit
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                {% empty %}
-                  <div class="text-center py-5">
-                    <i class="mdi mdi-alert-circle-outline text-muted" style="font-size: 48px;"></i>
-                    <p class="mt-2">No transactions found</p>
-                  </div>
-                {% endfor %}
-              </div>
-            </div>
-            <div class="mt-4">
-              <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-                <i class="mdi mdi-arrow-left me-2"></i>Back to Dashboard
-              </a>
-            </div>
+      <div class="content-wrapper"> <!-- This div is styled for no vertical page scroll -->
+
+        <div class="timeline-view-header d-flex justify-content-between align-items-center mb-4">
+          <h2 class="card-title mb-0">Transaction Timeline</h2>
+          <div class="btn-group" role="group">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">List View</a>
+            <a href="{% url 'transaction_calendar' %}" class="btn btn-outline-primary">Calendar</a>
+            <a href="{% url 'transaction_timeline' %}" class="btn btn-primary">Timeline</a>
           </div>
         </div>
+
+        <div class="horizontal-card-timeline-wrapper">
+          {% if transactions %}
+            <div class="horizontal-card-track">
+              {% for transaction in transactions %}
+              <div class="transaction-card-horizontal">
+                <div class="card-header-flex">
+                  <span class="card-date">{{ transaction.date|date:"M j, Y" }}</span>
+                  <span class="card-type-icon {% if transaction.transaction_type == 'income' %}income{% else %}expense{% endif %}">
+                    <i class="mdi {% if transaction.transaction_type == 'income' %}mdi-arrow-down-bold-circle{% else %}mdi-arrow-up-bold-circle{% endif %}"></i>
+                  </span>
+                </div>
+                <div class="card-amount {% if transaction.transaction_type == 'income' %}income{% else %}expense{% endif %}">
+                  {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}${{ transaction.amount|floatformat:2 }}
+                </div>
+                <p class="card-description"><strong>{{ transaction.description|default:"No description" }}</strong></p>
+                <div class="card-category mb-2">
+                  <span class="badge {% if transaction.category.color %}bg-{{ transaction.category.color }}{% else %}bg-secondary{% endif %} text-dark-emphasis">
+                    {{ transaction.category.name|default:"Uncategorized" }}
+                  </span>
+                </div>
+                {% if transaction.account %}
+                <p class="card-account small mb-0">
+                  <i class="mdi mdi-bank"></i> {{ transaction.account.name|default_if_none:"" }} ({{ transaction.account.account_number|truncatechars:4|default_if_none:"" }})
+                  <br><i class="mdi mdi-wallet"></i> {{ transaction.account.get_account_type_display|default_if_none:"" }}
+                </p>
+                {% endif %}
+                <a href="{% url 'update_transaction' transaction.id %}?next={% url 'transaction_timeline' %}" class="btn btn-sm btn-outline-info card-edit-btn">
+                  <i class="mdi mdi-pencil"></i> Edit
+                </a>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-timeline-message">
+              <i class="mdi mdi-text-box-multiple-outline"></i>
+              <p class="fs-5">No transactions to display on the timeline.</p>
+              <a href="{% url 'add_transaction' %}" class="btn btn-primary mt-2">
+                <i class="mdi mdi-plus-circle-outline me-2"></i>Add Transaction
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="mt-3 text-center" style="flex-shrink: 0;"> <!-- Footer controls -->
+          <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+            <i class="mdi mdi-arrow-left me-2"></i>Back to Dashboard
+          </a>
+        </div>
+
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Transaction Details Modal -->
+<div class="modal fade" id="transactionDetailsModal" tabindex="-1" aria-labelledby="transactionDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="transactionDetailsModalLabel">Transaction Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="transactionDetailsContent">
+              <!-- Transaction details will be loaded here -->
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <a href="#" id="editTransactionLink" class="btn btn-primary">Edit Transaction</a>
+          </div>
+      </div>
   </div>
 </div>
 {% endblock %}
