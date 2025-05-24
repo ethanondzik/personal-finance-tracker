@@ -51,6 +51,10 @@
                                     <a href="{{ next }}" class="btn btn-outline-secondary">
                                         <i class="mdi mdi-arrow-left me-2"></i>Return to Calendar
                                     </a>
+                                {% elif next == '/transactions/timeline/' %}
+                                    <a href="{{ next }}" class="btn btn-outline-secondary">
+                                        <i class="mdi mdi-arrow-left me-2"></i>Back to Timeline
+                                    </a>
                                 {% else %}
                                     <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
                                         <i class="mdi mdi-arrow-left me-2"></i>Back to Dashboard

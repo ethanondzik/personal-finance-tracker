@@ -721,9 +721,24 @@ def transaction_timeline(request):
         HttpResponse: The rendered timeline view page.
     """
     transactions = Transaction.objects.filter(user=request.user).select_related('account', 'category').order_by('-date')
+
+    transaction_data = []
+    for t in transactions:
+        transaction_data.append({
+            'id': t.id,
+            'date': t.date.strftime('%Y-%m-%d'),
+            'description': t.description or f"{t.get_transaction_type_display()} transaction",
+            'amount': float(t.amount),
+            'transaction_type': t.transaction_type,
+            'category_name': t.category.name if t.category else 'Uncategorized',
+            'account_number': t.account.account_number if t.account else 'N/A',
+            'account_type': t.account.get_account_type_display() if t.account else 'N/A',
+            'account_balance': float(t.account.balance) if t.account else 0.0
+        })
     
     return render(request, 'finance_tracker/transaction_timeline.html', {
-        'transactions': transactions
+        'transactions': transactions,
+        'transaction_data': transaction_data,
     })
 
 

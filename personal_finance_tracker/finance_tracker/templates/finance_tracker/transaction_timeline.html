@@ -18,7 +18,6 @@
 
   /* Horizontal Scrolling Card Timeline */
   .horizontal-card-timeline-wrapper {
-    flex-grow: 1; /* Takes up available vertical space */
     overflow-x: auto; /* Enables horizontal scrolling */
     overflow-y: hidden; /* Prevents vertical scroll within this wrapper */
     padding: 20px;
@@ -31,7 +30,6 @@
     display: inline-flex; /* Allows track to be as wide as its content, enabling scroll */
     gap: 20px; /* Space between cards */
     padding-bottom: 15px; /* Space for scrollbar if it overlaps content */
-    min-height: 100%; /* Ensures track fills vertical space if cards are short */
   }
 
   .transaction-card-horizontal {
@@ -82,7 +80,6 @@
     font-size: 1rem;
     color: var(--bs-body-color);
     margin-bottom: 0.75rem;
-    flex-grow: 1; /* Allows description to take available space */
     line-height: 1.4;
   }
   .card-category .badge {
@@ -161,7 +158,7 @@
           {% if transactions %}
             <div class="horizontal-card-track">
               {% for transaction in transactions %}
-              <div class="transaction-card-horizontal">
+              <div class="transaction-card-horizontal" data-transaction-id="{{ transaction.id }}">
                 <div class="card-header-flex">
                   <span class="card-date">{{ transaction.date|date:"M j, Y" }}</span>
                   <span class="card-type-icon {% if transaction.transaction_type == 'income' %}income{% else %}expense{% endif %}">
@@ -179,7 +176,7 @@
                 </div>
                 {% if transaction.account %}
                 <p class="card-account small mb-0">
-                  <i class="mdi mdi-bank"></i> {{ transaction.account.name|default_if_none:"" }} ({{ transaction.account.account_number|truncatechars:4|default_if_none:"" }})
+                  <i class="mdi mdi-bank"></i> {{ transaction.account.name|default_if_none:"" }} ({{ transaction.account.account_number|default_if_none:"" }})
                   <br><i class="mdi mdi-wallet"></i> {{ transaction.account.get_account_type_display|default_if_none:"" }}
                 </p>
                 {% endif %}
@@ -229,4 +226,50 @@
       </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      // Parse the transaction data passed from the view
+      const transactions = JSON.parse(document.getElementById('timeline-transaction-data').textContent || '[]');
+  
+      // Attach click event to each transaction card
+      document.querySelectorAll('.transaction-card-horizontal').forEach(card => {
+          card.addEventListener('click', function() {
+              const transactionId = this.getAttribute('data-transaction-id');
+              const transaction = transactions.find(t => t.id == transactionId);
+              if (transaction) {
+                  showTransactionDetails(transaction);
+              }
+          });
+      });
+  
+      function showTransactionDetails(transaction) {
+        const detailsContent = document.getElementById('transactionDetailsContent');
+        const typeDisplay = transaction.transaction_type.charAt(0).toUpperCase() + transaction.transaction_type.slice(1);
+        const amountFormatted = Number(transaction.amount).toFixed(2);
+        // account_balance is already a float from the view, or 0.0 if N/A
+        const accountBalanceFormatted = transaction.account_balance !== null ? Number(transaction.account_balance).toFixed(2) : 'N/A';
+
+        detailsContent.innerHTML = `
+            <div>
+                <p><strong>Date:</strong> ${transaction.date}</p>
+                <p><strong>Description:</strong> ${transaction.description || 'N/A'}</p>
+                <p><strong>Amount:</strong> $${amountFormatted}</p>
+                <p><strong>Type:</strong> ${typeDisplay}</p>
+                <p><strong>Category:</strong> ${transaction.category_name || 'N/A'}</p>
+                <p><strong>Account:</strong> ${transaction.account_number || 'N/A'}</p>
+                <p><strong>Account Type:</strong> ${transaction.account_type || 'N/A'}</p> <!-- This is already display_name from view -->
+                <p><strong>Account Balance:</strong> $${accountBalanceFormatted}</p>
+            </div>
+        `;
+        
+        document.getElementById('editTransactionLink').href = `{% url 'update_transaction' 0 %}`.replace('0', transaction.id) + `?next={% url 'transaction_timeline' %}`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('transactionDetailsModal'));
+        modal.show();
+      }
+  });
+</script>
+
+{{ transaction_data|json_script:"timeline-transaction-data" }}
 {% endblock %}
