@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from .models import Transaction, Account, Category, Subscription, Budget
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm
+from .models import Transaction, Account, Category, Subscription, Budget, CustomNotification
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm, CustomNotificationForm
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
@@ -153,6 +153,14 @@ def dashboard(request):
     paginator = Paginator(transactions, 20)
     page_number = request.GET.get('page')
     transactions_page = paginator.get_page(page_number)
+
+    user_custom_notifications = CustomNotification.objects.filter(user=request.user, enabled=True)
+    
+    # Prepare custom notifications data for JSON script
+    # We need category_id and potentially category_name if the rule applies to a specific category
+    custom_notifications_data = list(user_custom_notifications.values(
+        'id', 'type', 'title', 'message', 'threshold', 'category_id', 'category__name'
+    ))
     
     # Return the rendered template with ALL context data
     response = render(request, 'finance_tracker/dashboard.html', {
@@ -162,7 +170,8 @@ def dashboard(request):
         'categories': categories,
         'upcoming_subscriptions': upcoming_subscriptions,
         'today': today,
-        'budget_data': budget_data
+        'budget_data': budget_data,
+        'user_custom_notifications': custom_notifications_data,
     })
 
     # Clear the notification flag after rendering
@@ -755,10 +764,65 @@ def notification_settings(request):
     Returns:
         HttpResponse: The rendered notification settings page.
     """
-    return render(request, 'finance_tracker/notification_settings.html')
+    custom_notifications_list = CustomNotification.objects.filter(user=request.user).order_by('-created_at')
+    
+    if request.method == 'POST':
+        # Check if this POST request is for the custom notification form
+        if 'form_type' in request.POST and request.POST['form_type'] == 'custom_notification':
+            custom_form = CustomNotificationForm(request.POST, user=request.user)
+            if custom_form.is_valid():
+                notif = custom_form.save(commit=False)
+                notif.user = request.user
+                notif.save()
+                messages.success(request, 'Custom notification rule added successfully.')
+                return redirect('notification_settings') # Redirect to the same page
+            else:
+                messages.error(request, 'Please correct the errors in the custom rule form.')
+                # Pass the form with errors back to the template
+                return render(request, 'finance_tracker/notification_settings.html', {
+                    'custom_notification_form': custom_form, # form with errors
+                    'custom_notifications_list': custom_notifications_list
+                })
+        # Add other POST handling here if general preferences were form-based
+        # For now, general preferences are saved via JS/localStorage
+
+    else: # GET request
+        custom_form = CustomNotificationForm(user=request.user)
+
+    return render(request, 'finance_tracker/notification_settings.html', {
+        'custom_notification_form': custom_form,
+        'custom_notifications_list': custom_notifications_list
+    })
 
 
+# @login_required
+# def manage_notifications(request):
+#     notifications = CustomNotification.objects.filter(user=request.user).order_by('-created_at')
+#     if request.method == 'POST':
+#         form = CustomNotificationForm(request.POST, user=request.user)
+#         if form.is_valid():
+#             notif = form.save(commit=False)
+#             notif.user = request.user
+#             notif.save()
+#             messages.success(request, 'Custom notification rule added successfully.')
+#             return redirect('manage_notifications')
+#         else:
+#             messages.error(request, 'Please correct the errors below.')
+#     else:
+#         form = CustomNotificationForm(user=request.user)
+    
+#     return render(request, 'finance_tracker/manage_notifications.html', {
+#         'form': form,
+#         'notifications': notifications
+#     })
 
+@login_required
+def delete_custom_notification(request, notification_id):
+    notification = get_object_or_404(CustomNotification, id=notification_id, user=request.user)
+    if request.method == 'POST':
+        notification.delete()
+        messages.success(request, 'Custom notification rule deleted.')
+    return redirect('notification_settings')
 
 @login_required
 def manage_budgets(request):

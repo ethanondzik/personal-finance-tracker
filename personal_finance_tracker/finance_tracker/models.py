@@ -402,6 +402,25 @@ class Budget(models.Model):
         return f"{self.user.username} - {self.category.name} - {self.amount} ({self.period})"
 
 
+class CustomNotification(models.Model):
+    NOTIFICATION_TYPE_CHOICES = [
+        ('generic', 'Generic'),
+        ('purchase', 'Purchase Size'),
+        ('balance', 'Account Balance'),
+        ('budget', 'Budget Limit'),
+        ('reminder', 'Reminder'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    type = models.CharField(max_length=20, choices=NOTIFICATION_TYPE_CHOICES, default='generic')
+    title = models.CharField(max_length=100)
+    message = models.TextField(max_length=512)
+    threshold = models.FloatField(null=True, blank=True)  # For limits/reminders
+    category = models.ForeignKey('Category', null=True, blank=True, on_delete=models.SET_NULL)
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    
+
 #implement the following models in the future...
 class Debt(models.Model):
     DEBT_TYPES = [

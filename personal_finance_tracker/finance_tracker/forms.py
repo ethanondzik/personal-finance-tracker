@@ -1,5 +1,5 @@
 from django import forms
-from .models import Transaction, Account, Category, User, Subscription, Budget
+from .models import Transaction, Account, Category, User, Subscription, Budget, CustomNotification
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
@@ -448,3 +448,35 @@ class BudgetForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user:
             self.fields['category'].queryset = Category.objects.filter(user=user, type='expense')
+
+
+class CustomNotificationForm(forms.ModelForm):
+    class Meta:
+        model = CustomNotification
+        fields = ['type', 'title', 'message', 'threshold', 'category', 'enabled']
+        widgets = {
+            'message': forms.Textarea(attrs={'rows': 3}),
+            'type': forms.Select(attrs={'class': 'form-select'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'threshold': forms.NumberInput(attrs={'class': 'form-control'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+        }
+        help_texts = {
+            'threshold': 'Set a monetary value for purchase, balance, or budget percentage for budget type.',
+            'category': 'Optional: Apply this rule only to a specific category.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            # For 'budget' or 'purchase' types, users might want to select from their expense categories.
+            # For other types, category might not be relevant or could be any category.
+            # For simplicity, we'll provide all user categories.
+            # You can refine this based on the 'type' field dynamically in JS if needed.
+            self.fields['category'].queryset = Category.objects.filter(user=user)
+        else:
+            self.fields['category'].queryset = Category.objects.none()
+        
+        self.fields['category'].required = False # Make category explicitly optional
+        self.fields['threshold'].required = False # Make threshold explicitly optional

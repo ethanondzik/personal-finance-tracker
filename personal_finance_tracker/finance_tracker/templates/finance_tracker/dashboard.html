@@ -341,7 +341,7 @@
                         </div>
                       </div>
                       
-                      {{ budget_data|json_script:"budget-data" }}
+                      <!-- {{ budget_data|json_script:"budget-data" }} -->
                     </div>
                   </div>
                 </div>
@@ -558,9 +558,16 @@
     <script src="{% static 'js/notifications.js' %}"></script>
 
     <!-- Chart Data -->
-    {{ chart_data|json_script:"chart-data" }}
+   
 
+
+    <!-- Chart Data & Custom Notifications Data -->
+    {{ chart_data|json_script:"chart-data" }}
+    {{ user_custom_notifications|json_script:"user-custom-notifications-data" }} 
     {{ accounts|json_script:"accounts-data" }}
+    {{ budget_data|json_script:"budget-data" }} 
+    {{ request.session.show_large_transaction_notification|json_script:"notification-data" }} 
+    
 
     <script>
       // Show notification for upcoming subscription payment
@@ -663,27 +670,152 @@
 
     </script>
     
-    {{ request.session.show_large_transaction_notification|json_script:"notification-data" }}
+    <!-- {{ request.session.show_large_transaction_notification|json_script:"notification-data" }} -->
 
     <script>
+      // Custom Notification Check Functions (from previous response)
       document.addEventListener('DOMContentLoaded', function() {
-        const notificationEl = document.getElementById('notification-data');
-        if (notificationEl) {
-          try {
-            const notif = JSON.parse(notificationEl.textContent);
-            var threshold = parseFloat(localStorage.getItem('transaction_threshold') || '100');
-            
-            if (notif.amount >= threshold && window.NotificationManager && window.NotificationManager.isNotificationEnabled('transaction')) {
-              window.NotificationManager.show('Large Transaction Added', {
-                body: `A new transaction of $${notif.amount} was added: ${notif.description}`,
-                icon: '/static/images/favicon.png',
-                tag: `large-transaction-${notif.id}`
-              });
-            }
-          } catch(e) {
-            console.error('Error showing notification:', e);
+          const userCustomNotificationsDataEl = document.getElementById('user-custom-notifications-data');
+          let userCustomNotifications = [];
+          if (userCustomNotificationsDataEl) {
+              try {
+                  userCustomNotifications = JSON.parse(userCustomNotificationsDataEl.textContent || '[]');
+              } catch (e) {
+                  console.error('Error parsing user custom notifications data:', e);
+              }
           }
-        }
+      
+          function showCustomNotificationIfTypeEnabled(notificationRule, type, title, body, options = {}) {
+              if (window.NotificationManager && window.NotificationManager.isNotificationEnabled(type)) {
+                  window.NotificationManager.show(title, {
+                      body: body,
+                      tag: `custom-${type}-${notificationRule.id}-${options.uniqueSuffix || Date.now()}`,
+                      requireInteraction: options.requireInteraction !== undefined ? options.requireInteraction : false,
+                      onclick: options.onclick
+                  });
+              }
+          }
+      
+          function checkGenericCustomNotifications() {
+              if (!userCustomNotifications.length) return;
+              userCustomNotifications.forEach(notif => {
+                  if (notif.type === 'generic' || notif.type === 'reminder') {
+                      showCustomNotificationIfTypeEnabled(notif, notif.type, notif.title, notif.message, {
+                          requireInteraction: notif.type === 'reminder'
+                      });
+                  }
+              });
+          }
+      
+          function checkCustomPurchaseNotifications(transactionData) {
+              if (!userCustomNotifications.length || !transactionData || !transactionData.amount) return; // Added check for transactionData.amount
+              const transactionAmount = parseFloat(transactionData.amount);
+      
+              userCustomNotifications.forEach(notif => {
+                  if (notif.type === 'purchase' && notif.threshold != null) {
+                      const categoryMatch = !notif.category_id || (transactionData.category_id === notif.category_id);
+                      if (transactionAmount >= notif.threshold && categoryMatch) {
+                          let messageBody = `${notif.message} (Transaction: ${transactionData.description || 'N/A'} for $${transactionAmount.toFixed(2)})`;
+                          if(notif.category_name) messageBody += ` in category ${notif.category_name}.`;
+                          
+                          showCustomNotificationIfTypeEnabled(notif, 'purchase', notif.title, messageBody, {
+                              uniqueSuffix: transactionData.id || Date.now(), requireInteraction: true // Ensure transactionData.id exists
+                          });
+                      }
+                  }
+              });
+          }
+      
+          function checkUserDefinedBalanceNotifications() {
+              if (!userCustomNotifications.length) return;
+              const accountsDataEl = document.getElementById('accounts-data');
+              if (!accountsDataEl) return;
+              const accounts = JSON.parse(accountsDataEl.textContent || '[]');
+      
+              userCustomNotifications.forEach(notif => {
+                  if (notif.type === 'balance' && notif.threshold != null) {
+                      accounts.forEach(account => {
+                          const balance = parseFloat(account.balance);
+                          if (balance <= notif.threshold) {
+                              showCustomNotificationIfTypeEnabled(notif, 'balance', notif.title, 
+                                  `${notif.message} (Account: ${account.name || account.account_number} balance is $${balance.toFixed(2)})`, {
+                                  uniqueSuffix: `acc-${account.account_number || account.id}`, requireInteraction: true,
+                                  onclick: function() { window.location.href = "{% url 'manage_bank_accounts' %}"; }
+                              });
+                          }
+                      });
+                  }
+              });
+          }
+      
+          function checkUserDefinedBudgetNotifications() {
+              if (!userCustomNotifications.length) return;
+              const budgetDataEl = document.getElementById('budget-data');
+              if (!budgetDataEl) return;
+              const budgets = JSON.parse(budgetDataEl.textContent || '[]'); 
+      
+              userCustomNotifications.forEach(notif => {
+                  if (notif.type === 'budget' && notif.threshold != null) {
+                      budgets.forEach(budget => { 
+                          if (budget.budget && budget.spent) {
+                              const spentPercentage = (parseFloat(budget.spent) / parseFloat(budget.budget)) * 100;
+                              const categoryMatch = !notif.category_id || (budget.id === notif.category_id); // budget.id is category_id
+      
+                              if (spentPercentage >= notif.threshold && categoryMatch) {
+                                  showCustomNotificationIfTypeEnabled(notif, 'budget', notif.title,
+                                      `${notif.message} (Budget: ${budget.name} is ${spentPercentage.toFixed(1)}% spent)`, {
+                                      uniqueSuffix: `budget-${budget.id}`, requireInteraction: true,
+                                      onclick: function() { window.location.href = "{% url 'manage_budgets' %}"; }
+                                  });
+                              }
+                          }
+                      });
+                  }
+              });
+          }
+      
+          // --- Call Notification Checks ---
+          if (window.NotificationManager && (Notification.permission === 'granted' || Notification.permission === 'default')) {
+              
+              // Call for built-in notifications
+              if (typeof notifySubscriptionDue === 'function') {
+                  const subscriptionsElement = document.getElementById('upcoming-subscriptions-data');
+                  if (subscriptionsElement) {
+                      const upcomingSubscriptions = JSON.parse(subscriptionsElement.textContent || '[]');
+                      upcomingSubscriptions.forEach(subscription => { notifySubscriptionDue(subscription); });
+                  }
+              }
+              if (typeof checkAccountBalances === 'function') checkAccountBalances();
+              if (typeof checkBudgetLimits === 'function') checkBudgetLimits();   
+      
+              // Call for custom notifications
+              checkGenericCustomNotifications();
+              checkUserDefinedBalanceNotifications();
+              checkUserDefinedBudgetNotifications();
+      
+              // For large transaction (built-in) and custom purchase notifications
+              const largeTransactionDataEl = document.getElementById('notification-data');
+              if (largeTransactionDataEl) {
+                  try {
+                      const transactionDataFromSession = JSON.parse(largeTransactionDataEl.textContent); // This is from session
+                      if (transactionDataFromSession && transactionDataFromSession.amount) { 
+                          // Built-in large transaction check
+                          const builtInTxThreshold = parseFloat(localStorage.getItem('transaction_threshold') || '100');
+                          if (transactionDataFromSession.amount >= builtInTxThreshold && window.NotificationManager.isNotificationEnabled('transaction')) {
+                              window.NotificationManager.show('Large Transaction Added', {
+                                  body: `A new transaction of $${transactionDataFromSession.amount.toFixed(2)} was added: ${transactionDataFromSession.description}`,
+                                  icon: "{% static 'images/favicon.png' %}",
+                                  tag: `large-transaction-${transactionDataFromSession.id}`
+                              });
+                          }
+                          // Custom purchase rules check (using the same data from session)
+                          checkCustomPurchaseNotifications(transactionDataFromSession);
+                      }
+                  } catch (e) {
+                      console.error('Error processing large transaction/custom purchase notification data:', e);
+                  }
+              }
+          }
       });
     </script>
   </body>
