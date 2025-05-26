@@ -453,30 +453,50 @@ class BudgetForm(forms.ModelForm):
 class CustomNotificationForm(forms.ModelForm):
     class Meta:
         model = CustomNotification
-        fields = ['type', 'title', 'message', 'threshold', 'category', 'enabled']
+        fields = ['type', 'title', 'message', 'threshold', 'category', 'notification_datetime', 'recurrence_interval', 'enabled']
         widgets = {
-            'message': forms.Textarea(attrs={'rows': 3}),
+            'message': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'threshold': forms.NumberInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
+            'notification_datetime': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'recurrence_interval': forms.Select(attrs={'class': 'form-select'}),
         }
         help_texts = {
             'threshold': 'Set a monetary value for purchase, balance, or budget percentage for budget type.',
             'category': 'Optional: Apply this rule only to a specific category.',
+            'notification_datetime': 'Required for Generic/Reminder types. Set the first date and time for the notification.',
+            'recurrence_interval': 'Set how often this notification should repeat. Select "Once" for no recurrence.',
         }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
-            # For 'budget' or 'purchase' types, users might want to select from their expense categories.
-            # For other types, category might not be relevant or could be any category.
-            # For simplicity, we'll provide all user categories.
-            # You can refine this based on the 'type' field dynamically in JS if needed.
             self.fields['category'].queryset = Category.objects.filter(user=user)
         else:
             self.fields['category'].queryset = Category.objects.none()
         
-        self.fields['category'].required = False # Make category explicitly optional
-        self.fields['threshold'].required = False # Make threshold explicitly optional
+        self.fields['category'].required = False
+        self.fields['threshold'].required = False
+        self.fields['notification_datetime'].required = False # Conditional requirement
+        self.fields['recurrence_interval'].required = False # Conditional requirement
+
+    def clean(self):
+        cleaned_data = super().clean()
+        notification_type = cleaned_data.get('type')
+        notification_datetime = cleaned_data.get('notification_datetime')
+        recurrence_interval = cleaned_data.get('recurrence_interval')
+
+        if notification_type in ['generic', 'reminder']:
+            if not notification_datetime:
+                self.add_error('notification_datetime', 'Date and time are required for Generic or Reminder notifications.')
+            if not recurrence_interval: # Default to 'NONE' if not provided but datetime is
+                cleaned_data['recurrence_interval'] = 'NONE'
+        else:
+            # For other types, clear datetime and recurrence as they are not applicable
+            cleaned_data['notification_datetime'] = None
+            cleaned_data['recurrence_interval'] = None
+            
+        return cleaned_data

@@ -697,14 +697,105 @@
           }
       
           function checkGenericCustomNotifications() {
-              if (!userCustomNotifications.length) return;
-              userCustomNotifications.forEach(notif => {
-                  if (notif.type === 'generic' || notif.type === 'reminder') {
-                      showCustomNotificationIfTypeEnabled(notif, notif.type, notif.title, notif.message, {
-                          requireInteraction: notif.type === 'reminder'
-                      });
-                  }
-              });
+            if (!userCustomNotifications.length) return;
+
+            const now = new Date();
+            const nowYear = now.getFullYear();
+            const nowMonth = now.getMonth();
+            const nowDate = now.getDate();
+            const nowDay = now.getDay();
+            const nowHour = now.getHours();
+            const nowMinute = now.getMinutes();
+
+            const todayDateString = now.toISOString().split('T')[0];
+            const currentWeekString = `${now.getFullYear()}-W${getWeekNumber(now)}`;
+            const currentMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            let shownNotificationsLog = JSON.parse(localStorage.getItem('shownCustomNotificationsLog') || '{}');
+
+            userCustomNotifications.forEach(notif => {
+                if ((notif.type === 'generic' || notif.type === 'reminder') && notif.notification_datetime) {
+                    const startDateTime = new Date(notif.notification_datetime);
+                    if (isNaN(startDateTime.getTime())) return;
+
+                    let shouldShow = false;
+                    let notificationInstanceKey = `notif-${notif.id}`;
+
+                    // Extract scheduled time components
+                    const schedYear = startDateTime.getFullYear();
+                    const schedMonth = startDateTime.getMonth();
+                    const schedDate = startDateTime.getDate();
+                    const schedDay = startDateTime.getDay();
+                    const schedHour = startDateTime.getHours();
+                    const schedMinute = startDateTime.getMinutes();
+
+                    switch (notif.recurrence_interval) {
+                        case 'NONE':
+                            // Show only if exactly the scheduled year, month, day, hour, minute
+                            if (
+                                nowYear === schedYear &&
+                                nowMonth === schedMonth &&
+                                nowDate === schedDate &&
+                                nowHour === schedHour &&
+                                nowMinute === schedMinute
+                            ) {
+                                shouldShow = true;
+                            }
+                            // Key remains base key for 'once'
+                            break;
+                        case 'DAILY':
+                            // Show if today and at the scheduled hour/minute
+                            if (
+                                nowHour === schedHour &&
+                                nowMinute === schedMinute
+                            ) {
+                                shouldShow = true;
+                            }
+                            notificationInstanceKey += `-${todayDateString}`;
+                            break;
+                        case 'WEEKLY':
+                            // Show if today is the scheduled weekday and at the scheduled hour/minute
+                            if (
+                                nowDay === schedDay &&
+                                nowHour === schedHour &&
+                                nowMinute === schedMinute
+                            ) {
+                                shouldShow = true;
+                            }
+                            notificationInstanceKey += `-${currentWeekString}`;
+                            break;
+                        case 'MONTHLY':
+                            // Show if today is the scheduled day of the month and at the scheduled hour/minute
+                            if (
+                                nowDate === schedDate &&
+                                nowHour === schedHour &&
+                                nowMinute === schedMinute
+                            ) {
+                                shouldShow = true;
+                            }
+                            notificationInstanceKey += `-${currentMonthString}`;
+                            break;
+                    }
+
+                    if (shouldShow && !shownNotificationsLog[notificationInstanceKey]) {
+                        showCustomNotificationIfTypeEnabled(notif, notif.type, notif.title, notif.message, {
+                            requireInteraction: notif.type === 'reminder',
+                            uniqueSuffix: `timed-${notif.id}-${notif.recurrence_interval}`
+                        });
+                        shownNotificationsLog[notificationInstanceKey] = true;
+                    }
+                }
+            });
+            localStorage.setItem('shownCustomNotificationsLog', JSON.stringify(shownNotificationsLog));
+        }
+
+          // Helper function to get ISO week number
+          function getWeekNumber(d) {
+              d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+              d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+              var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+              var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+              return weekNo;
           }
       
           function checkCustomPurchaseNotifications(transactionData) {

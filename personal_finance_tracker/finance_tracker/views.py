@@ -159,8 +159,14 @@ def dashboard(request):
     # Prepare custom notifications data for JSON script
     # We need category_id and potentially category_name if the rule applies to a specific category
     custom_notifications_data = list(user_custom_notifications.values(
-        'id', 'type', 'title', 'message', 'threshold', 'category_id', 'category__name'
+        'id', 'type', 'title', 'message', 'threshold', 
+        'category_id', 'category__name', 'notification_datetime', 
+        'recurrence_interval' 
     ))
+
+    for notif_data in custom_notifications_data:
+        if notif_data['notification_datetime']:
+            notif_data['notification_datetime'] = notif_data['notification_datetime'].isoformat()
     
     # Return the rendered template with ALL context data
     response = render(request, 'finance_tracker/dashboard.html', {

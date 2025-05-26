@@ -410,12 +410,29 @@ class CustomNotification(models.Model):
         ('budget', 'Budget Limit'),
         ('reminder', 'Reminder'),
     ]
+
+    RECURRENCE_CHOICES = [
+        ('NONE', 'Once (No Recurrence)'),
+        ('DAILY', 'Daily'),
+        ('WEEKLY', 'Weekly'),
+        ('MONTHLY', 'Monthly'),
+        # ('YEARLY', 'Yearly'), #maybeeee yearly
+    ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     type = models.CharField(max_length=20, choices=NOTIFICATION_TYPE_CHOICES, default='generic')
     title = models.CharField(max_length=100)
     message = models.TextField(max_length=512)
     threshold = models.FloatField(null=True, blank=True)  # For limits/reminders
     category = models.ForeignKey('Category', null=True, blank=True, on_delete=models.SET_NULL)
+    notification_datetime = models.DateTimeField(
+        null=True, blank=True, 
+        help_text="Date and time for the notification to first occur (for Generic/Reminder types)."
+    )
+    recurrence_interval = models.CharField(
+        max_length=10, choices=RECURRENCE_CHOICES, default='NONE',
+        null=True, blank=True, # Allow null/blank if not a generic/reminder type or if not recurring
+        help_text="How often the notification should repeat (for Generic/Reminder types)."
+    )
     enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     

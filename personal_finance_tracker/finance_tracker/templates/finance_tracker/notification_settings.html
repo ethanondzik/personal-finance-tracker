@@ -135,76 +135,82 @@
 
             <!-- Custom Notification Rules Section -->
             <div class="custom-rules-section card border-success">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Custom Notification Rules</h5>
-                </div>
-                <div class="card-body">
-                    <h6 class="card-title">Add New Custom Rule</h6>
-                    <form method="post" action="{% url 'notification_settings' %}" class="mb-4 p-3 border rounded bg-light"> {# Action points to the same view #}
-                        {% csrf_token %}
-                        {{ custom_notification_form.non_field_errors }}
-                        {% for field in custom_notification_form %}
-                        <div class="mb-3 field-{{ field.name }}">
-                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}
-                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                            {% endif %}
-                            {% for error in field.errors %}
-                            <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        {% endfor %}
-                        <input type="hidden" name="form_type" value="custom_notification"> {# To differentiate forms if needed in view #}
-                        <button type="submit" class="btn btn-success"><i class="mdi mdi-plus-circle-outline"></i> Add Custom Rule</button>
-                    </form>
+              
+              <div class="card-body">
+                  <h6 class="card-title">Add New Custom Rule</h6>
+                  <form method="post" action="{% url 'notification_settings' %}" class="mb-4 p-3 border rounded bg-light">
+                      {% csrf_token %}
+                      {{ custom_notification_form.non_field_errors }}
+                      {% for field in custom_notification_form %}
+                      <div class="mb-3 field-{{ field.name }} {% if field.name == 'threshold' or field.name == 'category' or field.name == 'notification_datetime' or field.name == 'recurrence_interval' %}form-conditional-field{% endif %}">
+                          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                          {{ field }}
+                          {% if field.help_text %}
+                          <small class="form-text text-muted">{{ field.help_text }}</small>
+                          {% endif %}
+                          {% for error in field.errors %}
+                          <div class="invalid-feedback d-block">{{ error }}</div>
+                          {% endfor %}
+                      </div>
+                      {% endfor %}
+                      <input type="hidden" name="form_type" value="custom_notification">
+                      <button type="submit" class="btn btn-success"><i class="mdi mdi-plus-circle-outline"></i> Add Custom Rule</button>
+                  </form>
 
-                    <hr>
+                  <hr>
 
-                    <h6 class="card-title">Your Custom Rules</h6>
-                    {% if custom_notifications_list %}
-                    <div class="list-group">
-                        {% for notif in custom_notifications_list %}
-                        <div class="list-group-item list-group-item-action flex-column align-items-start mb-2">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ notif.title }}</h6>
-                                <small class="text-muted">{{ notif.created_at|date:"M d, Y H:i" }}</small>
-                            </div>
-                            <p><span class="badge bg-info">{{ notif.get_type_display }}</span></p>
-                            <p class="mb-1">{{ notif.message }}</p>
-                            {% if notif.threshold is not None %}
-                            <p><span class="badge bg-secondary">
-                                {% if notif.type == 'budget' %}
-                                    Threshold: {{ notif.threshold|floatformat:0 }}% of budget
-                                {% else %}
-                                    Threshold: ${{ notif.threshold|floatformat:2 }}
-                                {% endif %}
-                            </span></p>
+                  <h6 class="card-title">Your Custom Rules</h6>
+                  {% if custom_notifications_list %}
+                  <div class="list-group">
+                      {% for notif in custom_notifications_list %}
+                      <div class="list-group-item list-group-item-action flex-column align-items-start mb-2">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ notif.title }}</h6>
+                            <small class="text-muted">{{ notif.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                        <p><span class="badge bg-info">{{ notif.get_type_display }}</span></p>
+                        <p class="mb-1">{{ notif.message }}</p>
+                        {% if notif.threshold is not None %}
+                        <p><span class="badge bg-secondary">
+                            {% if notif.type == 'budget' %}
+                                Threshold: {{ notif.threshold|floatformat:0 }}% of budget
+                            {% else %}
+                                Threshold: ${{ notif.threshold|floatformat:2 }}
                             {% endif %}
-                            {% if notif.category %}
-                            <p><span class="badge bg-warning text-dark">Category: {{ notif.category.name }}</span></p>
+                        </span></p>
+                        {% endif %}
+                        {% if notif.category %}
+                        <p><span class="badge bg-warning text-dark">Category: {{ notif.category.name }}</span></p>
+                        {% endif %}
+                        {% if notif.notification_datetime %}
+                        <p><span class="badge bg-primary">
+                            Starts: {{ notif.notification_datetime|date:"M d, Y P" }}
+                            {% if notif.recurrence_interval != 'NONE' and notif.recurrence_interval %}
+                                (Repeats: {{ notif.get_recurrence_interval_display }})
                             {% endif %}
-                            <div class="mt-2 d-flex justify-content-between align-items-center">
-                                <span class="badge {% if notif.enabled %}bg-success{% else %}bg-secondary{% endif %}">
-                                    {{ notif.enabled|yesno:"Enabled,Disabled" }}
-                                </span>
-                                <div>
-                                    <form method="post" action="{% url 'delete_custom_notification' notif.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this notification rule?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="mdi mdi-delete"></i> Delete
-                                        </button>
-                                    </form>
-                                </div>
+                        </span></p>
+                        {% endif %}
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                            <span class="badge {% if notif.enabled %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ notif.enabled|yesno:"Enabled,Disabled" }}
+                            </span>
+                            <div>
+                                <form method="post" action="{% url 'delete_custom_notification' notif.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this notification rule?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="mdi mdi-delete"></i> Delete
+                                    </button>
+                                </form>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
-                    {% else %}
-                    <p class="text-muted">You haven't set up any custom notification rules yet.</p>
-                    {% endif %}
-                </div>
-            </div>
+                      {% endfor %}
+                  </div>
+                  {% else %}
+                  <p class="text-muted">You haven't set up any custom notification rules yet.</p>
+                  {% endif %}
+              </div>
+          </div>
 
 
             <div class="mt-4">
@@ -340,30 +346,47 @@
       document.getElementById('transaction-threshold').value = localStorage.getItem('transaction_threshold') || '100';
     }
 
-    // --- Custom Notification Form Logic ---
-    const typeField = document.getElementById('{{ custom_notification_form.type.id_for_label }}');
-    const thresholdFieldContainer = document.querySelector('.field-threshold'); // Ensure this targets the correct form
-    const categoryFieldContainer = document.querySelector('.field-category'); // Ensure this targets the correct form
+     // --- Custom Notification Form Logic ---
+     const typeField = document.getElementById('{{ custom_notification_form.type.id_for_label }}');
+    const thresholdFieldContainer = document.querySelector('.field-threshold');
+    const categoryFieldContainer = document.querySelector('.field-category');
+    const dateTimeFieldContainer = document.querySelector('.field-notification_datetime');
+    const recurrenceFieldContainer = document.querySelector('.field-recurrence_interval'); // New field
 
     function toggleCustomNotificationConditionalFields() {
         if (!typeField) return;
         const selectedType = typeField.value;
 
+        // Threshold field
         if (thresholdFieldContainer) {
             if (['purchase', 'balance', 'budget'].includes(selectedType)) {
                 thresholdFieldContainer.style.display = 'block';
-                // Only set required if the field is visible and part of the custom form
                 thresholdFieldContainer.querySelector('input, select')?.setAttribute('required', 'required');
             } else {
                 thresholdFieldContainer.style.display = 'none';
                 thresholdFieldContainer.querySelector('input, select')?.removeAttribute('required');
             }
         }
+        // Category field
         if (categoryFieldContainer) {
             if (['purchase', 'budget'].includes(selectedType)) {
                 categoryFieldContainer.style.display = 'block';
             } else {
                 categoryFieldContainer.style.display = 'none';
+            }
+        }
+        // DateTime and Recurrence fields
+        if (dateTimeFieldContainer && recurrenceFieldContainer) {
+            if (['generic', 'reminder'].includes(selectedType)) {
+                dateTimeFieldContainer.style.display = 'block';
+                dateTimeFieldContainer.querySelector('input, select')?.setAttribute('required', 'required');
+                recurrenceFieldContainer.style.display = 'block';
+                recurrenceFieldContainer.querySelector('input, select')?.setAttribute('required', 'required'); // Or default to 'NONE'
+            } else {
+                dateTimeFieldContainer.style.display = 'none';
+                dateTimeFieldContainer.querySelector('input, select')?.removeAttribute('required');
+                recurrenceFieldContainer.style.display = 'none';
+                recurrenceFieldContainer.querySelector('input, select')?.removeAttribute('required');
             }
         }
     }
