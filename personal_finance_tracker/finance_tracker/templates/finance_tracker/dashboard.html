@@ -557,10 +557,7 @@
     <script src="{% static 'js/theme-toggle.js' %}"></script>
     <script src="{% static 'js/notifications.js' %}"></script>
 
-    <!-- Chart Data -->
    
-
-
     <!-- Chart Data & Custom Notifications Data -->
     {{ chart_data|json_script:"chart-data" }}
     {{ user_custom_notifications|json_script:"user-custom-notifications-data" }} 
@@ -570,111 +567,15 @@
     
 
     <script>
-      // Show notification for upcoming subscription payment
-      function notifySubscriptionDue(subscription) {
-        if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('subscription')) {
-          // Get user preference for days threshold (default to 3)
-          const daysThreshold = parseInt(localStorage.getItem('subscription_days') || '3', 10);
-          
-          // Only notify if within threshold
-          if (subscription.days_until <= daysThreshold) {
-            window.NotificationManager.show('Subscription Payment Due Soon', {
-              body: `${subscription.name} payment of $${subscription.amount} due in ${subscription.days_until} days`,
-              requireInteraction: true,
-              tag: `subscription-${subscription.id}`, // Prevents duplicate notifications
-              onclick: function() {
-                window.location.href = '/manage-subscriptions/';
-              }
-            });
+      // Consolidated DOMContentLoaded listener
+      document.addEventListener('DOMContentLoaded', function() {
+          // --- Notification Manager and Preferences (from notifications.js, assumed loaded) ---
+          if (!window.NotificationManager) {
+              console.error("NotificationManager not found. Ensure notifications.js is loaded.");
+              // return; // Or handle gracefully
           }
-        }
-      }
 
-      // For low balance warning
-      function checkAccountBalances() {
-        if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('balance')) {
-          const threshold = parseFloat(localStorage.getItem('balance_threshold') || '100');
-          const accounts = JSON.parse(document.getElementById('accounts-data').textContent || '[]');
-          // Get or initialize the notified accounts list
-          let notified = JSON.parse(localStorage.getItem('low_balance_notified') || '[]');
-
-          accounts.forEach(account => {
-            const accountId = account.account_number; // Use a unique identifier (account_number or id)
-            const balance = parseFloat(account.balance);
-
-            // If below threshold and not already notified, show notification and add to notified list
-            if (balance < threshold && !notified.includes(accountId)) {
-              window.NotificationManager.show('Low Account Balance', {
-                body: `Your ${account.account_type} account ${account.account_number} balance is below $${threshold}.`,
-                requireInteraction: true,
-                tag: `low-balance-${accountId}`,
-                onclick: function() {
-                  window.location.href = '/manage-bank-accounts/';
-                }
-              });
-              notified.push(accountId);
-            }
-
-            // If balance is now above threshold and was previously notified, remove from notified list
-            if (balance >= threshold && notified.includes(accountId)) {
-              notified = notified.filter(id => id !== accountId);
-            }
-          });
-
-          // Save the updated notified list
-          localStorage.setItem('low_balance_notified', JSON.stringify(notified));
-        }
-      }
-
-      // For budget limit warning
-      function checkBudgetLimits() {
-        if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('budget')) {
-          const percentage = parseInt(localStorage.getItem('budget_percentage') || '75', 10);
-          const categories = JSON.parse(document.getElementById('budget-data').textContent || '[]');
-          
-          categories.forEach(category => {
-            if (category.budget && category.spent) {
-              const spentPercentage = (category.spent / category.budget) * 100;
-              if (spentPercentage >= percentage) {
-                window.NotificationManager.show('Budget Limit Warning', {
-                  body: `You've spent ${spentPercentage.toFixed(1)}% of your budget for ${category.name}.`,
-                  requireInteraction: false,
-                  tag: `budget-${category.id}`,
-                  onclick: function() {
-                    window.location.href = '/query-transactions/?category=' + category.id;
-                  }
-                });
-              }
-            }
-          });
-        }
-      }
-
-      // Pass upcoming subscriptions data to JS
-      document.addEventListener('DOMContentLoaded', function() {
-        // Get subscription data if available
-        const subscriptionsElement = document.getElementById('upcoming-subscriptions-data');
-        if (subscriptionsElement) {
-          const upcomingSubscriptions = JSON.parse(subscriptionsElement.textContent || '[]');
-          upcomingSubscriptions.forEach(subscription => {
-            notifySubscriptionDue(subscription);
-          });
-        }
-        
-        // Check account balances when page loads
-        checkAccountBalances();
-        
-        // Check budget limits when page loads
-        checkBudgetLimits();
-      });
-
-    </script>
-    
-    <!-- {{ request.session.show_large_transaction_notification|json_script:"notification-data" }} -->
-
-    <script>
-      // Custom Notification Check Functions (from previous response)
-      document.addEventListener('DOMContentLoaded', function() {
+          // --- Initialize User Custom Notifications Data ---
           const userCustomNotificationsDataEl = document.getElementById('user-custom-notifications-data');
           let userCustomNotifications = [];
           if (userCustomNotificationsDataEl) {
@@ -682,141 +583,224 @@
                   userCustomNotifications = JSON.parse(userCustomNotificationsDataEl.textContent || '[]');
               } catch (e) {
                   console.error('Error parsing user custom notifications data:', e);
+                  userCustomNotifications = [];
               }
           }
-      
+          // Load shown notifications log once
+          let shownNotificationsLog = JSON.parse(localStorage.getItem('shownCustomNotificationsLog') || '{}');
+
+          // --- Helper Functions ---
+          function getWeekNumber(d) {
+              d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+              d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+              var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+              var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+              return weekNo;
+          }
+
           function showCustomNotificationIfTypeEnabled(notificationRule, type, title, body, options = {}) {
               if (window.NotificationManager && window.NotificationManager.isNotificationEnabled(type)) {
+                  const uniqueSuffix = options.uniqueSuffix || `${notificationRule.id}-${Date.now()}`;
                   window.NotificationManager.show(title, {
                       body: body,
-                      tag: `custom-${type}-${notificationRule.id}-${options.uniqueSuffix || Date.now()}`,
+                      tag: `custom-${type}-${notificationRule.id}-${uniqueSuffix}`,
                       requireInteraction: options.requireInteraction !== undefined ? options.requireInteraction : false,
                       onclick: options.onclick
                   });
               }
           }
-      
-          function checkGenericCustomNotifications() {
-            if (!userCustomNotifications.length) return;
-
-            const now = new Date();
-            const nowYear = now.getFullYear();
-            const nowMonth = now.getMonth();
-            const nowDate = now.getDate();
-            const nowDay = now.getDay();
-            const nowHour = now.getHours();
-            const nowMinute = now.getMinutes();
-
-            const todayDateString = now.toISOString().split('T')[0];
-            const currentWeekString = `${now.getFullYear()}-W${getWeekNumber(now)}`;
-            const currentMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-            let shownNotificationsLog = JSON.parse(localStorage.getItem('shownCustomNotificationsLog') || '{}');
-
-            userCustomNotifications.forEach(notif => {
-                if ((notif.type === 'generic' || notif.type === 'reminder') && notif.notification_datetime) {
-                    const startDateTime = new Date(notif.notification_datetime);
-                    if (isNaN(startDateTime.getTime())) return;
-
-                    let shouldShow = false;
-                    let notificationInstanceKey = `notif-${notif.id}`;
-
-                    // Extract scheduled time components
-                    const schedYear = startDateTime.getFullYear();
-                    const schedMonth = startDateTime.getMonth();
-                    const schedDate = startDateTime.getDate();
-                    const schedDay = startDateTime.getDay();
-                    const schedHour = startDateTime.getHours();
-                    const schedMinute = startDateTime.getMinutes();
-
-                    switch (notif.recurrence_interval) {
-                        case 'NONE':
-                            // Show only if exactly the scheduled year, month, day, hour, minute
-                            if (
-                                nowYear === schedYear &&
-                                nowMonth === schedMonth &&
-                                nowDate === schedDate &&
-                                nowHour === schedHour &&
-                                nowMinute === schedMinute
-                            ) {
-                                shouldShow = true;
-                            }
-                            // Key remains base key for 'once'
-                            break;
-                        case 'DAILY':
-                            // Show if today and at the scheduled hour/minute
-                            if (
-                                nowHour === schedHour &&
-                                nowMinute === schedMinute
-                            ) {
-                                shouldShow = true;
-                            }
-                            notificationInstanceKey += `-${todayDateString}`;
-                            break;
-                        case 'WEEKLY':
-                            // Show if today is the scheduled weekday and at the scheduled hour/minute
-                            if (
-                                nowDay === schedDay &&
-                                nowHour === schedHour &&
-                                nowMinute === schedMinute
-                            ) {
-                                shouldShow = true;
-                            }
-                            notificationInstanceKey += `-${currentWeekString}`;
-                            break;
-                        case 'MONTHLY':
-                            // Show if today is the scheduled day of the month and at the scheduled hour/minute
-                            if (
-                                nowDate === schedDate &&
-                                nowHour === schedHour &&
-                                nowMinute === schedMinute
-                            ) {
-                                shouldShow = true;
-                            }
-                            notificationInstanceKey += `-${currentMonthString}`;
-                            break;
-                    }
-
-                    if (shouldShow && !shownNotificationsLog[notificationInstanceKey]) {
-                        showCustomNotificationIfTypeEnabled(notif, notif.type, notif.title, notif.message, {
-                            requireInteraction: notif.type === 'reminder',
-                            uniqueSuffix: `timed-${notif.id}-${notif.recurrence_interval}`
-                        });
-                        shownNotificationsLog[notificationInstanceKey] = true;
-                    }
-                }
-            });
-            localStorage.setItem('shownCustomNotificationsLog', JSON.stringify(shownNotificationsLog));
-        }
-
-          // Helper function to get ISO week number
-          function getWeekNumber(d) {
-              d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-              d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-              var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-              var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-              return weekNo;
+          
+          // --- Built-in Notification Functions (notifySubscriptionDue, checkAccountBalances, checkBudgetLimits) ---
+          function notifySubscriptionDue(subscription) {
+            if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('subscription')) {
+              const daysThreshold = parseInt(localStorage.getItem('subscription_days') || '3', 10);
+              if (subscription.days_until <= daysThreshold) {
+                window.NotificationManager.show('Subscription Payment Due Soon', {
+                  body: `${subscription.name} payment of $${subscription.amount} due in ${subscription.days_until} days`,
+                  requireInteraction: true,
+                  tag: `subscription-${subscription.id}`,
+                  onclick: function() { window.location.href = '/manage-subscriptions/'; }
+                });
+              }
+            }
           }
-      
+
+          function checkAccountBalances() {
+            if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('balance')) {
+                const threshold = parseFloat(localStorage.getItem('balance_threshold') || '100');
+                const accountsDataEl = document.getElementById('accounts-data');
+                if (!accountsDataEl) return;
+                const accounts = JSON.parse(accountsDataEl.textContent || '[]');
+                let notified = JSON.parse(localStorage.getItem('low_balance_notified') || '[]');
+
+                accounts.forEach(account => {
+                    const accountId = String(account.id || account.account_number); // Ensure string for comparison
+                    const balance = parseFloat(account.balance);
+                    if (balance < threshold && !notified.includes(accountId)) {
+                        window.NotificationManager.show('Low Account Balance', {
+                            body: `Your ${account.account_type} account ${account.account_number || account.name} balance is below $${threshold}.`,
+                            requireInteraction: true,
+                            tag: `low-balance-${accountId}`,
+                            onclick: function() { window.location.href = "{% url 'manage_bank_accounts' %}"; }
+                        });
+                        notified.push(accountId);
+                    }
+                    if (balance >= threshold && notified.includes(accountId)) {
+                        notified = notified.filter(id => id !== accountId);
+                    }
+                });
+                localStorage.setItem('low_balance_notified', JSON.stringify(notified));
+            }
+          }
+
+          function checkBudgetLimits() {
+            
+            if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('budget')) {
+                const percentage = parseInt(localStorage.getItem('budget_percentage') || '75', 10);
+                const budgetDataEl = document.getElementById('budget-data');
+                if (!budgetDataEl) return;
+                const categories = JSON.parse(budgetDataEl.textContent || '[]');
+                
+                categories.forEach(category => {
+                    if (category.budget && category.spent) {
+                        const spentPercentage = (parseFloat(category.spent) / parseFloat(category.budget)) * 100;
+                        if (spentPercentage >= percentage) {
+                            window.NotificationManager.show('Budget Limit Warning', {
+                                body: `You've spent ${spentPercentage.toFixed(1)}% of your budget for ${category.name}.`,
+                                requireInteraction: false,
+                                tag: `budget-${category.id}`,
+                                onclick: function() { window.location.href = '/query-transactions/?category=' + category.id; }
+                            });
+                        }
+                    }
+                });
+            }
+          }
+
+
+          // --- Custom Notification Check Functions ---
+          function checkGenericCustomNotifications() {
+              console.log('[NotifCheck] Running checkGenericCustomNotifications. Current time:', new Date().toString());
+
+              if (!userCustomNotifications.length) {
+                  // console.log('[NotifCheck] No user custom notifications defined.');
+                  return;
+              }
+              const now = new Date(); // Current time for this check cycle
+
+              const currentTodayDateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              const currentNowWeekString = `${now.getFullYear()}-W${getWeekNumber(now)}`;
+              const currentNowMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+              userCustomNotifications.forEach(notif => {
+                  console.log(`[NotifCheck] Processing rule ID: ${notif.id}, Title: "${notif.title}", Type: ${notif.type}, Enabled: ${notif.enabled}`);
+                  if (!notif.enabled) {
+                      console.log(`[NotifCheck] Rule ID ${notif.id} is disabled. Skipping.`);
+                      return; 
+                  }
+
+                  if ((notif.type === 'generic' || notif.type === 'reminder') && notif.notification_datetime) {
+                      console.log(`[NotifCheck] Rule ID ${notif.id} is timed. Datetime from server: ${notif.notification_datetime}, Recurrence: ${notif.recurrence_interval}`);
+                      const startDateTime = new Date(notif.notification_datetime);
+                      if (isNaN(startDateTime.getTime())) {
+                          console.warn(`[NotifCheck] Invalid notification_datetime for rule ID ${notif.id}: "${notif.notification_datetime}". Skipping.`);
+                          return; 
+                      }
+                      console.log(`[NotifCheck] Rule ID ${notif.id} - Parsed startDateTime: ${startDateTime.toISOString()} (UTC), ${startDateTime.toString()} (Local Client Time)`);
+
+                      let shouldShow = false;
+                      let notificationInstanceKey = `notif-${notif.id}`; 
+
+                      // Get scheduled time components in client's local timezone
+                      const schedYear = startDateTime.getFullYear();
+                      const schedMonth = startDateTime.getMonth(); // 0-11
+                      const schedDate = startDateTime.getDate();   // 1-31
+                      const schedDay = startDateTime.getDay();     // 0 (Sun) - 6 (Sat)
+                      const schedHour = startDateTime.getHours();  // 0-23
+                      const schedMinute = startDateTime.getMinutes(); // 0-59
+
+                      switch (notif.recurrence_interval) {
+                          case 'NONE':
+                              if (
+                                  now.getFullYear() === schedYear &&
+                                  now.getMonth() === schedMonth &&
+                                  now.getDate() === schedDate &&
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute
+                              ) {
+                                  shouldShow = true;
+                              }
+                              break;
+                          case 'DAILY':
+                              //Ensure the overall start moment has passed (UTC comparison is fine for this initial check)
+                              if (now.getTime() >= startDateTime.getTime() && 
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute) {
+                                  shouldShow = true;
+                              }
+                              notificationInstanceKey += `-${currentTodayDateString}`; // Key based on local date string
+                              break;
+                          case 'WEEKLY':
+                              if (now.getTime() >= startDateTime.getTime() &&
+                                  now.getDay() === schedDay && // Compare local day of the week
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute) {
+                                  shouldShow = true;
+                              }
+                              notificationInstanceKey += `-${currentNowWeekString}`; // Key based on local week
+                              break;
+                          case 'MONTHLY':
+                              if (now.getTime() >= startDateTime.getTime() &&
+                                  now.getDate() === schedDate && // Compare local day of the month
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute) {
+                                  shouldShow = true;
+                              }
+                              notificationInstanceKey += `-${currentNowMonthString}`; // Key based on local month
+                              break;
+                          default:
+                              console.warn(`[NotifCheck] Unknown recurrence_interval: "${notif.recurrence_interval}" for rule ID ${notif.id}. Skipping this rule.`);
+                              return; 
+                      }
+
+                      if (shouldShow) {
+                          if (!shownNotificationsLog[notificationInstanceKey]) {
+                              showCustomNotificationIfTypeEnabled(notif, notif.type, notif.title, notif.message, {
+                                  requireInteraction: notif.type === 'reminder',
+                                  uniqueSuffix: `timed-${notif.recurrence_interval || 'NONE'}` 
+                              });
+                              shownNotificationsLog[notificationInstanceKey] = true;
+                          } else {
+                              console.log(`[NotifCheck] Rule ID ${notif.id} - Already shown for this period. Key: ${notificationInstanceKey}`);
+                          }
+                      } else {
+                      }
+                  } else {
+                  }
+              });
+              localStorage.setItem('shownCustomNotificationsLog', JSON.stringify(shownNotificationsLog));
+          }
+          
           function checkCustomPurchaseNotifications(transactionData) {
-              if (!userCustomNotifications.length || !transactionData || !transactionData.amount) return; // Added check for transactionData.amount
+              if (!userCustomNotifications.length || !transactionData || typeof transactionData.amount === 'undefined') return;
               const transactionAmount = parseFloat(transactionData.amount);
       
               userCustomNotifications.forEach(notif => {
+                  if (!notif.enabled) return;
                   if (notif.type === 'purchase' && notif.threshold != null) {
-                      const categoryMatch = !notif.category_id || (transactionData.category_id === notif.category_id);
+                      const categoryMatch = !notif.category_id || (String(transactionData.category_id) === String(notif.category_id));
                       if (transactionAmount >= notif.threshold && categoryMatch) {
                           let messageBody = `${notif.message} (Transaction: ${transactionData.description || 'N/A'} for $${transactionAmount.toFixed(2)})`;
                           if(notif.category_name) messageBody += ` in category ${notif.category_name}.`;
                           
                           showCustomNotificationIfTypeEnabled(notif, 'purchase', notif.title, messageBody, {
-                              uniqueSuffix: transactionData.id || Date.now(), requireInteraction: true // Ensure transactionData.id exists
+                              uniqueSuffix: `txn-${transactionData.id || Date.now()}`, requireInteraction: true
                           });
                       }
                   }
               });
           }
-      
+
           function checkUserDefinedBalanceNotifications() {
               if (!userCustomNotifications.length) return;
               const accountsDataEl = document.getElementById('accounts-data');
@@ -824,6 +808,7 @@
               const accounts = JSON.parse(accountsDataEl.textContent || '[]');
       
               userCustomNotifications.forEach(notif => {
+                  if (!notif.enabled) return;
                   if (notif.type === 'balance' && notif.threshold != null) {
                       accounts.forEach(account => {
                           const balance = parseFloat(account.balance);
@@ -838,7 +823,7 @@
                   }
               });
           }
-      
+
           function checkUserDefinedBudgetNotifications() {
               if (!userCustomNotifications.length) return;
               const budgetDataEl = document.getElementById('budget-data');
@@ -846,11 +831,12 @@
               const budgets = JSON.parse(budgetDataEl.textContent || '[]'); 
       
               userCustomNotifications.forEach(notif => {
+                  if (!notif.enabled) return;
                   if (notif.type === 'budget' && notif.threshold != null) {
                       budgets.forEach(budget => { 
-                          if (budget.budget && budget.spent) {
+                          if (budget.budget && typeof budget.spent !== 'undefined') { // budget.id is category_id
                               const spentPercentage = (parseFloat(budget.spent) / parseFloat(budget.budget)) * 100;
-                              const categoryMatch = !notif.category_id || (budget.id === notif.category_id); // budget.id is category_id
+                              const categoryMatch = !notif.category_id || (String(budget.id) === String(notif.category_id));
       
                               if (spentPercentage >= notif.threshold && categoryMatch) {
                                   showCustomNotificationIfTypeEnabled(notif, 'budget', notif.title,
@@ -864,33 +850,29 @@
                   }
               });
           }
-      
-          // --- Call Notification Checks ---
+
+          // --- Initial and Periodic Notification Checks ---
           if (window.NotificationManager && (Notification.permission === 'granted' || Notification.permission === 'default')) {
-              
-              // Call for built-in notifications
-              if (typeof notifySubscriptionDue === 'function') {
-                  const subscriptionsElement = document.getElementById('upcoming-subscriptions-data');
-                  if (subscriptionsElement) {
-                      const upcomingSubscriptions = JSON.parse(subscriptionsElement.textContent || '[]');
-                      upcomingSubscriptions.forEach(subscription => { notifySubscriptionDue(subscription); });
-                  }
+              // Initial calls for built-in notifications
+              const subscriptionsElement = document.getElementById('upcoming-subscriptions-data');
+              if (subscriptionsElement) {
+                  const upcomingSubscriptions = JSON.parse(subscriptionsElement.textContent || '[]');
+                  upcomingSubscriptions.forEach(subscription => { notifySubscriptionDue(subscription); });
               }
-              if (typeof checkAccountBalances === 'function') checkAccountBalances();
-              if (typeof checkBudgetLimits === 'function') checkBudgetLimits();   
+              checkAccountBalances();
+              checkBudgetLimits();   
       
-              // Call for custom notifications
-              checkGenericCustomNotifications();
+              // Initial calls for custom notifications
+              checkGenericCustomNotifications(); // Important: Call once on load
               checkUserDefinedBalanceNotifications();
               checkUserDefinedBudgetNotifications();
-      
-              // For large transaction (built-in) and custom purchase notifications
+              
+              // For large transaction (built-in) and custom purchase notifications (triggered by new transaction from session)
               const largeTransactionDataEl = document.getElementById('notification-data');
               if (largeTransactionDataEl) {
                   try {
-                      const transactionDataFromSession = JSON.parse(largeTransactionDataEl.textContent); // This is from session
-                      if (transactionDataFromSession && transactionDataFromSession.amount) { 
-                          // Built-in large transaction check
+                      const transactionDataFromSession = JSON.parse(largeTransactionDataEl.textContent);
+                      if (transactionDataFromSession && typeof transactionDataFromSession.amount !== 'undefined') { 
                           const builtInTxThreshold = parseFloat(localStorage.getItem('transaction_threshold') || '100');
                           if (transactionDataFromSession.amount >= builtInTxThreshold && window.NotificationManager.isNotificationEnabled('transaction')) {
                               window.NotificationManager.show('Large Transaction Added', {
@@ -899,15 +881,29 @@
                                   tag: `large-transaction-${transactionDataFromSession.id}`
                               });
                           }
-                          // Custom purchase rules check (using the same data from session)
                           checkCustomPurchaseNotifications(transactionDataFromSession);
                       }
                   } catch (e) {
-                      console.error('Error processing large transaction/custom purchase notification data:', e);
+                      console.error('Error parsing large transaction data from session:', e);
                   }
               }
+
+              // Set up periodic checks for time-sensitive custom notifications
+              setInterval(function() {
+                  // console.log("Periodic check for generic/reminder notifications...");
+                  checkGenericCustomNotifications();
+                  // Optionally, re-check other dynamic built-in notifications if needed
+                  // checkAccountBalances(); // If balances can change without page reload and need immediate notification
+                  // checkBudgetLimits(); // If spending can change without page reload
+              }, 30000); // Check every 30 seconds (adjust as needed, 60000 for 1 minute is common)
+
+          } else if (Notification.permission === 'denied') {
+              console.log('Notification permission denied. Timed notifications will not be checked.');
           }
       });
     </script>
+    
+
+    
   </body>
 </html>

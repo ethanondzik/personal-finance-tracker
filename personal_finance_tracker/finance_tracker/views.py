@@ -154,19 +154,34 @@ def dashboard(request):
     page_number = request.GET.get('page')
     transactions_page = paginator.get_page(page_number)
 
-    user_custom_notifications = CustomNotification.objects.filter(user=request.user, enabled=True)
+    # user_custom_notifications = CustomNotification.objects.filter(user=request.user, enabled=True)
     
-    # Prepare custom notifications data for JSON script
-    # We need category_id and potentially category_name if the rule applies to a specific category
-    custom_notifications_data = list(user_custom_notifications.values(
-        'id', 'type', 'title', 'message', 'threshold', 
-        'category_id', 'category__name', 'notification_datetime', 
-        'recurrence_interval' 
-    ))
+    # # Prepare custom notifications data for JSON script
+    # # We need category_id and potentially category_name if the rule applies to a specific category
+    # custom_notifications_data = list(user_custom_notifications.values(
+    #     'id', 'type', 'title', 'message', 'threshold', 
+    #     'category_id', 'category__name', 'notification_datetime', 
+    #     'recurrence_interval' 
+    # ))
 
-    for notif_data in custom_notifications_data:
-        if notif_data['notification_datetime']:
-            notif_data['notification_datetime'] = notif_data['notification_datetime'].isoformat()
+    # for notif_data in custom_notifications_data:
+    #     if notif_data['notification_datetime']:
+    #         notif_data['notification_datetime'] = notif_data['notification_datetime'].isoformat()
+    custom_notifications_data = CustomNotification.objects.filter(user=request.user)
+    user_custom_notifications_data = []
+    for rule in custom_notifications_data:
+        user_custom_notifications_data.append({
+            'id': rule.id,
+            'title': rule.title,
+            'message': rule.message,
+            'type': rule.type,
+            'threshold': float(rule.threshold) if rule.threshold is not None else None,
+            'category_id': rule.category.id if rule.category else None,
+            'category_name': rule.category.name if rule.category else None,
+            'notification_datetime': rule.notification_datetime.strftime('%Y-%m-%dT%H:%M') if rule.notification_datetime else None,
+            'recurrence_interval': rule.recurrence_interval,
+            'enabled': rule.enabled,
+        })
     
     # Return the rendered template with ALL context data
     response = render(request, 'finance_tracker/dashboard.html', {
@@ -177,7 +192,7 @@ def dashboard(request):
         'upcoming_subscriptions': upcoming_subscriptions,
         'today': today,
         'budget_data': budget_data,
-        'user_custom_notifications': custom_notifications_data,
+        'user_custom_notifications': user_custom_notifications_data,
     })
 
     # Clear the notification flag after rendering
