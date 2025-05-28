@@ -456,12 +456,12 @@ class CustomNotificationForm(forms.ModelForm):
         fields = ['type', 'title', 'message', 'threshold', 'category', 'notification_datetime', 'recurrence_interval', 'enabled']
         widgets = {
             'message': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
-            'type': forms.Select(attrs={'class': 'form-select'}),
+            'type': forms.Select(),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'threshold': forms.NumberInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'notification_datetime': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'recurrence_interval': forms.Select(attrs={'class': 'form-select'}),
+            'recurrence_interval': forms.Select(),
         }
         help_texts = {
             'threshold': 'Set a monetary value for purchase, balance, or budget percentage for budget type.',
@@ -492,10 +492,9 @@ class CustomNotificationForm(forms.ModelForm):
         if notification_type in ['generic', 'reminder']:
             if not notification_datetime:
                 self.add_error('notification_datetime', 'Date and time are required for Generic or Reminder notifications.')
-            if not recurrence_interval: # Default to 'NONE' if not provided but datetime is
+            if not recurrence_interval: 
                 cleaned_data['recurrence_interval'] = 'NONE'
         else:
-            # For other types, clear datetime and recurrence as they are not applicable
             cleaned_data['notification_datetime'] = None
             cleaned_data['recurrence_interval'] = None
             

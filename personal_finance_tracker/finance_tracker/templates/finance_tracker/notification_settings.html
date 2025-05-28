@@ -195,12 +195,13 @@
                                 {{ notif.enabled|yesno:"Enabled,Disabled" }}
                             </span>
                             <div>
-                                <form method="post" action="{% url 'delete_custom_notification' notif.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this notification rule?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="mdi mdi-delete"></i> Delete
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteCustomRuleModal"
+                                        data-rule-id="{{ notif.id }}"
+                                        data-rule-title="{{ notif.title|escapejs }}">
+                                    <i class="mdi mdi-delete"></i> Delete
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -220,6 +221,28 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Custom Rule Confirmation Modal -->
+<div class="modal fade" id="deleteCustomRuleModal" tabindex="-1" aria-labelledby="deleteCustomRuleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteCustomRuleModalLabel">Confirm Deletion</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the custom rule: <strong id="customRuleNameToDelete"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" id="deleteCustomRuleForm" action="" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
       </div>
     </div>
   </div>
@@ -394,6 +417,32 @@
     if (typeField) {
         typeField.addEventListener('change', toggleCustomNotificationConditionalFields);
         toggleCustomNotificationConditionalFields(); // Initial call
+    }
+  
+
+  // --- Delete Custom Rule Modal Logic ---
+    const deleteCustomRuleModalElement = document.getElementById('deleteCustomRuleModal');
+    if (deleteCustomRuleModalElement) {
+        const customRuleNameToDeleteSpan = document.getElementById('customRuleNameToDelete'); // Use this if using the <strong> tag
+        // const customRuleNameToDeleteLi = document.getElementById('customRuleNameToDelete'); // Use this if using the <li> tag from commented out HTML
+        const deleteCustomRuleForm = document.getElementById('deleteCustomRuleForm');
+
+        deleteCustomRuleModalElement.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget; // Button that triggered the modal
+            const ruleId = button.getAttribute('data-rule-id');
+            const ruleTitle = button.getAttribute('data-rule-title');
+
+            if (customRuleNameToDeleteSpan) { // Adjust if using the <li> version
+                customRuleNameToDeleteSpan.textContent = ruleTitle;
+            }
+
+            if (deleteCustomRuleForm) {
+                // Construct the URL for the specific rule.
+                // This assumes your URL for deleting a custom notification is something like '/notifications/custom/delete/<id>/'
+                // Adjust the base path if your URL structure is different.
+                deleteCustomRuleForm.action = `/delete-custom-notification/${ruleId}/`;
+            }
+        });
     }
   });
 </script>
