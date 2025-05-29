@@ -295,3 +295,27 @@ html.dark-theme .navbar.default-layout,
 body.dark-theme .navbar.default-layout {
   background-color: #2d2d2d !important;
 }
+
+
+/* Make all form controls and selects dark, with light text */
+body.dark-theme .form-control,
+body.dark-theme .form-select,
+body.dark-theme input[type="date"],
+body.dark-theme input[type="number"] {
+  background-color: #232227 !important;
+  color: #e1e1e1 !important;
+  border-color: #444 !important;
+}
+
+/* Make placeholder text readable */
+body.dark-theme ::placeholder {
+  color: #b0b0b0 !important;
+  opacity: 1;
+}
+
+/* Make labels readable */
+body.dark-theme .form-label, 
+body.dark-theme label {
+  color: #e1e1e1 !important;
+}
+

@@ -804,10 +804,8 @@ def notification_settings(request):
                     'custom_notification_form': custom_form, # form with errors
                     'custom_notifications_list': custom_notifications_list
                 })
-        # Add other POST handling here if general preferences were form-based
-        # For now, general preferences are saved via JS/localStorage
 
-    else: # GET request
+    else:
         custom_form = CustomNotificationForm(user=request.user)
 
     return render(request, 'finance_tracker/notification_settings.html', {
@@ -815,27 +813,6 @@ def notification_settings(request):
         'custom_notifications_list': custom_notifications_list
     })
 
-
-# @login_required
-# def manage_notifications(request):
-#     notifications = CustomNotification.objects.filter(user=request.user).order_by('-created_at')
-#     if request.method == 'POST':
-#         form = CustomNotificationForm(request.POST, user=request.user)
-#         if form.is_valid():
-#             notif = form.save(commit=False)
-#             notif.user = request.user
-#             notif.save()
-#             messages.success(request, 'Custom notification rule added successfully.')
-#             return redirect('manage_notifications')
-#         else:
-#             messages.error(request, 'Please correct the errors below.')
-#     else:
-#         form = CustomNotificationForm(user=request.user)
-    
-#     return render(request, 'finance_tracker/manage_notifications.html', {
-#         'form': form,
-#         'notifications': notifications
-#     })
 
 @login_required
 def delete_custom_notification(request, notification_id):

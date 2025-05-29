@@ -279,7 +279,7 @@ class TransactionQueryForm(forms.Form):
     keyword = forms.CharField(
         required=False, 
         label="Keyword Search", 
-        widget=forms.TextInput(attrs={"placeholder": "Search by description or category"})
+        widget=forms.TextInput(attrs={"placeholder": "Search by description or category", "class": "form-control"})
     )
     date_range = forms.ChoiceField(
         required=False,
@@ -296,22 +296,22 @@ class TransactionQueryForm(forms.Form):
     start_date = forms.DateField(
         required=False, 
         label="Start Date", 
-        widget=forms.DateInput(attrs={"type": "date", "id": "id_start_date"})
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_start_date", "class": "form-control"})
     )
     end_date = forms.DateField(
         required=False, 
         label="End Date", 
-        widget=forms.DateInput(attrs={"type": "date", "id": "id_end_date"})
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_end_date", "class": "form-control"})
     )
     min_amount = forms.DecimalField(
         required=False, 
         label="Min Amount", 
-        widget=forms.NumberInput(attrs={"placeholder": "Minimum Amount"})
+        widget=forms.NumberInput(attrs={"placeholder": "Minimum Amount", "class": "form-control"})
     )
     max_amount = forms.DecimalField(
         required=False, 
         label="Max Amount", 
-        widget=forms.NumberInput(attrs={"placeholder": "Maximum Amount"})
+        widget=forms.NumberInput(attrs={"placeholder": "Maximum Amount", "class": "form-control"})
     )
     transaction_type = forms.ChoiceField(
         required=False,
