@@ -382,6 +382,12 @@ class AccountManagementForm(forms.ModelForm):
         model = User
         fields = ["username", "email", "name"]
 
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
@@ -431,9 +437,18 @@ class SubscriptionForm(forms.ModelForm):
             'auto_generate',
         ]
         widgets = {
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'description': forms.Textarea(attrs={'rows': 3}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'account': forms.Select(attrs={'class': 'form-select'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'frequency': forms.Select(attrs={'class': 'form-select'}),
+            'billing_date': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 31}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'auto_generate': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -456,6 +471,12 @@ class BudgetForm(forms.ModelForm):
         model = Budget
         fields = ['category', 'amount', 'period']
 
+        widgets = {
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'period': forms.Select(attrs={'class': 'form-select'}),
+        }
+
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
@@ -469,12 +490,13 @@ class CustomNotificationForm(forms.ModelForm):
         fields = ['type', 'title', 'message', 'threshold', 'category', 'notification_datetime', 'recurrence_interval', 'enabled']
         widgets = {
             'message': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
-            'type': forms.Select(),
+            'type': forms.Select(attrs={'class': 'form-select'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'threshold': forms.NumberInput(attrs={'class': 'form-control'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'notification_datetime': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'recurrence_interval': forms.Select(),
+            'recurrence_interval': forms.Select(attrs={'class': 'form-select'}),
+            'enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         help_texts = {
             'threshold': 'Set a monetary value for purchase, balance, or budget percentage for budget type.',
@@ -493,8 +515,8 @@ class CustomNotificationForm(forms.ModelForm):
         
         self.fields['category'].required = False
         self.fields['threshold'].required = False
-        self.fields['notification_datetime'].required = False # Conditional requirement
-        self.fields['recurrence_interval'].required = False # Conditional requirement
+        self.fields['notification_datetime'].required = False 
+        self.fields['recurrence_interval'].required = False 
 
     def clean(self):
         cleaned_data = super().clean()
