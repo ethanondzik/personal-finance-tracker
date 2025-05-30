@@ -162,10 +162,16 @@ class CategoryForm(forms.ModelForm):
     """
     class Meta:
         model = Category
-        fields = ["name", "type"]
+        fields = ['name', 'type'] 
+
+        widgets = {
+            'name': forms.TextInput(attrs={"placeholder": "Enter category name", "class": "form-control"}),
+            'type': forms.Select(attrs={"class": "form-select"}),
+        }
+
         labels = {
-            "name": "Category Name",
-            "type": "Category Type",
+            'name': 'Category Name',
+            'type': 'Category Type',
         }
         
     def __init__(self, *args, **kwargs):
@@ -197,7 +203,14 @@ class CSVUploadForm(forms.Form):
     Methods:
         clean_file(): Validates the uploaded file and processes its contents.
     """
-    file = forms.FileField(label="Upload CSV File")
+    file = forms.FileField(
+        required=True,
+        label="Upload CSV File",
+        widget=forms.ClearableFileInput(attrs={
+            "accept": ".csv",
+            "class": "form-control"
+        })
+        )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)  # Pass the user to the form
