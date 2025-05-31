@@ -9535,3 +9535,136 @@ Traceback (most recent call last):
     raise TypeError(f'Object of type {o.__class__.__name__} '
 TypeError: Object of type QuerySet is not JSON serializable
 "GET /dashboard/ HTTP/1.1" 500 249781
+Internal Server Error: /transactions/spreadsheet/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 858, in spreadsheet_transactions
+    account_choices = [{'id': acc.id, 'name': f"{acc.name} ({acc.account_number})"} for acc in accounts]
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 858, in <listcomp>
+    account_choices = [{'id': acc.id, 'name': f"{acc.name} ({acc.account_number})"} for acc in accounts]
+                                                 ^^^^^^^^
+AttributeError: 'Account' object has no attribute 'name'
+"GET /transactions/spreadsheet/ HTTP/1.1" 500 83344
+Internal Server Error: /transactions/spreadsheet/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2195, in add_fields
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 1863, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 1768, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'name' into field. Choices are: account_number, account_type, asset, balance, created_at, debt, id, institution_number, subscription, transaction, transit_number, user, user_id
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 868, in spreadsheet_transactions
+    'accounts_json': json.dumps(list(accounts.values('id', 'name', 'account_number'))),
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/query.py", line 1360, in values
+    clone = self._values(*fields, **expressions)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/query.py", line 1355, in _values
+    clone.query.set_values(fields)
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2500, in set_values
+    self.add_fields(field_names, True)
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2223, in add_fields
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'name' into field. Choices are: account_number, account_type, asset, balance, created_at, debt, id, institution_number, subscription, transaction, transit_number, user, user_id
+"GET /transactions/spreadsheet/ HTTP/1.1" 500 121562
+Internal Server Error: /transactions/spreadsheet/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2195, in add_fields
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 1863, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 1768, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'name' into field. Choices are: account_number, account_type, asset, balance, created_at, debt, id, institution_number, subscription, transaction, transit_number, user, user_id
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 868, in spreadsheet_transactions
+    'accounts_json': json.dumps(list(accounts.values('id', 'name', 'account_number'))),
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/query.py", line 1360, in values
+    clone = self._values(*fields, **expressions)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/query.py", line 1355, in _values
+    clone.query.set_values(fields)
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2500, in set_values
+    self.add_fields(field_names, True)
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2223, in add_fields
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'name' into field. Choices are: account_number, account_type, asset, balance, created_at, debt, id, institution_number, subscription, transaction, transit_number, user, user_id
+"GET /transactions/spreadsheet/ HTTP/1.1" 500 121226
+Internal Server Error: /transactions/spreadsheet/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2195, in add_fields
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 1863, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 1768, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'name' into field. Choices are: account_number, account_type, asset, balance, created_at, debt, id, institution_number, subscription, transaction, transit_number, user, user_id
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 868, in spreadsheet_transactions
+    'accounts_json': json.dumps(list(accounts.values('id', 'name', 'account_number'))),
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/query.py", line 1360, in values
+    clone = self._values(*fields, **expressions)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/query.py", line 1355, in _values
+    clone.query.set_values(fields)
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2500, in set_values
+    self.add_fields(field_names, True)
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/db/models/sql/query.py", line 2223, in add_fields
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'name' into field. Choices are: account_number, account_type, asset, balance, created_at, debt, id, institution_number, subscription, transaction, transit_number, user, user_id
+"GET /transactions/spreadsheet/ HTTP/1.1" 500 121226

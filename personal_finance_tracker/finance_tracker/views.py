@@ -14,6 +14,8 @@ from decimal import Decimal
 from django.utils import timezone
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt #implement csrf later
+import json
 
 
 
@@ -844,3 +846,122 @@ def manage_budgets(request):
         'budgets': budgets,
         'form': form,
     })
+
+
+@login_required
+def spreadsheet_transactions(request):
+    user = request.user
+    accounts = Account.objects.filter(user=user)
+    categories = Category.objects.filter(user=user)
+    
+    accounts_list_for_json = []
+    for acc in accounts:
+        display_name = str(acc.institution_number) if acc.institution_number else f"Account ending in {acc.account_number[-4:] if acc.account_number and len(acc.account_number) >= 4 else acc.account_number}"
+        accounts_list_for_json.append({
+            'id': acc.id,
+            'name': display_name, 
+            'account_number': acc.account_number
+        })
+
+    # define the structure for new entries
+    initial_data_structure = [
+        {'date': None, 'account': None, 'category': None, 'description': '', 'amount': None, 'transaction_type': 'expense'}
+    ]
+
+    context = {
+        'accounts_json': accounts_list_for_json,
+        'categories_json': list(categories.values('id', 'name', 'type')), 
+        'transaction_types_json': [{'id': 'expense', 'name': 'Expense'}, {'id': 'income', 'name': 'Income'}],
+        'initial_data_json': initial_data_structure,
+    }
+    return render(request, 'finance_tracker/spreadsheet_transactions.html', context)
+
+@login_required
+@csrf_exempt # For simplicity, Add proper CSRF handling later
+@require_POST
+def save_spreadsheet_transactions(request):
+    try:
+        data = json.loads(request.body)
+        transactions_to_create = []
+        errors = []
+
+        for i, row_data in enumerate(data):
+            # Basic validation and data cleaning
+            if not row_data or not row_data.get('date') or not row_data.get('amount'):
+                # Skip empty or incomplete rows 
+                # errors.append(f"Row {i+1}: Missing required fields (date, amount).")
+                continue
+
+            try:
+                account_id = row_data.get('account_id')
+                category_id = row_data.get('category_id')
+                
+                account = Account.objects.get(id=account_id, user=request.user) if account_id else None
+                category = Category.objects.get(id=category_id, user=request.user) if category_id else None
+
+                # add further validation later
+                # for now, direct creation
+                transaction = Transaction(
+                    user=request.user,
+                    date=row_data.get('date'),
+                    description=row_data.get('description', ''),
+                    amount=Decimal(row_data.get('amount')),
+                    transaction_type=row_data.get('transaction_type', 'expense').lower(),
+                    account=account,
+                    category=category
+                )
+            
+                # transaction.full_clean() 
+                transactions_to_create.append(transaction)
+            except Account.DoesNotExist:
+                errors.append(f"Row {i+1}: Account ID '{account_id}' not found or does not belong to you.")
+            except Category.DoesNotExist:
+                errors.append(f"Row {i+1}: Category ID '{category_id}' not found or does not belong to you.")
+            except (ValueError, TypeError) as e:
+                errors.append(f"Row {i+1}: Invalid data - {str(e)} for data: {row_data}")
+            except Exception as e:
+                 errors.append(f"Row {i+1}: An unexpected error occurred - {str(e)}")
+
+
+        if errors:
+            return JsonResponse({'status': 'error', 'errors': errors}, status=400)
+
+        if transactions_to_create:
+            Transaction.objects.bulk_create(transactions_to_create)
+           
+            for t in transactions_to_create:
+                
+                pass # Account balance updates would need individual .save() or a separate update mechanism
+
+            # Manually update account balances after bulk_create
+            # simplified approach probably need signals or more targeted updates.
+            updated_accounts = {}
+            for t_data in data: # Iterate over the raw data that was successfully processed
+                if t_data.get('account_id') and t_data.get('amount'):
+                    acc_id = t_data['account_id']
+                    if acc_id not in updated_accounts:
+                        try:
+                            updated_accounts[acc_id] = Account.objects.get(id=acc_id, user=request.user)
+                        except Account.DoesNotExist:
+                            continue # Should have been caught earlier
+
+                    account_obj = updated_accounts[acc_id]
+                    amount = Decimal(t_data['amount'])
+                    if t_data.get('transaction_type', 'expense').lower() == 'income':
+                        account_obj.balance += amount
+                    else:
+                        account_obj.balance -= amount
+            
+            for acc_obj in updated_accounts.values():
+                acc_obj.save()
+
+
+            return JsonResponse({'status': 'success', 'message': f'{len(transactions_to_create)} transactions saved successfully.'})
+        else:
+            return JsonResponse({'status': 'success', 'message': 'No valid transactions to save.'})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON data.'}, status=400)
+    except Exception as e:
+        # Log the exception e
+        return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'}, status=500)

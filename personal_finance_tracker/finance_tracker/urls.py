@@ -25,5 +25,7 @@ urlpatterns = [
     path('notifications/', views.notification_settings, name='notification_settings'),
     path('delete-custom-notification/<int:notification_id>/', views.delete_custom_notification, name='delete_custom_notification'),
     path('manage-budgets/', views.manage_budgets, name='manage_budgets'),
+    path('transactions/spreadsheet/', views.spreadsheet_transactions, name='spreadsheet_transactions'),
+    path('transactions/spreadsheet/save/', views.save_spreadsheet_transactions, name='save_spreadsheet_transactions'),
 
 ]

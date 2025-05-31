@@ -1,0 +1,196 @@
+{% extends "authenticated_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+<style>
+    #transaction-spreadsheet {
+        width: 100%;
+        height: 60vh; /* Adjust as needed */
+        overflow: auto;
+    }
+    .handsontable .htInvalid {
+        background-color: #ffcccc !important;
+    }
+    .handsontable .htDimmed { /* Style for read-only cells if needed */
+        color: #757575;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-scroller">
+    <div class="container-fluid page-body-wrapper">
+        <div class="main-panel">
+            <div class="content-wrapper">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Enter Transactions via Spreadsheet</h4>
+                        <p class="card-description">
+                            Add or edit transactions directly in the table below.
+                            Make sure to select an Account and Category for each transaction.
+                        </p>
+                        
+                        <div id="transaction-spreadsheet" class="mt-4"></div>
+
+                        <div class="mt-4">
+                            <button id="save-spreadsheet-btn" class="btn btn-primary">
+                                <i class="mdi mdi-content-save"></i> Save Transactions
+                            </button>
+                            <button id="add-row-btn" class="btn btn-success ms-2">
+                                <i class="mdi mdi-plus-circle-outline"></i> Add Row
+                            </button>
+                             <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary ms-2">
+                                <i class="mdi mdi-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                        <div id="status-message" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ accounts_json|json_script:"accounts-data" }}
+{{ categories_json|json_script:"categories-data" }}
+{{ transaction_types_json|json_script:"transaction-types-data" }}
+{{ initial_data_json|json_script:"initial-spreadsheet-data" }}
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const accountsData = JSON.parse(document.getElementById('accounts-data').textContent);
+    const categoriesData = JSON.parse(document.getElementById('categories-data').textContent);
+    const transactionTypesData = JSON.parse(document.getElementById('transaction-types-data').textContent);
+    const initialSpreadsheetData = JSON.parse(document.getElementById('initial-spreadsheet-data').textContent);
+
+    
+    const container = document.getElementById('transaction-spreadsheet');
+    const saveButton = document.getElementById('save-spreadsheet-btn');
+    const addRowButton = document.getElementById('add-row-btn');
+    const statusMessageEl = document.getElementById('status-message');
+
+    // Prepare sources for dropdowns
+    const accountNames = accountsData.map(acc => acc.name + ' (' + acc.account_number + ')');
+    const categoryNames = categoriesData.map(cat => cat.name);
+    const transactionTypeNames = transactionTypesData.map(tt => tt.name);
+
+    const hot = new Handsontable(container, {
+        data: initialSpreadsheetData.length > 0 ? initialSpreadsheetData : [{}], // Start with one empty row if no initial data
+        rowHeaders: true,
+        colHeaders: ['Date', 'Account', 'Category', 'Description', 'Amount', 'Type'],
+        columns: [
+            { data: 'date', type: 'date', dateFormat: 'YYYY-MM-DD', correctFormat: true, allowInvalid: false },
+            { 
+                data: 'account_name',
+                type: 'dropdown', 
+                source: accountNames,
+                allowInvalid: false,
+                validator: function (value, callback) {
+                    callback(accountNames.includes(value));
+                }
+            },
+            { 
+                data: 'category_name',
+                type: 'dropdown', 
+                source: categoryNames,
+                allowInvalid: false,
+                validator: function (value, callback) {
+                    callback(categoryNames.includes(value));
+                }
+            },
+            { data: 'description', type: 'text' },
+            { data: 'amount', type: 'numeric', numericFormat: { pattern: '0,0.00' }, allowInvalid: false },
+            { 
+                data: 'transaction_type_name',
+                type: 'dropdown', 
+                source: transactionTypeNames,
+                allowInvalid: false,
+                validator: function (value, callback) {
+                    callback(transactionTypeNames.includes(value));
+                }
+            }
+        ],
+        minRows: 1,
+        minSpareRows: 1, // Always keep one empty row at the bottom
+        width: '100%',
+        height: 'auto', // Will be controlled by parent div height
+        stretchH: 'all', // Stretch columns to fit container
+        licenseKey: 'non-commercial-and-evaluation',
+        manualRowMove: true,
+        manualColumnMove: true,
+        contextMenu: true,
+        filters: true,
+        dropdownMenu: true,
+        afterChange: function (changes, source) {
+            if (source === 'loadData') {
+                return; // Don't do anything on initial load
+            }
+            // maybe auto-set category type based on transaction type
+        }
+    });
+
+    addRowButton.addEventListener('click', function() {
+        hot.alter('insert_row_below');
+    });
+
+    saveButton.addEventListener('click', function () {
+        const tableData = hot.getSourceData(); // Gets data as array of objects
+        const transactionsToSave = [];
+        statusMessageEl.innerHTML = '<span class="text-info">Saving...</span>';
+
+        tableData.forEach(row => {
+            if (row.date && row.amount != null) { // Basic check for a valid row
+                const account = accountsData.find(acc => (acc.name + ' (' + acc.account_number + ')') === row.account_name);
+                const category = categoriesData.find(cat => cat.name === row.category_name);
+                const transactionType = transactionTypesData.find(tt => tt.name === row.transaction_type_name);
+
+                transactionsToSave.push({
+                    date: row.date,
+                    account_id: account ? account.id : null,
+                    category_id: category ? category.id : null,
+                    description: row.description || '',
+                    amount: row.amount,
+                    transaction_type: transactionType ? transactionType.id : 'expense' // Default to expense
+                });
+            }
+        });
+
+        if (transactionsToSave.length === 0) {
+            statusMessageEl.innerHTML = '<span class="text-warning">No valid transactions to save. Please fill in at least Date and Amount.</span>';
+            return;
+        }
+
+        fetch("{% url 'save_spreadsheet_transactions' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // 'X-CSRFToken': '{{ csrf_token }}', // Add later
+            },
+            body: JSON.stringify(transactionsToSave)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                statusMessageEl.innerHTML = `<span class="text-success">${data.message}</span>`;
+                // could also clear the table or refresh data
+                // hot.loadData(initialSpreadsheetData.length > 0 ? initialSpreadsheetData : [{}]);
+            } else {
+                let errorMessages = data.message || 'An error occurred.';
+                if (data.errors && data.errors.length > 0) {
+                    errorMessages += '<ul>' + data.errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+                }
+                statusMessageEl.innerHTML = `<div class="alert alert-danger">${errorMessages}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusMessageEl.innerHTML = '<span class="text-danger">An error occurred while saving. Check console.</span>';
+        });
+    });
+});
+</script>
+{% endblock %}
