@@ -1,9 +1,11 @@
+import os
 import csv
 import random
 from datetime import datetime, timedelta
 
 # Define the output file path
-output_file = "generated_transactions.csv"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+output_file = os.path.join(PROJECT_ROOT, "test_data", "generated_transactions.csv")
 
 # Define the default categories and accounts
 categories = [
@@ -14,7 +16,7 @@ categories = [
     {"name": "Utilities", "type": "expense"},
 ]
 
-#adjust accounts to match the sample user as required
+# Adjust accounts to match the sample user as required
 accounts = [
     {"account_number": "44564376", "account_type": "checking"},
     {"account_number": "44569771", "account_type": "savings"},
@@ -49,6 +51,9 @@ for _ in range(100):
         "category": category["name"],
         "account": account["account_number"],
     })
+
+# Create test_data directory if it doesn't exist
+os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
 # Write the transactions to a CSV file
 with open(output_file, mode="w", newline="") as file:

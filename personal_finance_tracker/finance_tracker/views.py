@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Transaction, Account, Category
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm
+from django.views.decorators.http import require_POST
+from .models import Transaction, Account, Category, Subscription, Budget, CustomNotification
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm, CustomNotificationForm
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
@@ -10,6 +11,10 @@ from collections import defaultdict
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
 from decimal import Decimal
+from django.utils import timezone
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+import json
 
 
 
@@ -44,9 +49,11 @@ def dashboard(request):
 
     #Shows all income and all expenses on the same day for each day
     transactions = Transaction.objects.filter(user=request.user).order_by('date')
-    accounts = Account.objects.filter(user=request.user).values(
+    accounts = list(Account.objects.filter(user=request.user).values(
         'account_number', 'account_type', 'balance'
-    )
+    ))
+    categories = Category.objects.filter(user=request.user)
+
     
     #Total income and expenses for the logged-in user
     total_income = transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
@@ -91,11 +98,108 @@ def dashboard(request):
         "monthly_expenses": monthly_expenses,
     }
 
-    return render(request, 'finance_tracker/dashboard.html', {
-        'transactions': transactions,
+    today = timezone.now().date()
+    
+    # Get upcoming subscriptions (due in the next 30 days)
+    upcoming_subscriptions = Subscription.objects.filter(
+        user=request.user,
+        is_active=True,
+        next_payment_date__gte=today,
+        next_payment_date__lte=today + timedelta(days=30)
+    ).order_by('next_payment_date')[:3]  # Limit to 3 most upcoming
+    
+    # Calculate days until due for each subscription
+    for subscription in upcoming_subscriptions:
+        delta = subscription.next_payment_date - today
+        subscription.days_until = delta.days
+
+    # Filtering logic
+    tx_type = request.GET.get("type")
+    if tx_type in ("income", "expense"):
+        transactions = transactions.filter(transaction_type=tx_type)
+    category_id = request.GET.get("category")
+    if category_id:
+        transactions = transactions.filter(category_id=category_id)
+    start = request.GET.get("start")
+    if start:
+        transactions = transactions.filter(date__gte=start)
+    end = request.GET.get("end")
+    if end:
+        transactions = transactions.filter(date__lte=end)
+
+    budgets = Budget.objects.filter(user=request.user)
+    first_of_month = today.replace(day=1)
+
+    budget_data = []
+    
+    for budget in budgets:
+        spent = Transaction.objects.filter(
+            user=request.user,
+            category=budget.category,
+            date__gte=first_of_month,  # for monthly budgets
+            date__lte=today,
+            transaction_type='expense'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        progress = float(spent) / float(budget.amount) if budget.amount else 0
+        budget_data.append({
+            'id': budget.category.id,
+            'name': budget.category.name,
+            'budget': float(budget.amount),
+            'spent': float(spent),
+            'progress': progress * 100,
+            'remaining': float(budget.amount) - float(spent),
+        })
+
+    # Pagination
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
+
+    # user_custom_notifications = CustomNotification.objects.filter(user=request.user, enabled=True)
+    
+    # # Prepare custom notifications data for JSON script
+    # # We need category_id and potentially category_name if the rule applies to a specific category
+    # custom_notifications_data = list(user_custom_notifications.values(
+    #     'id', 'type', 'title', 'message', 'threshold', 
+    #     'category_id', 'category__name', 'notification_datetime', 
+    #     'recurrence_interval' 
+    # ))
+
+    # for notif_data in custom_notifications_data:
+    #     if notif_data['notification_datetime']:
+    #         notif_data['notification_datetime'] = notif_data['notification_datetime'].isoformat()
+    custom_notifications_data = CustomNotification.objects.filter(user=request.user)
+    user_custom_notifications_data = []
+    for rule in custom_notifications_data:
+        user_custom_notifications_data.append({
+            'id': rule.id,
+            'title': rule.title,
+            'message': rule.message,
+            'type': rule.type,
+            'threshold': float(rule.threshold) if rule.threshold is not None else None,
+            'category_id': rule.category.id if rule.category else None,
+            'category_name': rule.category.name if rule.category else None,
+            'notification_datetime': rule.notification_datetime.strftime('%Y-%m-%dT%H:%M') if rule.notification_datetime else None,
+            'recurrence_interval': rule.recurrence_interval,
+            'enabled': rule.enabled,
+        })
+    
+    # Return the rendered template with ALL context data
+    response = render(request, 'finance_tracker/dashboard.html', {
+        'transactions': transactions_page,
         'chart_data': chart_data,   
         'accounts': accounts,
+        'categories': categories,
+        'upcoming_subscriptions': upcoming_subscriptions,
+        'today': today,
+        'budget_data': budget_data,
+        'user_custom_notifications': user_custom_notifications_data,
     })
+
+    # Clear the notification flag after rendering
+    if 'show_large_transaction_notification' in request.session:
+        del request.session['show_large_transaction_notification']
+    return response
 
 @login_required
 def add_transaction(request):
@@ -112,17 +216,38 @@ def add_transaction(request):
         HttpResponse: The rendered add transaction page with the form.
         HttpResponseRedirect: Redirects to the dashboard if the transaction is successfully added.
     """
+    initial = {}
+    if 'date' in request.GET:
+        initial['date'] = request.GET['date']
+    
+    next_url = request.GET.get('next') or request.POST.get('next')
+
     if request.method == 'POST':
+        
         form = TransactionForm(request.POST, user=request.user)
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.user = request.user
             transaction.save()
             messages.success(request, "Transaction added successfully!")
+
+            try:
+                threshold = float(request.POST.get('transaction_threshold', 100))
+            except ValueError:
+                threshold = 100
+            if float(transaction.amount) >= threshold:
+                request.session['show_large_transaction_notification'] = {
+                    'amount': float(transaction.amount),
+                    'description': transaction.description,
+                    'id': transaction.id
+                }
+            
+            if next_url:
+                return redirect(next_url)
             return redirect('dashboard')
     else:
-        form = TransactionForm(user=request.user)
-    return render(request, 'finance_tracker/add_transaction.html', {'form': form})
+        form = TransactionForm(user=request.user, initial=initial)
+    return render(request, 'finance_tracker/add_transaction.html', {'form': form, 'next': next_url})
     
 
 def register(request):
@@ -173,18 +298,21 @@ def update_transaction(request, transaction_id):
         HttpResponseRedirect: Redirects to the dashboard if the transaction is successfully updated.
     """
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+    next_url = request.GET.get('next') or request.POST.get('next')
 
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=transaction)
         if form.is_valid():
             form.save()
+            if next_url:
+                return redirect(next_url)
             return redirect('dashboard')
         else:
             messages.error(request, "Error updating transaction. Please try again.")
     else:
         form = TransactionForm(instance=transaction)
 
-    return render(request, 'finance_tracker/update_transaction.html', {'form': form, 'transaction': transaction})
+    return render(request, 'finance_tracker/update_transaction.html', {'form': form, 'transaction': transaction, 'next': next_url})
 
 
 
@@ -412,9 +540,15 @@ def query_transactions(request):
             transactions = transactions.filter(method=transaction_method)
         
 
+    # Pagination
+    transactions = transactions.order_by('-date', '-id')
+
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
     return render(request, "finance_tracker/query_transactions.html", {
         "form": form,
-        "transactions": transactions,
+        "transactions": transactions_page,
     })
 
 
@@ -471,3 +605,440 @@ def manage_account(request):
         "form": form,
         "password_form": password_form,
     })
+
+
+@login_required
+def manage_subscriptions(request):
+    """
+    Displays a page where users can view, add, or delete their subscriptions.
+
+    - Handles subscription deletion if the request method is POST and includes a subscription_id.
+    - Handles subscription addition if the request method is POST and includes form data.
+    - Displays the list of subscriptions and the add subscription form.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage subscriptions page.
+    """
+    subscriptions = Subscription.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        # Handle subscription deletion
+        subscription_id = request.POST.get('subscription_id')
+        if subscription_id:
+            subscription = get_object_or_404(Subscription, id=subscription_id, user=request.user)
+            subscription.delete()
+            messages.success(request, "Subscription deleted successfully!")
+            return redirect('manage_subscriptions')
+
+        # Handle subscription addition
+        form = SubscriptionForm(request.POST)
+        form.instance.user = request.user
+        if form.is_valid():
+            subscription = form.save(commit=False)
+            subscription.user = request.user
+            subscription.save()
+            messages.success(request, "Subscription added successfully!")
+            return redirect('manage_subscriptions')
+        else:
+            messages.error(request, "Error adding subscription. Please try again.")
+    else:
+        form = SubscriptionForm()
+
+    return render(request, 'finance_tracker/manage_subscriptions.html', {
+        'subscriptions': subscriptions,
+        'add_subscription_form': form,
+    })
+
+@login_required
+def update_subscription(request, subscription_id):
+    """
+    Handles updating an existing subscription for the logged-in user.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+        subscription_id (int): The ID of the subscription to update.
+
+    Returns:
+        HttpResponse: The rendered update subscription page with the form.
+        HttpResponseRedirect: Redirects to manage_subscriptions if the subscription is successfully updated.
+    """
+    subscription = get_object_or_404(Subscription, id=subscription_id, user=request.user)
+
+    if request.method == 'POST':
+        form = SubscriptionForm(request.POST, instance=subscription)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Subscription updated successfully!")
+            return redirect('manage_subscriptions')
+    else:
+        form = SubscriptionForm(instance=subscription)
+
+    return render(request, 'finance_tracker/update_subscription.html', {
+        'form': form,
+        'subscription': subscription
+    })
+
+
+@login_required
+@require_POST
+def update_theme_preference(request):
+    """
+    Updates the user's theme preference.
+    
+    Args:
+        request (HttpRequest): The HTTP request containing the theme preference.
+        
+    Returns:
+        JsonResponse: A response indicating whether the operation was successful.
+    """
+    theme = request.POST.get('theme')
+    if theme in ['light', 'dark']:
+        request.user.theme = theme
+        request.user.save()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid theme'}, status=400)
+
+        
+@login_required
+def transaction_calendar(request):
+    """
+    Renders a calendar view of transactions for the logged-in user.
+    
+    - Prepares transaction data for display in a calendar format
+    - Passes the data as JSON for the JavaScript calendar library
+    
+    Args:
+        request (HttpRequest): The HTTP request object.
+        
+    Returns:
+        HttpResponse: The rendered calendar view page.
+    """
+    transactions = Transaction.objects.filter(user=request.user).select_related('account', 'category').order_by('-date')
+    
+    # Prepare transaction data for the calendar
+    transaction_data = []
+    for t in transactions:
+        transaction_data.append({
+            'id': t.id,
+            'date': t.date.strftime('%Y-%m-%d'),
+            'description': t.description or f"{t.get_transaction_type_display()} transaction",
+            'amount': float(t.amount),
+            'transaction_type': t.transaction_type,
+            'category_name': t.category.name if t.category else 'Uncategorized',
+            'account_number': t.account.account_number if t.account else 'N/A',
+            'account_type': t.account.get_account_type_display() if t.account else 'N/A',
+            'account_balance': float(t.account.balance) if t.account else 0.0
+        })
+    
+    return render(request, 'finance_tracker/transaction_calendar.html', {
+        'transaction_data': transaction_data
+    })
+
+
+@login_required
+def transaction_timeline(request):
+    """
+    Renders a timeline view of transactions for the logged-in user.
+    
+    - Displays transactions in chronological order in a visual timeline
+    
+    Args:
+        request (HttpRequest): The HTTP request object.
+        
+    Returns:
+        HttpResponse: The rendered timeline view page.
+    """
+    transactions = Transaction.objects.filter(user=request.user).select_related('account', 'category').order_by('-date')
+
+    transaction_data = []
+    for t in transactions:
+        transaction_data.append({
+            'id': t.id,
+            'date': t.date.strftime('%Y-%m-%d'),
+            'description': t.description or f"{t.get_transaction_type_display()} transaction",
+            'amount': float(t.amount),
+            'transaction_type': t.transaction_type,
+            'category_name': t.category.name if t.category else 'Uncategorized',
+            'account_number': t.account.account_number if t.account else 'N/A',
+            'account_type': t.account.get_account_type_display() if t.account else 'N/A',
+            'account_balance': float(t.account.balance) if t.account else 0.0
+        })
+    
+    return render(request, 'finance_tracker/transaction_timeline.html', {
+        'transactions': transactions,
+        'transaction_data': transaction_data,
+    })
+
+
+@login_required
+def notification_settings(request):
+    """
+    Renders the notification settings page.
+    
+    Allows the user to configure their notification preferences.
+    
+    Args:
+        request (HttpRequest): The HTTP request object.
+        
+    Returns:
+        HttpResponse: The rendered notification settings page.
+    """
+    custom_notifications_list = CustomNotification.objects.filter(user=request.user).order_by('-created_at')
+    
+    if request.method == 'POST':
+        # Check if this POST request is for the custom notification form
+        if 'form_type' in request.POST and request.POST['form_type'] == 'custom_notification':
+            custom_form = CustomNotificationForm(request.POST, user=request.user)
+            if custom_form.is_valid():
+                notif = custom_form.save(commit=False)
+                notif.user = request.user
+                notif.save()
+                messages.success(request, 'Custom notification rule added successfully.')
+                return redirect('notification_settings') # Redirect to the same page
+            else:
+                messages.error(request, 'Please correct the errors in the custom rule form.')
+                # Pass the form with errors back to the template
+                return render(request, 'finance_tracker/notification_settings.html', {
+                    'custom_notification_form': custom_form, # form with errors
+                    'custom_notifications_list': custom_notifications_list
+                })
+
+    else:
+        custom_form = CustomNotificationForm(user=request.user)
+
+    return render(request, 'finance_tracker/notification_settings.html', {
+        'custom_notification_form': custom_form,
+        'custom_notifications_list': custom_notifications_list
+    })
+
+
+@login_required
+def delete_custom_notification(request, notification_id):
+    notification = get_object_or_404(CustomNotification, id=notification_id, user=request.user)
+    if request.method == 'POST':
+        notification.delete()
+        messages.success(request, 'Custom notification rule deleted.')
+    return redirect('notification_settings')
+
+@login_required
+def manage_budgets(request):
+    budgets = Budget.objects.filter(user=request.user).select_related('category')
+    if request.method == 'POST':
+        if 'delete_budget' in request.POST:
+            budget_id = request.POST.get('budget_id')
+            Budget.objects.filter(id=budget_id, user=request.user).delete()
+            messages.success(request, "Budget deleted successfully!")
+            return redirect('manage_budgets')
+        else:
+            form = BudgetForm(request.POST, user=request.user)
+            form.instance.user = request.user
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Budget saved successfully!")
+                return redirect('manage_budgets')
+    else:
+        form = BudgetForm(user=request.user)
+    return render(request, 'finance_tracker/manage_budgets.html', {
+        'budgets': budgets,
+        'form': form,
+    })
+
+
+@login_required
+def spreadsheet_transactions(request):
+    user = request.user
+    accounts = Account.objects.filter(user=user)
+    categories = Category.objects.filter(user=user)
+    
+    accounts_list_for_json = []
+    for acc in accounts:
+        display_name = str(acc.institution_number) if acc.institution_number else f"Account ending in {acc.account_number[-4:] if acc.account_number and len(acc.account_number) >= 4 else acc.account_number}"
+        accounts_list_for_json.append({
+            'id': acc.id,
+            'name': display_name, 
+            'account_number': acc.account_number 
+        })
+
+    # Fetch existing transactions for the user
+    existing_transactions = Transaction.objects.filter(user=user).select_related('account', 'category').order_by('-date', '-id')
+    
+    initial_data_structure = []
+    for t in existing_transactions:
+        account_name_display = None
+        if t.account:
+            # Find the matching display name from accounts_list_for_json
+            matching_account = next((acc_json for acc_json in accounts_list_for_json if acc_json['id'] == t.account.id), None)
+            if matching_account:
+                account_name_display = matching_account['name']
+            else: # Fallback if account somehow not in the list (should not happen if data is consistent)
+                account_name_display = str(t.account.institution_number) if t.account.institution_number else f"Account ending in {t.account.account_number[-4:] if t.account.account_number and len(t.account.account_number) >=4 else t.account.account_number}"
+
+
+        initial_data_structure.append({
+            'id': t.id, # Crucial for identifying existing transactions
+            'date': t.date.strftime('%Y-%m-%d') if t.date else None,
+            'account_name': account_name_display,
+            'category_name': t.category.name if t.category else None,
+            'description': t.description,
+            'amount': float(t.amount) if t.amount is not None else None,
+            'transaction_type_name': t.get_transaction_type_display() # 'Income' or 'Expense'
+        })
+    
+    # If no existing transactions, you might still want a blank row for new entries.
+    # Handsontable's minSpareRows will handle adding new blank rows anyway.
+
+    context = {
+        'accounts_json': accounts_list_for_json,
+        'categories_json': list(categories.values('id', 'name', 'type')), 
+        'transaction_types_json': [{'id': 'expense', 'name': 'Expense'}, {'id': 'income', 'name': 'Income'}],
+        'initial_data_json': initial_data_structure,
+    }
+    return render(request, 'finance_tracker/spreadsheet_transactions.html', context)
+
+@login_required
+@require_POST
+def save_spreadsheet_transactions(request):
+    try:
+        data = json.loads(request.body)
+        transactions_to_create = []
+        transactions_to_update = []
+        updated_transaction_ids = [] 
+        errors = []
+
+        for i, row_data in enumerate(data):
+            # received_ids.add(row_data.get('id'))
+
+            # Basic validation and data cleaning
+            if not row_data or not row_data.get('date') or row_data.get('amount') is None: # Amount can be 0
+                if row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
+                     
+                    pass
+                elif not row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
+                    # Truly empty new row, skip
+                    continue
+                else: # Incomplete data for a new or existing row
+                    errors.append(f"Row {i+1}: Missing required fields (date, amount).")
+                    continue
+            
+            transaction_id = row_data.get('id')
+            
+            try:
+                account_id = row_data.get('account_id')
+                category_id = row_data.get('category_id')
+                
+                account = Account.objects.get(id=account_id, user=request.user) if account_id else None
+                category = Category.objects.get(id=category_id, user=request.user) if category_id else None
+                
+                transaction_date = row_data.get('date')
+                description = row_data.get('description', '')
+                amount = Decimal(row_data.get('amount'))
+                transaction_type = row_data.get('transaction_type', 'expense').lower()
+
+                # from .validation import validate_transaction_data
+                # try:
+                #     validate_transaction_data({
+                #         'date': transaction_date, 'transaction_type': transaction_type, 
+                #         'amount': amount, 'description': description, 'category': category
+                #     })
+                # except ValidationError as e_val:
+                #     errors.append(f"Row {i+1}: Validation Error - {', '.join(e_val.messages)}")
+                #     continue
+
+
+                if transaction_id: # Existing transaction, try to update
+                    updated_transaction_ids.append(transaction_id)
+                    try:
+                        t_instance = Transaction.objects.get(id=transaction_id, user=request.user)
+                        
+                        # Check if anything actually changed to avoid unnecessary updates
+                        if (t_instance.date.strftime('%Y-%m-%d') != transaction_date or
+                            t_instance.account_id != account_id or
+                            t_instance.category_id != category_id or
+                            t_instance.description != description or
+                            t_instance.amount != amount or
+                            t_instance.transaction_type != transaction_type):
+                            
+                            # Important: Revert old balance impact before applying new
+                            if t_instance.account:
+                                if t_instance.transaction_type == "income":
+                                    t_instance.account.balance -= t_instance.amount
+                                else: # expense
+                                    t_instance.account.balance += t_instance.amount
+                            
+                            t_instance.date = transaction_date
+                            t_instance.account = account
+                            t_instance.category = category
+                            t_instance.description = description
+                            t_instance.amount = amount
+                            t_instance.transaction_type = transaction_type
+                            transactions_to_update.append(t_instance) 
+                            # Note: t_instance.save() will be called later to handle new balance
+                        
+                    except Transaction.DoesNotExist:
+                        errors.append(f"Row {i+1}: Transaction ID '{transaction_id}' not found for update.")
+                        continue
+                else: # New transaction
+                    transactions_to_create.append(Transaction(
+                        user=request.user, date=transaction_date, account=account, category=category,
+                        description=description, amount=amount, transaction_type=transaction_type
+                    ))
+
+            except Account.DoesNotExist:
+                errors.append(f"Row {i+1}: Account ID '{account_id}' not found or does not belong to you.")
+            except Category.DoesNotExist:
+                errors.append(f"Row {i+1}: Category ID '{category_id}' not found or does not belong to you.")
+            except (ValueError, TypeError) as e:
+                errors.append(f"Row {i+1}: Invalid data - {str(e)} for data: {row_data}")
+            except Exception as e:
+                 errors.append(f"Row {i+1}: An unexpected error occurred processing this row - {str(e)}")
+
+        if errors:
+            return JsonResponse({'status': 'error', 'errors': errors}, status=400)
+
+        # Process creations
+        created_count = 0
+        if transactions_to_create:
+            # For simplicity and to trigger signals/save logic, save individually
+            for t_new in transactions_to_create:
+                t_new.save() # This will also update account balance via model's save()
+                created_count += 1
+            # Alternatively, for bulk with manual balance update:
+            # Transaction.objects.bulk_create(transactions_to_create)
+            # created_count = len(transactions_to_create)
+            # Then manually update balances for these new transactions
+
+        # Process updates
+        updated_count = 0
+        accounts_to_recalculate_balance = set()
+        if transactions_to_update:
+            for t_upd in transactions_to_update:
+                t_upd.save() # This will also update account balance via model's save()
+                updated_count += 1
+                if t_upd.account:
+                    accounts_to_recalculate_balance.add(t_upd.account)
+            # Alternatively, for bulk_update:
+            # Transaction.objects.bulk_update(transactions_to_update, ['date', 'account', 'category', 'description', 'amount', 'transaction_type'])
+            # updated_count = len(transactions_to_update)
+            # Then manually update balances for these updated transactions
+
+        message_parts = []
+        if created_count > 0:
+            message_parts.append(f"{created_count} new transaction(s) saved.")
+        if updated_count > 0:
+            message_parts.append(f"{updated_count} transaction(s) updated.")
+        
+        if not message_parts:
+            final_message = "No changes detected or no valid transactions to save."
+        else:
+            final_message = " ".join(message_parts)
+
+        return JsonResponse({'status': 'success', 'message': final_message})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON data.'}, status=400)
+    except Exception as e:
+        # Log the exception e
+        return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'}, status=500)

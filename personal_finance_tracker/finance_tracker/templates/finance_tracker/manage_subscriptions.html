@@ -1,0 +1,177 @@
+{% extends "authenticated_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">Manage Subscriptions</h2>
+    
+    <!-- Display Messages -->
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Subscription List -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Your Subscriptions</h5>
+            {% if subscriptions %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Amount</th>
+                            <th>Frequency</th>
+                            <th>Next Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subscription in subscriptions %}
+                        <tr>
+                            <td>{{ subscription.name }}</td>
+                            <td>${{ subscription.amount }}</td>
+                            <td>{{ subscription.get_frequency_display }}</td>
+                            <td>{{ subscription.next_payment_date }}</td>
+                            <td>{% if subscription.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'update_subscription' subscription.id %}" class="btn btn-sm btn-warning">Edit</a>
+                                    <button type="button" class="btn btn-sm btn-danger" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deleteModal" 
+                                            data-subscription-id="{{ subscription.id }}" 
+                                            data-subscription-name="{{ subscription.name }}">
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <p class="text-muted mb-0">You have no subscriptions.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="d-flex flex-column gap-3 align-items-center mt-4">
+        <button id="show-form-btn" class="btn btn-primary w-75">
+            <i class="mdi mdi-plus-circle me-2"></i>Add New Subscription
+        </button>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+            <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+        </a>
+    </div>
+
+    <!-- Add Subscription Form -->
+    <div id="add-subscription-form-container" style="display: none;" class="mt-4">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white text-center">
+                <h5 class="mb-0">New Subscription Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'manage_subscriptions' %}">
+                    {% csrf_token %}
+                    {% for field in add_subscription_form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in field.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="mdi mdi-content-save me-2"></i>Save Subscription
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the subscription <strong id="subscription-name"></strong>?
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="{% url 'manage_subscriptions' %}" id="delete-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="subscription_id" id="subscription-id">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const showFormButton = document.getElementById('show-form-btn');
+        const formContainer = document.getElementById('add-subscription-form-container');
+        const deleteModal = document.getElementById('deleteModal');
+        const subscriptionNameElement = document.getElementById('subscription-name');
+        const subscriptionIdInput = document.getElementById('subscription-id');
+
+        // Toggle the visibility of the add subscription form
+        showFormButton.addEventListener('click', function () {
+            if (formContainer.style.display === 'none') {
+                formContainer.style.display = 'block';
+                showFormButton.textContent = 'Hide Form';
+            } else {
+                formContainer.style.display = 'none';
+                showFormButton.textContent = 'Add New Subscription';
+            }
+        });
+
+        // Ensure the form remains visible if it contains errors
+        if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        }
+
+        // Populate the modal with subscription details when the delete button is clicked
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget; // Button that triggered the modal
+            const subscriptionId = button.getAttribute('data-subscription-id');
+            const subscriptionName = button.getAttribute('data-subscription-name');
+
+            // Update the modal content
+            subscriptionNameElement.textContent = subscriptionName;
+            subscriptionIdInput.value = subscriptionId;
+        });
+    });
+</script>
+
+{% endblock %}

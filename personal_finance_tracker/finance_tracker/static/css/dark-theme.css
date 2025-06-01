@@ -1,0 +1,321 @@
+/* Base dark theme styling */
+
+html.dark-theme {
+  background-color: #1e1e1e !important;
+}
+
+html.dark-theme body {
+  background-color: #1e1e1e !important;
+  color: #e1e1e1 !important;
+}
+
+body.dark-theme {
+    background-color: #1e1e1e !important;
+    color: #e1e1e1 !important;
+  }
+  
+  /* Main panel and content areas */
+  body.dark-theme .main-panel,
+  body.dark-theme .content-wrapper,
+  body.dark-theme .container-fluid,
+  body.dark-theme .page-body-wrapper {
+    background-color: #1e1e1e !important;
+    color: #e1e1e1 !important;
+  }
+  
+  /* Card styling */
+  body.dark-theme .card {
+    background-color: #2d2d2d !important;
+    border-color: #444 !important;
+  }
+  
+  body.dark-theme .card-body {
+    background-color: #2d2d2d !important;
+  }
+  
+  body.dark-theme .card-title,
+  body.dark-theme .card-header {
+    color: #e1e1e1 !important;
+  }
+  
+  /* Tables */
+  body.dark-theme .table,
+  body.dark-theme .table-striped > tbody > tr:nth-of-type(odd) {
+    color: #e1e1e1 !important;
+  }
+  
+  body.dark-theme .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  body.dark-theme .table-striped > tbody > tr:nth-of-type(even) {
+    background-color: #2d2d2d !important;
+  }
+  
+  /* Table headers */
+  body.dark-theme .table thead th {
+    background-color: #3a3a3a !important;
+    color: #e1e1e1 !important;
+    border-color: #444 !important;
+  }
+  
+  /* Sidebar */
+  body.dark-theme .sidebar {
+    background-color: #2d2d2d !important;
+  }
+  
+  body.dark-theme .sidebar .nav .nav-item .nav-link {
+    color: #e1e1e1 !important;
+  }
+  
+  body.dark-theme .sidebar .nav .nav-item:hover .nav-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  body.dark-theme .sidebar .nav .nav-item.active .nav-link {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+  }
+  
+  /* Navbar */
+  body.dark-theme .navbar {
+    background-color: #2d2d2d !important;
+    color: #e1e1e1 !important;
+  }
+  
+  /* Text colors */
+  body.dark-theme .text-black {
+    color: #e1e1e1 !important;
+  }
+  
+  /* Dropdown menus */
+  body.dark-theme .dropdown-menu {
+    background-color: #2d2d2d !important;
+    border-color: #444 !important;
+  }
+  
+  body.dark-theme .dropdown-item {
+    color: #e1e1e1 !important;
+  }
+  
+  body.dark-theme .dropdown-item:hover {
+    background-color: #3a3a3a !important;
+  }
+  
+  /* Forms and inputs */
+  body.dark-theme .form-control {
+    background-color: #3a3a3a !important;
+    border-color: #555 !important;
+    color: #e1e1e1 !important;
+  }
+  
+  body.dark-theme .input-group-text {
+    background-color: #444 !important;
+    border-color: #555 !important;
+    color: #e1e1e1 !important;
+  }
+  
+  /* Buttons */
+  body.dark-theme .btn-secondary {
+    background-color: #4a4a4a !important;
+    border-color: #555 !important;
+  }
+  
+  /* Modal dialogs */
+  body.dark-theme .modal-content {
+    background-color: #2d2d2d !important;
+    color: #e1e1e1 !important;
+  }
+  
+  /* Footer */
+  body.dark-theme .footer {
+    background-color: #2d2d2d !important;
+    border-top-color: #444 !important;
+  }
+  
+  /* Transaction list specific styles */
+  body.dark-theme .clickable-row:hover {
+    background-color: #3a3a3a !important;
+    cursor: pointer;
+  }
+  
+  body.dark-theme .collapse {
+    background-color: #333 !important;
+    color: #e1e1e1 !important;
+  }
+  
+  /* Specific components used in Star Admin 2 */
+  body.dark-theme .statistics-details {
+    background-color: #2d2d2d !important;
+    color: #e1e1e1 !important;
+  }
+  
+  body.dark-theme .statistics-title {
+    color: #aaa !important;
+  }
+  
+  /* Chart containers */
+  body.dark-theme canvas {
+    border-color: #444 !important;
+  }
+  
+  /* Welcome text */
+  body.dark-theme .welcome-text,
+  body.dark-theme .welcome-sub-text {
+    color: #e1e1e1 !important;
+  }
+  
+  /* Toggle icon */
+  body.dark-theme .mdi-brightness-6:before {
+    content: "\F0CF"; /* Material Design Icons code for sun icon */
+  }
+
+  /* Main tab content container background */
+body.dark-theme .tab-content, 
+body.dark-theme .tab-pane {
+  background-color: #1e1e1e !important;
+  color: #e1e1e1 !important;
+}
+
+/* Top statistics cards and panels */
+body.dark-theme .statistics-details {
+  background-color: #2d2d2d !important;
+  color: #e1e1e1 !important;
+  border-color: #444 !important;
+}
+
+/* Fix transaction table headers and cells */
+body.dark-theme thead th {
+  background-color: #2d2d2d !important;
+  color: #e1e1e1 !important;
+  border-color: #444 !important;
+}
+
+/* Transaction table rows - both normal and expanded */
+body.dark-theme .table tbody tr,
+body.dark-theme .table tbody tr td {
+  background-color: #2d2d2d !important;
+  color: #e1e1e1 !important;
+  border-color: #444 !important;
+}
+
+/* Collapsed row styling */
+body.dark-theme .collapse {
+  background-color: #2d2d2d !important;
+}
+
+/* Specific style for expanded transaction details */
+body.dark-theme tr[id^="details"] {
+  background-color: #333 !important;
+  color: #e1e1e1 !important;
+}
+
+/* Fix alternating row colors */
+body.dark-theme .table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+body.dark-theme .table-striped tbody tr:nth-of-type(even) {
+  background-color: #2d2d2d !important;
+}
+
+/* Fix the sidebar and navbar brand area */
+body.dark-theme .navbar-brand-wrapper {
+  background-color: #2d2d2d !important;
+}
+
+/* Ensure expanded transaction info is visible */
+body.dark-theme tr.collapse:not(.show) {
+  display: none;
+}
+
+body.dark-theme tr.collapse.show {
+  display: table-row;
+  background-color: #333 !important;
+}
+
+/* Make the checkboxes more visible in dark mode */
+body.dark-theme input[type="checkbox"] {
+  background-color: #444 !important;
+  border-color: #555 !important;
+}
+
+/* Make sure the finance summary text is visible */
+body.dark-theme .welcome-text,
+body.dark-theme .welcome-sub-text {
+  color: #e1e1e1 !important;
+}
+
+/* Ensure the name is visible */
+body.dark-theme .text-black {
+  color: #e1e1e1 !important;
+}
+
+/* Buttons in dark mode */
+body.dark-theme .btn-secondary {
+  background-color: #4a4a4a !important;
+  border-color: #555 !important;
+}
+
+/* Fix expanded transaction rows */
+body.dark-theme .clickable-row:hover {
+  background-color: #3a3a3a !important;
+}
+
+/* Make the expanded content background dark */
+body.dark-theme .collapse td {
+  background-color: #333 !important;
+}
+
+/* Explicitly target navbar components to prevent flashing */
+html.dark-theme .navbar,
+body.dark-theme .navbar {
+  background-color: #2d2d2d !important;
+  color: #e1e1e1 !important;
+}
+
+html.dark-theme .text-center.navbar-brand-wrapper, 
+body.dark-theme .text-center.navbar-brand-wrapper {
+  background-color: #2d2d2d !important;
+}
+
+html.dark-theme .navbar-menu-wrapper,
+body.dark-theme .navbar-menu-wrapper {
+  background-color: #2d2d2d !important;
+}
+
+html.dark-theme .navbar-brand-wrapper,
+body.dark-theme .navbar-brand-wrapper {
+  background-color: #2d2d2d !important;
+}
+
+/* Make sure these styles have high specificity to override Star Admin 2 defaults */
+html.dark-theme .navbar.fixed-top,
+body.dark-theme .navbar.fixed-top,
+html.dark-theme .navbar.default-layout,
+body.dark-theme .navbar.default-layout {
+  background-color: #2d2d2d !important;
+}
+
+
+/* Make all form controls and selects dark, with light text */
+body.dark-theme .form-control,
+body.dark-theme .form-select,
+body.dark-theme input[type="date"],
+body.dark-theme input[type="number"] {
+  background-color: #232227 !important;
+  color: #e1e1e1 !important;
+  border-color: #444 !important;
+}
+
+/* Make placeholder text readable */
+body.dark-theme ::placeholder {
+  color: #b0b0b0 !important;
+  opacity: 1;
+}
+
+/* Make labels readable */
+body.dark-theme .form-label, 
+body.dark-theme label {
+  color: #e1e1e1 !important;
+}
+

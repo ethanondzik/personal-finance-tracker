@@ -17,4 +17,15 @@ urlpatterns = [
     path('manage_categories/', views.manage_categories, name='manage_categories'),
     path("query-transactions/", views.query_transactions, name="query_transactions"),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
+    path('manage-subscriptions/', views.manage_subscriptions, name='manage_subscriptions'),
+    path('update-subscription/<int:subscription_id>/', views.update_subscription, name='update_subscription'),
+    path('update-theme-preference/', views.update_theme_preference, name='update_theme_preference'),
+    path('transactions/calendar/', views.transaction_calendar, name='transaction_calendar'),
+    path('transactions/timeline/', views.transaction_timeline, name='transaction_timeline'),
+    path('notifications/', views.notification_settings, name='notification_settings'),
+    path('delete-custom-notification/<int:notification_id>/', views.delete_custom_notification, name='delete_custom_notification'),
+    path('manage-budgets/', views.manage_budgets, name='manage_budgets'),
+    path('transactions/spreadsheet/', views.spreadsheet_transactions, name='spreadsheet_transactions'),
+    path('transactions/spreadsheet/save/', views.save_spreadsheet_transactions, name='save_spreadsheet_transactions'),
+
 ]

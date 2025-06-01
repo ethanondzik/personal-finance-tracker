@@ -1,5 +1,5 @@
 from django import forms
-from .models import Transaction, Account, Category, User
+from .models import Transaction, Account, Category, User, Subscription, Budget, CustomNotification
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
@@ -162,10 +162,16 @@ class CategoryForm(forms.ModelForm):
     """
     class Meta:
         model = Category
-        fields = ["name", "type"]
+        fields = ['name', 'type'] 
+
+        widgets = {
+            'name': forms.TextInput(attrs={"placeholder": "Enter category name", "class": "form-control"}),
+            'type': forms.Select(attrs={"class": "form-select"}),
+        }
+
         labels = {
-            "name": "Category Name",
-            "type": "Category Type",
+            'name': 'Category Name',
+            'type': 'Category Type',
         }
         
     def __init__(self, *args, **kwargs):
@@ -197,7 +203,14 @@ class CSVUploadForm(forms.Form):
     Methods:
         clean_file(): Validates the uploaded file and processes its contents.
     """
-    file = forms.FileField(label="Upload CSV File")
+    file = forms.FileField(
+        required=True,
+        label="Upload CSV File",
+        widget=forms.ClearableFileInput(attrs={
+            "accept": ".csv",
+            "class": "form-control"
+        })
+        )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)  # Pass the user to the form
@@ -279,7 +292,7 @@ class TransactionQueryForm(forms.Form):
     keyword = forms.CharField(
         required=False, 
         label="Keyword Search", 
-        widget=forms.TextInput(attrs={"placeholder": "Search by description or category"})
+        widget=forms.TextInput(attrs={"placeholder": "Search by description or category", "class": "form-control"})
     )
     date_range = forms.ChoiceField(
         required=False,
@@ -296,22 +309,22 @@ class TransactionQueryForm(forms.Form):
     start_date = forms.DateField(
         required=False, 
         label="Start Date", 
-        widget=forms.DateInput(attrs={"type": "date", "id": "id_start_date"})
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_start_date", "class": "form-control"})
     )
     end_date = forms.DateField(
         required=False, 
         label="End Date", 
-        widget=forms.DateInput(attrs={"type": "date", "id": "id_end_date"})
+        widget=forms.DateInput(attrs={"type": "date", "id": "id_end_date", "class": "form-control"})
     )
     min_amount = forms.DecimalField(
         required=False, 
         label="Min Amount", 
-        widget=forms.NumberInput(attrs={"placeholder": "Minimum Amount"})
+        widget=forms.NumberInput(attrs={"placeholder": "Minimum Amount", "class": "form-control"})
     )
     max_amount = forms.DecimalField(
         required=False, 
         label="Max Amount", 
-        widget=forms.NumberInput(attrs={"placeholder": "Maximum Amount"})
+        widget=forms.NumberInput(attrs={"placeholder": "Maximum Amount", "class": "form-control"})
     )
     transaction_type = forms.ChoiceField(
         required=False,
@@ -369,6 +382,12 @@ class AccountManagementForm(forms.ModelForm):
         model = User
         fields = ["username", "email", "name"]
 
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
@@ -380,3 +399,138 @@ class AccountManagementForm(forms.ModelForm):
         if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("This username is already in use.")
         return username
+    
+
+class SubscriptionForm(forms.ModelForm):
+    """
+    A form for creating or updating subscriptions.
+
+    - Filters the account and category fields to include only those belonging to the logged-in user.
+    - Validates that the subscription data meets all requirements.
+
+    Attributes:
+        name (CharField): The name of the subscription.
+        amount (DecimalField): The recurring payment amount.
+        account (ModelChoiceField): The account used for payment.
+        category (ModelChoiceField): The category for this subscription.
+        frequency (ChoiceField): How often the payment occurs.
+        billing_date (IntegerField): Day of the month when payment is due.
+        start_date (DateField): When the subscription began.
+        end_date (DateField): Optional end date for fixed-term subscriptions.
+        description (CharField): Additional details about the subscription.
+        is_active (BooleanField): Whether the subscription is currently active.
+        auto_generate (BooleanField): Whether to auto-generate transaction entries.
+    """
+    class Meta:
+        model = Subscription
+        fields = [
+            'name',
+            'amount',
+            'account',
+            'category',
+            'frequency',
+            'billing_date',
+            'start_date',
+            'end_date',
+            'description',
+            'is_active',
+            'auto_generate',
+        ]
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'account': forms.Select(attrs={'class': 'form-select'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'frequency': forms.Select(attrs={'class': 'form-select'}),
+            'billing_date': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 31}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'auto_generate': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['account'].queryset = Account.objects.filter(user=user)
+            self.fields['category'].queryset = Category.objects.filter(user=user, type='expense')
+
+    def clean_billing_date(self):
+        billing_date = self.cleaned_data.get('billing_date')
+        if billing_date < 1 or billing_date > 31:
+            raise forms.ValidationError("Billing date must be between 1 and 31.")
+        return billing_date
+    
+
+class BudgetForm(forms.ModelForm):
+    class Meta:
+        model = Budget
+        fields = ['category', 'amount', 'period']
+
+        widgets = {
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'period': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['category'].queryset = Category.objects.filter(user=user, type='expense')
+
+
+class CustomNotificationForm(forms.ModelForm):
+    class Meta:
+        model = CustomNotification
+        fields = ['type', 'title', 'message', 'threshold', 'category', 'notification_datetime', 'recurrence_interval', 'enabled']
+        widgets = {
+            'message': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'type': forms.Select(attrs={'class': 'form-select'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'threshold': forms.NumberInput(attrs={'class': 'form-control'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'notification_datetime': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'recurrence_interval': forms.Select(attrs={'class': 'form-select'}),
+            'enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        help_texts = {
+            'threshold': 'Set a monetary value for purchase, balance, or budget percentage for budget type.',
+            'category': 'Optional: Apply this rule only to a specific category.',
+            'notification_datetime': 'Required for Generic/Reminder types. Set the first date and time for the notification.',
+            'recurrence_interval': 'Set how often this notification should repeat. Select "Once" for no recurrence.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['category'].queryset = Category.objects.filter(user=user)
+        else:
+            self.fields['category'].queryset = Category.objects.none()
+        
+        self.fields['category'].required = False
+        self.fields['threshold'].required = False
+        self.fields['notification_datetime'].required = False 
+        self.fields['recurrence_interval'].required = False 
+
+    def clean(self):
+        cleaned_data = super().clean()
+        notification_type = cleaned_data.get('type')
+        notification_datetime = cleaned_data.get('notification_datetime')
+        recurrence_interval = cleaned_data.get('recurrence_interval')
+
+        if notification_type in ['generic', 'reminder']:
+            if not notification_datetime:
+                self.add_error('notification_datetime', 'Date and time are required for Generic or Reminder notifications.')
+            if not recurrence_interval: 
+                cleaned_data['recurrence_interval'] = 'NONE'
+        else:
+            cleaned_data['notification_datetime'] = None
+            cleaned_data['recurrence_interval'] = None
+            
+        return cleaned_data

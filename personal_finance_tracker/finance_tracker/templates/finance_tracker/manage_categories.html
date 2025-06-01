@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends "authenticated_base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="container d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh;">
@@ -58,38 +59,47 @@
             {% endif %}
         </div>
 
+        <!-- Form Button and return -->
+        <div class="d-flex flex-column gap-3 align-items-center mt-4">
+            <button id="show-form-btn" class="btn btn-primary w-75">
+                <i class="mdi mdi-plus-circle me-2"></i>Add Category
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+            </a>
+        </div>
+
         <!-- Add Category Form -->
-        <div class="card border-primary mt-4">
-            <div class="card-header bg-primary text-white text-center">
-                <h5 class="mb-0">Add New Category</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'manage_categories' %}">
-                    {% csrf_token %}
-                    {% for field in add_category_form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">
-                            {{ field.label }}
-                        </label>
-                        {{ field }}
-                        {% if field.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in field.errors %}
-                            {{ error }}
-                            {% endfor %}
+        <div id="add-category-form-container" class="mt-4" style="display: none;">
+            <div class="card border-primary mt-4">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0">Add New Category</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'manage_categories' %}">
+                        {% csrf_token %}
+                        {% for field in add_category_form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">
+                                {{ field.label }}
+                            </label>
+                            {{ field }}
+                            {% if field.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in field.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                    <div class="d-flex flex-column gap-3 align-items-center mt-4">
-                        <button type="submit" class="btn btn-primary w-75">
-                            <i class="mdi mdi-plus-circle me-2"></i>Add Category
-                        </button>
-                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
-                            <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
-                        </a>
-                    </div>
-                </form>
+                        {% endfor %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="mdi mdi-content-save me-2"></i>Save Category
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -157,4 +167,6 @@
         });
     });
 </script>
+
+
 {% endblock %}

@@ -1,0 +1,143 @@
+{% extends "authenticated_base.html" %}
+{% load static %}
+{% block content %}
+<div class="container d-flex flex-column align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="card shadow-lg p-4 mb-5 bg-body rounded" style="width: 100%; max-width: 800px;">
+        <h2 class="card-title text-center mb-4">Manage Budgets</h2>
+
+        <!-- Django Messages -->
+        {% if messages %}
+        <div class="container mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Budgets List -->
+        <div class="mb-4">
+            <h4>Your Budgets</h4>
+            {% if budgets %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Period</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for budget in budgets %}
+                    <tr>
+                        <td>{{ budget.category.name }}</td>
+                        <td>${{ budget.amount|floatformat:2 }}</td>
+                        <td>{{ budget.get_period_display }}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteModal"
+                                data-budget-id="{{ budget.id }}"
+                                data-budget-category="{{ budget.category.name }}">
+                                <i class="mdi mdi-delete"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No budgets set.</p>
+            {% endif %}
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex flex-column gap-3 align-items-center mt-4">
+            <button id="show-form-btn" class="btn btn-primary w-75">
+                <i class="mdi mdi-bank-plus me-2"></i>Add New Budget
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-75">
+                <i class="mdi mdi-arrow-left me-2"></i>Return to Dashboard
+            </a>
+        </div>
+
+        <!-- Add Budget Form (hidden by default) -->
+        <div id="add-budget-form-container" class="card border-primary mt-4" style="display: none;">
+            <div class="card-header bg-primary text-white text-center">
+                <h5 class="mb-0">Add New Budget</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">Save Budget</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to delete the budget for <strong id="modal-category-name"></strong>?
+                    </div>
+                    <div class="modal-footer">
+                        <form method="post" action="{% url 'manage_budgets' %}" id="delete-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="budget_id" id="modal-budget-id">
+                            <button type="submit" name="delete_budget" class="btn btn-danger">Delete</button>
+                        </form>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const showFormButton = document.getElementById('show-form-btn');
+    const formContainer = document.getElementById('add-budget-form-container');
+    const deleteModal = document.getElementById('deleteModal');
+    const modalCategoryName = document.getElementById('modal-category-name');
+    const modalBudgetId = document.getElementById('modal-budget-id');
+
+    // Hide form by default, show on button click
+    showFormButton.addEventListener('click', function () {
+        if (formContainer.style.display === 'none' || formContainer.style.display === '') {
+            formContainer.style.display = 'block';
+            showFormButton.textContent = 'Hide Form';
+        } else {
+            formContainer.style.display = 'none';
+            showFormButton.textContent = 'Add New Budget';
+        }
+    });
+
+    // Show form if there are validation errors
+    if (formContainer.querySelectorAll('.invalid-feedback').length > 0) {
+        formContainer.style.display = 'block';
+        showFormButton.textContent = 'Hide Form';
+    }
+
+    // Populate modal with budget info
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const budgetId = button.getAttribute('data-budget-id');
+        const categoryName = button.getAttribute('data-budget-category');
+        modalCategoryName.textContent = categoryName;
+        modalBudgetId.value = budgetId;
+    });
+});
+</script>
+{% endblock %}

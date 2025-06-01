@@ -1,0 +1,249 @@
+{% extends "authenticated_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js">
+
+<!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css"> -->
+<style>
+    .fc-day-today {
+        background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+    }
+    .income-event {
+        background-color: rgba(76, 175, 80, 0.8);
+        border-color: #4CAF50;
+    }
+    .expense-event {
+        background-color: rgba(244, 67, 54, 0.8);
+        border-color: #F44336;
+    }
+    .fc-event {
+        cursor: pointer;
+    }
+    #calendar-container {
+        background-color: var(--bs-body-bg);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+    }
+    .fc-header-toolbar {
+        margin-bottom: 1.5em !important;
+    }
+    
+    /* Dark Mode Support for FullCalendar */
+    body.dark-theme #calendar-container {
+        background-color: #232227 !important;
+    }
+    body.dark-theme .fc {
+        background-color: #232227 !important;
+        color: #e1e1e1 !important;
+    }
+    body.dark-theme .fc-toolbar,
+    body.dark-theme .fc-header-toolbar {
+        background: #232227 !important;
+        color: #e1e1e1 !important;
+        border: none;
+    }
+    body.dark-theme .fc-button,
+    body.dark-theme .fc-button-primary {
+        background-color: #2d2d2d !important;
+        color: #e1e1e1 !important;
+        border-color: #444 !important;
+    }
+    body.dark-theme .fc-button-active, 
+    body.dark-theme .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #1F3BB3 !important;
+        color: #fff !important;
+        border-color: #1F3BB3 !important;
+    }
+    body.dark-theme .fc-col-header-cell,
+    body.dark-theme .fc-daygrid-day-number {
+        color: #e1e1e1 !important;
+    }
+    body.dark-theme .fc-theme-standard .fc-scrollgrid,
+    body.dark-theme .fc-theme-standard td, 
+    body.dark-theme .fc-theme-standard th {
+        border-color: #444 !important;
+    }
+    body.dark-theme .fc-day-today {
+        background-color: rgba(66, 135, 245, 0.2) !important;
+    }
+    body.dark-theme .fc-event {
+        color: #fff !important;
+    }
+    body.dark-theme .income-event {
+        background-color: rgba(76, 175, 80, 0.8) !important;
+        border-color: #4CAF50 !important;
+    }
+    body.dark-theme .expense-event {
+        background-color: rgba(244, 67, 54, 0.8) !important;
+        border-color: #F44336 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-scroller">
+    <div class="container-fluid page-body-wrapper">
+        <div class="main-panel">
+            <div class="content-wrapper">
+
+                {% if messages %}
+                <div class="container mt-3">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h2 class="card-title mb-0">Transaction Calendar</h2>
+                                    
+                                    <!-- View toggle buttons -->
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">List View</a>
+                                        <a href="{% url 'transaction_calendar' %}" class="btn btn-primary">Calendar</a>
+                                        <a href="{% url 'transaction_timeline' %}" class="btn btn-outline-primary">Timeline</a>
+                                    </div>
+                                </div>
+                                
+                                <div id="calendar-container">
+                                    <div id="calendar"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                        <i class="mdi mdi-arrow-left me-2"></i>Back to Dashboard
+                                    </a>
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <span class="badge income-event me-1">&nbsp;</span> Income
+                                        </div>
+                                        <div>
+                                            <span class="badge expense-event me-1">&nbsp;</span> Expense
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Details Modal -->
+<div class="modal fade" id="transactionDetailsModal" tabindex="-1" aria-labelledby="transactionDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transactionDetailsModalLabel">Transaction Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="transactionDetailsContent">
+                <!-- Transaction details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="editTransactionLink" class="btn btn-primary">Edit Transaction</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Parse the transaction data passed from the view
+    const transactions = JSON.parse(document.getElementById('transaction-data').textContent || '[]');
+    
+    // Format transactions for FullCalendar
+    const events = transactions.map(t => {
+        return {
+            id: t.id,
+            title: `${t.description} - $${t.amount}`,
+            start: t.date,
+            className: t.transaction_type === 'income' ? 'income-event' : 'expense-event',
+            extendedProps: {
+                transactionId: t.id,
+                description: t.description,
+                amount: t.amount,
+                type: t.transaction_type,
+                category: t.category_name,
+                account: t.account_number,
+                accountType: t.account_type,
+                accountBalance: t.account_balance,
+                date: t.date
+            }
+        };
+    });
+
+    // Initialize FullCalendar
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listMonth'
+        },
+        events: events,
+        eventClick: function(info) {
+            showTransactionDetails(info.event.extendedProps);
+        },
+        dayMaxEvents: true, // When too many events, show a "+X more" link
+        dateClick: function(info) {
+            // Redirect to add transaction page with date as query param
+            window.location.href = `{% url 'add_transaction' %}?date=${info.dateStr}&next={% url 'transaction_calendar' %}`;
+        }
+    });
+    
+    calendar.render();
+
+    // Function to show transaction details in a modal
+    function showTransactionDetails(transaction) {
+        const detailsContent = document.getElementById('transactionDetailsContent');
+        const typeClass = transaction.type === 'income' ? 'text-success' : 'text-danger';
+        
+        detailsContent.innerHTML = `
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <h4 class="${typeClass}">${transaction.description}</h4>
+                    <p class="text-muted mb-2">${transaction.date}</p>
+                </div>
+                <div class="col-6">
+                    <p><strong>Amount:</strong> $${transaction.amount}</p>
+                    <p><strong>Type:</strong> ${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</p>
+                    <p><strong>Category:</strong> ${transaction.category || 'N/A'}</p>
+                </div>
+                <div class="col-6">
+                    <p><strong>Account:</strong> ${transaction.account || 'N/A'}</p>
+                    <p><strong>Account Type:</strong> ${transaction.accountType || 'N/A'}</p>
+                    <p><strong>Account Balance:</strong> $${transaction.accountBalance || '0.00'}</p>
+                </div>
+            </div>
+        `;
+        
+        // Update the edit link
+        document.getElementById('editTransactionLink').href = `/update_transaction/${transaction.transactionId}/?next={% url 'transaction_calendar' %}`;
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('transactionDetailsModal'));
+        modal.show();
+    }
+});
+</script>
+<!-- Pass transaction data to JavaScript -->
+{{ transaction_data|json_script:"transaction-data" }}
+{% endblock %}
+
+
+

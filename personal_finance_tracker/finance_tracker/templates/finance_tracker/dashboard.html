@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ request.theme }}-theme">
   <head>
     {% load static %}
     <meta charset="utf-8">
@@ -13,9 +13,13 @@
     <link rel="stylesheet" href="{% static 'vendors/bootstrap-datepicker/bootstrap-datepicker.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="shortcut icon" href="{% static 'images/favicon.png' %}">
+    <link rel="shortcut icon" href="{% static 'images/favicon-32x32.png' %}" />
+    <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/custom_pagination.css' %}"> 
+
+
   </head>
-  <body class="with-welcome-text">
+  <body class="with-welcome-text {{ request.theme }}-theme">
     <div class="container-scroller">
 
       <!-- Navbar -->
@@ -48,6 +52,9 @@
                 </div>
                 <a class="dropdown-item" href="{% url 'manage_account' %}">
                   <i class="dropdown-item-icon mdi mdi-account text-primary me-2"></i>Manage Account
+                </a>
+                <a class="dropdown-item" id="theme-toggle" href="javascript:void(0);">
+                  <i class="dropdown-item-icon mdi mdi-brightness-6 text-primary me-2"></i> Dark Mode / Light Mode
                 </a>
                 <a class="dropdown-item" onclick="document.getElementById('logout-form').submit();"><i class="dropdown-item-icon mdi mdi-power text-primary me-2"></i>Sign Out</a>
                 <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">
@@ -87,7 +94,43 @@
                 <i class="mdi mdi-magnify menu-icon"></i>
                 <span class="menu-title">Query Transactions</span>
               </a>
-            </li>      
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'manage_subscriptions' %}">
+                  <i class="mdi mdi-calendar-clock menu-icon"></i>
+                  <span class="menu-title">Subscriptions</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'transaction_calendar' %}">
+                  <i class="mdi mdi-calendar-month menu-icon"></i>
+                  <span class="menu-title">Calendar View</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'transaction_timeline' %}">
+                  <i class="mdi mdi-calendar-month menu-icon"></i>
+                  <span class="menu-title">Timeline View</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'notification_settings' %}">
+                <i class="mdi mdi-bell menu-icon"></i>
+                <span class="menu-title">Notifications</span>
+              </a>
+            </li> 
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'manage_budgets' %}">
+                <i class="mdi mdi-cash-multiple menu-icon"></i>
+                <span class="menu-title">Budgets</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'spreadsheet_transactions' %}">
+                <i class="mdi mdi-table-large menu-icon"></i>
+                <span class="menu-title">Spreadsheet Entry</span>
+              </a>
+            </li>        
           </ul>
         </nav>
 
@@ -167,12 +210,6 @@
                         <div class="card bg-primary card-rounded">
                           <div class="card-body">
                             <h4 class="card-title text-white">Quick Stats</h4>
-                            <!-- <div class="row">
-                              <div class="col-12">
-                                <p class="text-white">Net Savings</p>
-                                <h2 class="text-info">$$$</h2>
-                              </div>
-                            </div> -->
                             <div class="row">
                               <div class="col-12">
                                   <p class="text-white">Bank Accounts</p>
@@ -198,6 +235,119 @@
                           </div>
                         </div>
                       </div>
+                      <!-- Subscriptions Card -->
+                      <div class="col-md-6 col-lg-12 grid-margin stretch-card">
+                        <div class="card card-rounded bg-gradient-info text-white">
+                          <div class="card-body pb-0">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                              <h4 class="card-title text-white mb-0">Upcoming Subscriptions</h4>
+                              <a href="{% url 'manage_subscriptions' %}" class="btn btn-sm btn-light">Manage</a>
+                            </div>
+                            
+                            {% if upcoming_subscriptions %}
+                              <div class="subscription-list">
+                                {% for subscription in upcoming_subscriptions %}
+                                  <div class="subscription-item d-flex align-items-center mb-3 p-2 rounded {% if subscription.days_until <= 3 %}border-danger{% endif %}">
+                                    <div class="subscription-date me-3 text-center">
+                                      <h3 class="mb-0">{{ subscription.next_payment_date|date:"d" }}</h3>
+                                      <div>{{ subscription.next_payment_date|date:"M" }}</div>
+                                    </div>
+                                    <div class="subscription-details flex-grow-1">
+                                      <div class="fw-bold">{{ subscription.name }}</div>
+                                      <small>{{ subscription.get_frequency_display }}</small>
+                                    </div>
+                                    <div class="subscription-amount fw-bold">
+                                      ${{ subscription.amount|floatformat:2 }}
+                                    </div>
+                                    <div class="ms-3">
+                                      {% if subscription.days_until == 0 %}
+                                        <span class="badge bg-danger">Today</span>
+                                      {% elif subscription.days_until == 1 %}
+                                        <span class="badge bg-warning">Tomorrow</span>
+                                      {% elif subscription.days_until <= 7 %}
+                                        <span class="badge bg-warning">{{ subscription.days_until }} days</span>
+                                      {% else %}
+                                        <span class="badge bg-info">{{ subscription.days_until }} days</span>
+                                      {% endif %}
+                                    </div>
+                                  </div>
+                                {% endfor %}
+                              </div>
+                              {% if upcoming_subscriptions|length >= 3 %}
+                                <div class="text-center mt-3 mb-2">
+                                  <a href="{% url 'manage_subscriptions' %}" class="text-white text-decoration-underline">View all subscriptions</a>
+                                </div>
+                              {% endif %}
+                            {% else %}
+                              <div class="text-center py-4">
+                                <div class="mb-3">
+                                  <i class="mdi mdi-calendar-check mdi-48px"></i>
+                                </div>
+                                <p>No upcoming subscriptions</p>
+                                <a href="{% url 'manage_subscriptions' %}" class="btn btn-outline-light btn-sm mt-2">
+                                  <i class="mdi mdi-plus-circle me-1"></i>Add Subscription
+                                </a>
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                          <h5 class="mb-0">Budgets</h5>
+                        </div>
+                        <div class="card-body">
+                          <div class="table-responsive">
+                            <table class="table table-bordered mb-0">
+                              <thead>
+                                <tr>
+                                  <th>Category</th>
+                                  <th>Budgeted</th>
+                                  <th>Spent</th>
+                                  <th>Remaining</th>
+                                  <th>Progress</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for b in budget_data %}
+                                <tr>
+                                  <td>{{ b.name }}</td>
+                                  <td>${{ b.budget|floatformat:2 }}</td>
+                                  <td>${{ b.spent|floatformat:2 }}</td>
+                                  <td>${{ b.remaining|floatformat:2 }}</td>
+                                  <td>
+                                    <div class="d-flex align-items-center">
+                                      <div class="progress flex-grow-1" style="height: 18px; min-width: 80px;">
+                                        <div class="progress-bar
+                                          {% if b.spent > b.budget %}bg-danger
+                                          {% elif b.progress > 75 %}bg-warning
+                                          {% else %}bg-success
+                                          {% endif %}"
+                                          role="progressbar"
+                                          style="width: {% widthratio b.spent b.budget 100 %}%;"
+                                          aria-valuenow="{% widthratio b.spent b.budget 100 %}"
+                                          aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                      </div>
+                                      <span class="ms-2 small">
+                                        {{ b.spent|floatformat:2 }}/{{ b.budget|floatformat:2 }}
+                                        ({{ b.progress|floatformat:0 }}%)
+                                      </span>
+                                    </div>
+                                  </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                  <td colspan="5" class="text-center text-muted">No budgets set.</td>
+                                </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- {{ budget_data|json_script:"budget-data" }} -->
                     </div>
                   </div>
                 </div>
@@ -206,6 +356,44 @@
 
             <!-- Tab Content -->
             <div class="tab-content mt-4">
+              <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="mb-0">Filter Transaction List</h5>
+                </div>
+                <div class="card-body">
+                  <form method="get" class="row g-3" action="{% url 'dashboard' %}#table-view">
+                    <div class="col-md-3">
+                      <label for="filter_type" class="form-label">Type</label>
+                      <select name="type" id="filter_type" class="form-select">
+                        <option value="">All</option>
+                        <option value="income" {% if request.GET.type == "income" %}selected{% endif %}>Income</option>
+                        <option value="expense" {% if request.GET.type == "expense" %}selected{% endif %}>Expense</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filter_category" class="form-label">Category</label>
+                      <select name="category" id="filter_category" class="form-select">
+                        <option value="">All</option>
+                        {% for cat in categories %}
+                          <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filter_start" class="form-label">Start Date</label>
+                      <input type="date" name="start" id="filter_start" class="form-control" value="{{ request.GET.start }}">
+                    </div>
+                    <div class="col-md-3">
+                      <label for="filter_end" class="form-label">End Date</label>
+                      <input type="date" name="end" id="filter_end" class="form-control" value="{{ request.GET.end }}">
+                    </div>
+                    <div class="col-12">
+                      <button type="submit" class="btn btn-primary">Apply Filters</button>
+                      <a href="{% url 'dashboard' %}" class="btn btn-secondary">Reset</a>
+                    </div>
+                  </form>
+                </div>
+              </div>
               <!-- Transactions Table -->
               <div class="tab-pane fade show active" id="table-view" role="tabpanel" aria-labelledby="table-tab">
                 <div class="row">
@@ -250,17 +438,6 @@
                                 <tr id="details{{ transaction.id }}" class="collapse">
                                     <td colspan="5">
                                       <strong>Category:</strong> {{ transaction.category }}<br>
-                                      <!-- <strong>Status:</strong> {{ transaction.status }}<br> -->
-                                      <!-- <strong>Payment Method:</strong> {{ transaction.payment_method }}<br> -->
-                                      <!-- {% if transaction.is_recurring %}
-                                        <strong>Recurring:</strong> Yes ({{ transaction.recurrence_interval }})<br>
-                                      {% endif %}
-                                      {% if transaction.notes %}  
-                                        <strong>Notes:</strong> {{ transaction.notes }}<br>
-                                      {% endif %}
-                                      <strong>Currency: </strong> {{ transaction.currency }}<br>
-                                      <strong>Location: </strong> {{ transaction.location }}<br>
-                                      <strong>Tags: </strong> {{ transaction.tags }}<br> -->
                                       <strong>Account Number:</strong> {{ transaction.account.account_number }}<br>
                                       <strong>Account Type:</strong> {{ transaction.account.account_type }}<br>
                                       <strong>Account Balance:</strong> ${{ transaction.account.balance }}<br>
@@ -273,11 +450,59 @@
                           <!-- Add a hidden input to include the 'confirm' key for the delete view-->
                           <input type="hidden" name="confirm" value="true">
                         </form>
+                        
                         <div class="d-flex mt-3">
                           <a href="{% url 'add_transaction' %}" class="btn btn-primary ms-3">Add Transaction</a>
                           <a href="{% url 'upload_transactions' %}" class="btn btn-secondary ms-3">Upload CSV</a>
                           <button type="button" id="delete-selected-btn" class="btn btn-danger ms-3" onclick="prepareDeleteMultiple()">Delete Selected</button>
                         </div>
+                        <!-- Pagination Controls -->
+                        <nav aria-label="Page navigation" class="mt-4">
+                          <ul class="pagination justify-content-center pagination-lg">
+                            {% if transactions.has_previous %}
+                              <li class="page-item">
+                                <a class="page-link rect-page-link" href="?page={{ transactions.previous_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view" aria-label="Previous">
+                                  <span aria-hidden="true"><i class="mdi mdi-chevron-left"></i></span>
+                                </a>
+                              </li>
+                            {% else %}
+                              <li class="page-item disabled">
+                                <span class="page-link rect-page-link"><i class="mdi mdi-chevron-left"></i></span>
+                              </li>
+                            {% endif %}
+                        
+                            {% for num in transactions.paginator.page_range %}
+                              {% if num == transactions.number %}
+                                <li class="page-item active">
+                                  <span class="page-link rect-page-link bg-primary border-primary text-white">{{ num }}</span>
+                                </li>
+                              {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
+                                <li class="page-item">
+                                  <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view">{{ num }}</a>
+                                </li>
+                              {% elif num == 1 or num == transactions.paginator.num_pages %}
+                                <li class="page-item">
+                                  <a class="page-link rect-page-link" href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view">{{ num }}</a>
+                                </li>
+                                {% if num < transactions.number|add:'-3' or num > transactions.number|add:'3' %}
+                                  <li class="page-item disabled"><span class="page-link rect-page-link">…</span></li>
+                                {% endif %}
+                              {% endif %}
+                            {% endfor %}
+                        
+                            {% if transactions.has_next %}
+                              <li class="page-item">
+                                <a class="page-link rect-page-link" href="?page={{ transactions.next_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:'&,' }}#table-view" aria-label="Next">
+                                  <span aria-hidden="true"><i class="mdi mdi-chevron-right"></i></span>
+                                </a>
+                              </li>
+                            {% else %}
+                              <li class="page-item disabled">
+                                <span class="page-link rect-page-link"><i class="mdi mdi-chevron-right"></i></span>
+                              </li>
+                            {% endif %}
+                          </ul>
+                        </nav>
                       </div>
                     </div>
                   </div>
@@ -319,28 +544,372 @@
 
     <!-- Plugins JS -->
     <script src="{% static 'vendors/js/vendor.bundle.base.js' %}"></script>
+    <script src="{% static 'js/jquery.cookie.js' %}"></script>
     <script src="{% static 'vendors/bootstrap-datepicker/bootstrap-datepicker.min.js' %}"></script>
-    <script src="{% static 'vendors/progressbar.js/progressbar.min.js' %}"></script>
     <script src="{% static 'vendors/chart.js/Chart.min.js' %}"></script>
 
     <!-- inject:js -->
     <script src="{% static 'js/off-canvas.js' %}"></script>
     <script src="{% static 'js/hoverable-collapse.js' %}"></script>
     <script src="{% static 'js/template.js' %}"></script>
-    <script src="{% static 'js/settings.js' %}"></script>
-    <script src="{% static 'js/todolist.js' %}"></script>
 
     <!-- Custom js for this page-->
-    <script src="{% static 'js/dashboard.js' %}"></script>
     <script src="{% static 'js/custom_collapse.js' %}"></script>
     <script src="{% static 'js/dashboard_modal.js' %}"></script>
     <script src="{% static 'js/message_timeout.js' %}"></script>
     <script src="{% static 'js/transaction_graph.js' %}"></script>
     <script src="{% static 'js/greetings.js' %}"></script>
     <script src="{% static 'js/scroll_to_top.js' %}"></script>
+    <script src="{% static 'js/theme-toggle.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
 
-    <!-- Chart Data -->
+   
+    <!-- Chart Data & Custom Notifications Data -->
     {{ chart_data|json_script:"chart-data" }}
+    {{ user_custom_notifications|json_script:"user-custom-notifications-data" }} 
+    {{ accounts|json_script:"accounts-data" }}
+    {{ budget_data|json_script:"budget-data" }} 
+    {{ request.session.show_large_transaction_notification|json_script:"notification-data" }} 
+    
+
+    <script>
+      // Consolidated DOMContentLoaded listener
+      document.addEventListener('DOMContentLoaded', function() {
+          // --- Notification Manager and Preferences (from notifications.js, assumed loaded) ---
+          if (!window.NotificationManager) {
+              console.error("NotificationManager not found. Ensure notifications.js is loaded.");
+              // return; // Or handle gracefully
+          }
+
+          // --- Initialize User Custom Notifications Data ---
+          const userCustomNotificationsDataEl = document.getElementById('user-custom-notifications-data');
+          let userCustomNotifications = [];
+          if (userCustomNotificationsDataEl) {
+              try {
+                  userCustomNotifications = JSON.parse(userCustomNotificationsDataEl.textContent || '[]');
+              } catch (e) {
+                  console.error('Error parsing user custom notifications data:', e);
+                  userCustomNotifications = [];
+              }
+          }
+          // Load shown notifications log once
+          let shownNotificationsLog = JSON.parse(localStorage.getItem('shownCustomNotificationsLog') || '{}');
+
+          // --- Helper Functions ---
+          function getWeekNumber(d) {
+              d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+              d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+              var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+              var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+              return weekNo;
+          }
+
+          function showCustomNotificationIfTypeEnabled(notificationRule, type, title, body, options = {}) {
+              if (window.NotificationManager && window.NotificationManager.isNotificationEnabled(type)) {
+                  const uniqueSuffix = options.uniqueSuffix || `${notificationRule.id}-${Date.now()}`;
+                  window.NotificationManager.show(title, {
+                      body: body,
+                      tag: `custom-${type}-${notificationRule.id}-${uniqueSuffix}`,
+                      requireInteraction: options.requireInteraction !== undefined ? options.requireInteraction : false,
+                      onclick: options.onclick
+                  });
+              }
+          }
+          
+          // --- Built-in Notification Functions (notifySubscriptionDue, checkAccountBalances, checkBudgetLimits) ---
+          function notifySubscriptionDue(subscription) {
+            if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('subscription')) {
+              const daysThreshold = parseInt(localStorage.getItem('subscription_days') || '3', 10);
+              if (subscription.days_until <= daysThreshold) {
+                window.NotificationManager.show('Subscription Payment Due Soon', {
+                  body: `${subscription.name} payment of $${subscription.amount} due in ${subscription.days_until} days`,
+                  requireInteraction: true,
+                  tag: `subscription-${subscription.id}`,
+                  onclick: function() { window.location.href = '/manage-subscriptions/'; }
+                });
+              }
+            }
+          }
+
+          function checkAccountBalances() {
+            if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('balance')) {
+                const threshold = parseFloat(localStorage.getItem('balance_threshold') || '100');
+                const accountsDataEl = document.getElementById('accounts-data');
+                if (!accountsDataEl) return;
+                const accounts = JSON.parse(accountsDataEl.textContent || '[]');
+                let notified = JSON.parse(localStorage.getItem('low_balance_notified') || '[]');
+
+                accounts.forEach(account => {
+                    const accountId = String(account.id || account.account_number); // Ensure string for comparison
+                    const balance = parseFloat(account.balance);
+                    if (balance < threshold && !notified.includes(accountId)) {
+                        window.NotificationManager.show('Low Account Balance', {
+                            body: `Your ${account.account_type} account ${account.account_number || account.name} balance is below $${threshold}.`,
+                            requireInteraction: true,
+                            tag: `low-balance-${accountId}`,
+                            onclick: function() { window.location.href = "{% url 'manage_bank_accounts' %}"; }
+                        });
+                        notified.push(accountId);
+                    }
+                    if (balance >= threshold && notified.includes(accountId)) {
+                        notified = notified.filter(id => id !== accountId);
+                    }
+                });
+                localStorage.setItem('low_balance_notified', JSON.stringify(notified));
+            }
+          }
+
+          function checkBudgetLimits() {
+            
+            if (window.NotificationManager && window.NotificationManager.isNotificationEnabled('budget')) {
+                const percentage = parseInt(localStorage.getItem('budget_percentage') || '75', 10);
+                const budgetDataEl = document.getElementById('budget-data');
+                if (!budgetDataEl) return;
+                const categories = JSON.parse(budgetDataEl.textContent || '[]');
+                
+                categories.forEach(category => {
+                    if (category.budget && category.spent) {
+                        const spentPercentage = (parseFloat(category.spent) / parseFloat(category.budget)) * 100;
+                        if (spentPercentage >= percentage) {
+                            window.NotificationManager.show('Budget Limit Warning', {
+                                body: `You've spent ${spentPercentage.toFixed(1)}% of your budget for ${category.name}.`,
+                                requireInteraction: false,
+                                tag: `budget-${category.id}`,
+                                onclick: function() { window.location.href = '/query-transactions/?category=' + category.id; }
+                            });
+                        }
+                    }
+                });
+            }
+          }
+
+
+          // --- Custom Notification Check Functions ---
+          function checkGenericCustomNotifications() {
+              console.log('[NotifCheck] Running checkGenericCustomNotifications. Current time:', new Date().toString());
+
+              if (!userCustomNotifications.length) {
+                  // console.log('[NotifCheck] No user custom notifications defined.');
+                  return;
+              }
+              const now = new Date(); // Current time for this check cycle
+
+              const currentTodayDateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              const currentNowWeekString = `${now.getFullYear()}-W${getWeekNumber(now)}`;
+              const currentNowMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+              userCustomNotifications.forEach(notif => {
+                  console.log(`[NotifCheck] Processing rule ID: ${notif.id}, Title: "${notif.title}", Type: ${notif.type}, Enabled: ${notif.enabled}`);
+                  if (!notif.enabled) {
+                      console.log(`[NotifCheck] Rule ID ${notif.id} is disabled. Skipping.`);
+                      return; 
+                  }
+
+                  if ((notif.type === 'generic' || notif.type === 'reminder') && notif.notification_datetime) {
+                      console.log(`[NotifCheck] Rule ID ${notif.id} is timed. Datetime from server: ${notif.notification_datetime}, Recurrence: ${notif.recurrence_interval}`);
+                      const startDateTime = new Date(notif.notification_datetime);
+                      if (isNaN(startDateTime.getTime())) {
+                          console.warn(`[NotifCheck] Invalid notification_datetime for rule ID ${notif.id}: "${notif.notification_datetime}". Skipping.`);
+                          return; 
+                      }
+                      console.log(`[NotifCheck] Rule ID ${notif.id} - Parsed startDateTime: ${startDateTime.toISOString()} (UTC), ${startDateTime.toString()} (Local Client Time)`);
+
+                      let shouldShow = false;
+                      let notificationInstanceKey = `notif-${notif.id}`; 
+
+                      // Get scheduled time components in client's local timezone
+                      const schedYear = startDateTime.getFullYear();
+                      const schedMonth = startDateTime.getMonth(); // 0-11
+                      const schedDate = startDateTime.getDate();   // 1-31
+                      const schedDay = startDateTime.getDay();     // 0 (Sun) - 6 (Sat)
+                      const schedHour = startDateTime.getHours();  // 0-23
+                      const schedMinute = startDateTime.getMinutes(); // 0-59
+
+                      switch (notif.recurrence_interval) {
+                          case 'NONE':
+                              if (
+                                  now.getFullYear() === schedYear &&
+                                  now.getMonth() === schedMonth &&
+                                  now.getDate() === schedDate &&
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute
+                              ) {
+                                  shouldShow = true;
+                              }
+                              break;
+                          case 'DAILY':
+                              //Ensure the overall start moment has passed (UTC comparison is fine for this initial check)
+                              if (now.getTime() >= startDateTime.getTime() && 
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute) {
+                                  shouldShow = true;
+                              }
+                              notificationInstanceKey += `-${currentTodayDateString}`; // Key based on local date string
+                              break;
+                          case 'WEEKLY':
+                              if (now.getTime() >= startDateTime.getTime() &&
+                                  now.getDay() === schedDay && // Compare local day of the week
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute) {
+                                  shouldShow = true;
+                              }
+                              notificationInstanceKey += `-${currentNowWeekString}`; // Key based on local week
+                              break;
+                          case 'MONTHLY':
+                              if (now.getTime() >= startDateTime.getTime() &&
+                                  now.getDate() === schedDate && // Compare local day of the month
+                                  now.getHours() === schedHour &&
+                                  now.getMinutes() === schedMinute) {
+                                  shouldShow = true;
+                              }
+                              notificationInstanceKey += `-${currentNowMonthString}`; // Key based on local month
+                              break;
+                          default:
+                              console.warn(`[NotifCheck] Unknown recurrence_interval: "${notif.recurrence_interval}" for rule ID ${notif.id}. Skipping this rule.`);
+                              return; 
+                      }
+
+                      if (shouldShow) {
+                          if (!shownNotificationsLog[notificationInstanceKey]) {
+                              showCustomNotificationIfTypeEnabled(notif, notif.type, notif.title, notif.message, {
+                                  requireInteraction: notif.type === 'reminder',
+                                  uniqueSuffix: `timed-${notif.recurrence_interval || 'NONE'}` 
+                              });
+                              shownNotificationsLog[notificationInstanceKey] = true;
+                          } else {
+                              console.log(`[NotifCheck] Rule ID ${notif.id} - Already shown for this period. Key: ${notificationInstanceKey}`);
+                          }
+                      } else {
+                      }
+                  } else {
+                  }
+              });
+              localStorage.setItem('shownCustomNotificationsLog', JSON.stringify(shownNotificationsLog));
+          }
+          
+          function checkCustomPurchaseNotifications(transactionData) {
+              if (!userCustomNotifications.length || !transactionData || typeof transactionData.amount === 'undefined') return;
+              const transactionAmount = parseFloat(transactionData.amount);
+      
+              userCustomNotifications.forEach(notif => {
+                  if (!notif.enabled) return;
+                  if (notif.type === 'purchase' && notif.threshold != null) {
+                      const categoryMatch = !notif.category_id || (String(transactionData.category_id) === String(notif.category_id));
+                      if (transactionAmount >= notif.threshold && categoryMatch) {
+                          let messageBody = `${notif.message} (Transaction: ${transactionData.description || 'N/A'} for $${transactionAmount.toFixed(2)})`;
+                          if(notif.category_name) messageBody += ` in category ${notif.category_name}.`;
+                          
+                          showCustomNotificationIfTypeEnabled(notif, 'purchase', notif.title, messageBody, {
+                              uniqueSuffix: `txn-${transactionData.id || Date.now()}`, requireInteraction: true
+                          });
+                      }
+                  }
+              });
+          }
+
+          function checkUserDefinedBalanceNotifications() {
+              if (!userCustomNotifications.length) return;
+              const accountsDataEl = document.getElementById('accounts-data');
+              if (!accountsDataEl) return;
+              const accounts = JSON.parse(accountsDataEl.textContent || '[]');
+      
+              userCustomNotifications.forEach(notif => {
+                  if (!notif.enabled) return;
+                  if (notif.type === 'balance' && notif.threshold != null) {
+                      accounts.forEach(account => {
+                          const balance = parseFloat(account.balance);
+                          if (balance <= notif.threshold) {
+                              showCustomNotificationIfTypeEnabled(notif, 'balance', notif.title, 
+                                  `${notif.message} (Account: ${account.name || account.account_number} balance is $${balance.toFixed(2)})`, {
+                                  uniqueSuffix: `acc-${account.account_number || account.id}`, requireInteraction: true,
+                                  onclick: function() { window.location.href = "{% url 'manage_bank_accounts' %}"; }
+                              });
+                          }
+                      });
+                  }
+              });
+          }
+
+          function checkUserDefinedBudgetNotifications() {
+              if (!userCustomNotifications.length) return;
+              const budgetDataEl = document.getElementById('budget-data');
+              if (!budgetDataEl) return;
+              const budgets = JSON.parse(budgetDataEl.textContent || '[]'); 
+      
+              userCustomNotifications.forEach(notif => {
+                  if (!notif.enabled) return;
+                  if (notif.type === 'budget' && notif.threshold != null) {
+                      budgets.forEach(budget => { 
+                          if (budget.budget && typeof budget.spent !== 'undefined') { // budget.id is category_id
+                              const spentPercentage = (parseFloat(budget.spent) / parseFloat(budget.budget)) * 100;
+                              const categoryMatch = !notif.category_id || (String(budget.id) === String(notif.category_id));
+      
+                              if (spentPercentage >= notif.threshold && categoryMatch) {
+                                  showCustomNotificationIfTypeEnabled(notif, 'budget', notif.title,
+                                      `${notif.message} (Budget: ${budget.name} is ${spentPercentage.toFixed(1)}% spent)`, {
+                                      uniqueSuffix: `budget-${budget.id}`, requireInteraction: true,
+                                      onclick: function() { window.location.href = "{% url 'manage_budgets' %}"; }
+                                  });
+                              }
+                          }
+                      });
+                  }
+              });
+          }
+
+          // --- Initial and Periodic Notification Checks ---
+          if (window.NotificationManager && (Notification.permission === 'granted' || Notification.permission === 'default')) {
+              // Initial calls for built-in notifications
+              const subscriptionsElement = document.getElementById('upcoming-subscriptions-data');
+              if (subscriptionsElement) {
+                  const upcomingSubscriptions = JSON.parse(subscriptionsElement.textContent || '[]');
+                  upcomingSubscriptions.forEach(subscription => { notifySubscriptionDue(subscription); });
+              }
+              checkAccountBalances();
+              checkBudgetLimits();   
+      
+              // Initial calls for custom notifications
+              checkGenericCustomNotifications(); // Important: Call once on load
+              checkUserDefinedBalanceNotifications();
+              checkUserDefinedBudgetNotifications();
+              
+              // For large transaction (built-in) and custom purchase notifications (triggered by new transaction from session)
+              const largeTransactionDataEl = document.getElementById('notification-data');
+              if (largeTransactionDataEl) {
+                  try {
+                      const transactionDataFromSession = JSON.parse(largeTransactionDataEl.textContent);
+                      if (transactionDataFromSession && typeof transactionDataFromSession.amount !== 'undefined') { 
+                          const builtInTxThreshold = parseFloat(localStorage.getItem('transaction_threshold') || '100');
+                          if (transactionDataFromSession.amount >= builtInTxThreshold && window.NotificationManager.isNotificationEnabled('transaction')) {
+                              window.NotificationManager.show('Large Transaction Added', {
+                                  body: `A new transaction of $${transactionDataFromSession.amount.toFixed(2)} was added: ${transactionDataFromSession.description}`,
+                                  icon: "{% static 'images/favicon.png' %}",
+                                  tag: `large-transaction-${transactionDataFromSession.id}`
+                              });
+                          }
+                          checkCustomPurchaseNotifications(transactionDataFromSession);
+                      }
+                  } catch (e) {
+                      console.error('Error parsing large transaction data from session:', e);
+                  }
+              }
+
+              // Set up periodic checks for time-sensitive custom notifications
+              setInterval(function() {
+                  // console.log("Periodic check for generic/reminder notifications...");
+                  checkGenericCustomNotifications();
+                  // Optionally, re-check other dynamic built-in notifications if needed
+                  // checkAccountBalances(); // If balances can change without page reload and need immediate notification
+                  // checkBudgetLimits(); // If spending can change without page reload
+              }, 30000); // Check every 30 seconds (adjust as needed, 60000 for 1 minute is common)
+
+          } else if (Notification.permission === 'denied') {
+              console.log('Notification permission denied. Timed notifications will not be checked.');
+          }
+      });
+    </script>
+    
+
     
   </body>
 </html>
