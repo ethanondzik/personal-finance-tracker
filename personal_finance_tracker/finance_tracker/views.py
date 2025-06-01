@@ -14,7 +14,6 @@ from decimal import Decimal
 from django.utils import timezone
 from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.views.decorators.csrf import csrf_exempt #implement csrf later
 import json
 
 
@@ -860,13 +859,36 @@ def spreadsheet_transactions(request):
         accounts_list_for_json.append({
             'id': acc.id,
             'name': display_name, 
-            'account_number': acc.account_number
+            'account_number': acc.account_number 
         })
 
-    # define the structure for new entries
-    initial_data_structure = [
-        {'date': None, 'account': None, 'category': None, 'description': '', 'amount': None, 'transaction_type': 'expense'}
-    ]
+    # Fetch existing transactions for the user
+    existing_transactions = Transaction.objects.filter(user=user).select_related('account', 'category').order_by('-date', '-id')
+    
+    initial_data_structure = []
+    for t in existing_transactions:
+        account_name_display = None
+        if t.account:
+            # Find the matching display name from accounts_list_for_json
+            matching_account = next((acc_json for acc_json in accounts_list_for_json if acc_json['id'] == t.account.id), None)
+            if matching_account:
+                account_name_display = matching_account['name']
+            else: # Fallback if account somehow not in the list (should not happen if data is consistent)
+                account_name_display = str(t.account.institution_number) if t.account.institution_number else f"Account ending in {t.account.account_number[-4:] if t.account.account_number and len(t.account.account_number) >=4 else t.account.account_number}"
+
+
+        initial_data_structure.append({
+            'id': t.id, # Crucial for identifying existing transactions
+            'date': t.date.strftime('%Y-%m-%d') if t.date else None,
+            'account_name': account_name_display,
+            'category_name': t.category.name if t.category else None,
+            'description': t.description,
+            'amount': float(t.amount) if t.amount is not None else None,
+            'transaction_type_name': t.get_transaction_type_display() # 'Income' or 'Expense'
+        })
+    
+    # If no existing transactions, you might still want a blank row for new entries.
+    # Handsontable's minSpareRows will handle adding new blank rows anyway.
 
     context = {
         'accounts_json': accounts_list_for_json,
@@ -877,42 +899,93 @@ def spreadsheet_transactions(request):
     return render(request, 'finance_tracker/spreadsheet_transactions.html', context)
 
 @login_required
-@csrf_exempt # For simplicity, Add proper CSRF handling later
 @require_POST
 def save_spreadsheet_transactions(request):
     try:
         data = json.loads(request.body)
         transactions_to_create = []
+        transactions_to_update = []
+        updated_transaction_ids = [] 
         errors = []
 
         for i, row_data in enumerate(data):
-            # Basic validation and data cleaning
-            if not row_data or not row_data.get('date') or not row_data.get('amount'):
-                # Skip empty or incomplete rows 
-                # errors.append(f"Row {i+1}: Missing required fields (date, amount).")
-                continue
+            # received_ids.add(row_data.get('id'))
 
+            # Basic validation and data cleaning
+            if not row_data or not row_data.get('date') or row_data.get('amount') is None: # Amount can be 0
+                if row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
+                     
+                    pass
+                elif not row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
+                    # Truly empty new row, skip
+                    continue
+                else: # Incomplete data for a new or existing row
+                    errors.append(f"Row {i+1}: Missing required fields (date, amount).")
+                    continue
+            
+            transaction_id = row_data.get('id')
+            
             try:
                 account_id = row_data.get('account_id')
                 category_id = row_data.get('category_id')
                 
                 account = Account.objects.get(id=account_id, user=request.user) if account_id else None
                 category = Category.objects.get(id=category_id, user=request.user) if category_id else None
+                
+                transaction_date = row_data.get('date')
+                description = row_data.get('description', '')
+                amount = Decimal(row_data.get('amount'))
+                transaction_type = row_data.get('transaction_type', 'expense').lower()
 
-                # add further validation later
-                # for now, direct creation
-                transaction = Transaction(
-                    user=request.user,
-                    date=row_data.get('date'),
-                    description=row_data.get('description', ''),
-                    amount=Decimal(row_data.get('amount')),
-                    transaction_type=row_data.get('transaction_type', 'expense').lower(),
-                    account=account,
-                    category=category
-                )
-            
-                # transaction.full_clean() 
-                transactions_to_create.append(transaction)
+                # from .validation import validate_transaction_data
+                # try:
+                #     validate_transaction_data({
+                #         'date': transaction_date, 'transaction_type': transaction_type, 
+                #         'amount': amount, 'description': description, 'category': category
+                #     })
+                # except ValidationError as e_val:
+                #     errors.append(f"Row {i+1}: Validation Error - {', '.join(e_val.messages)}")
+                #     continue
+
+
+                if transaction_id: # Existing transaction, try to update
+                    updated_transaction_ids.append(transaction_id)
+                    try:
+                        t_instance = Transaction.objects.get(id=transaction_id, user=request.user)
+                        
+                        # Check if anything actually changed to avoid unnecessary updates
+                        if (t_instance.date.strftime('%Y-%m-%d') != transaction_date or
+                            t_instance.account_id != account_id or
+                            t_instance.category_id != category_id or
+                            t_instance.description != description or
+                            t_instance.amount != amount or
+                            t_instance.transaction_type != transaction_type):
+                            
+                            # Important: Revert old balance impact before applying new
+                            if t_instance.account:
+                                if t_instance.transaction_type == "income":
+                                    t_instance.account.balance -= t_instance.amount
+                                else: # expense
+                                    t_instance.account.balance += t_instance.amount
+                            
+                            t_instance.date = transaction_date
+                            t_instance.account = account
+                            t_instance.category = category
+                            t_instance.description = description
+                            t_instance.amount = amount
+                            t_instance.transaction_type = transaction_type
+                            transactions_to_update.append(t_instance) 
+                            # Note: t_instance.save() will be called later to handle new balance
+                        
+                    except Transaction.DoesNotExist:
+                        errors.append(f"Row {i+1}: Transaction ID '{transaction_id}' not found for update.")
+                        continue
+                else: # New transaction
+                    transactions_to_create.append(Transaction(
+                        user=request.user, date=transaction_date, account=account, category=category,
+                        description=description, amount=amount, transaction_type=transaction_type
+                    ))
+
             except Account.DoesNotExist:
                 errors.append(f"Row {i+1}: Account ID '{account_id}' not found or does not belong to you.")
             except Category.DoesNotExist:
@@ -920,45 +993,49 @@ def save_spreadsheet_transactions(request):
             except (ValueError, TypeError) as e:
                 errors.append(f"Row {i+1}: Invalid data - {str(e)} for data: {row_data}")
             except Exception as e:
-                 errors.append(f"Row {i+1}: An unexpected error occurred - {str(e)}")
-
+                 errors.append(f"Row {i+1}: An unexpected error occurred processing this row - {str(e)}")
 
         if errors:
             return JsonResponse({'status': 'error', 'errors': errors}, status=400)
 
+        # Process creations
+        created_count = 0
         if transactions_to_create:
-            Transaction.objects.bulk_create(transactions_to_create)
-           
-            for t in transactions_to_create:
-                
-                pass # Account balance updates would need individual .save() or a separate update mechanism
+            # For simplicity and to trigger signals/save logic, save individually
+            for t_new in transactions_to_create:
+                t_new.save() # This will also update account balance via model's save()
+                created_count += 1
+            # Alternatively, for bulk with manual balance update:
+            # Transaction.objects.bulk_create(transactions_to_create)
+            # created_count = len(transactions_to_create)
+            # Then manually update balances for these new transactions
 
-            # Manually update account balances after bulk_create
-            # simplified approach probably need signals or more targeted updates.
-            updated_accounts = {}
-            for t_data in data: # Iterate over the raw data that was successfully processed
-                if t_data.get('account_id') and t_data.get('amount'):
-                    acc_id = t_data['account_id']
-                    if acc_id not in updated_accounts:
-                        try:
-                            updated_accounts[acc_id] = Account.objects.get(id=acc_id, user=request.user)
-                        except Account.DoesNotExist:
-                            continue # Should have been caught earlier
+        # Process updates
+        updated_count = 0
+        accounts_to_recalculate_balance = set()
+        if transactions_to_update:
+            for t_upd in transactions_to_update:
+                t_upd.save() # This will also update account balance via model's save()
+                updated_count += 1
+                if t_upd.account:
+                    accounts_to_recalculate_balance.add(t_upd.account)
+            # Alternatively, for bulk_update:
+            # Transaction.objects.bulk_update(transactions_to_update, ['date', 'account', 'category', 'description', 'amount', 'transaction_type'])
+            # updated_count = len(transactions_to_update)
+            # Then manually update balances for these updated transactions
 
-                    account_obj = updated_accounts[acc_id]
-                    amount = Decimal(t_data['amount'])
-                    if t_data.get('transaction_type', 'expense').lower() == 'income':
-                        account_obj.balance += amount
-                    else:
-                        account_obj.balance -= amount
-            
-            for acc_obj in updated_accounts.values():
-                acc_obj.save()
-
-
-            return JsonResponse({'status': 'success', 'message': f'{len(transactions_to_create)} transactions saved successfully.'})
+        message_parts = []
+        if created_count > 0:
+            message_parts.append(f"{created_count} new transaction(s) saved.")
+        if updated_count > 0:
+            message_parts.append(f"{updated_count} transaction(s) updated.")
+        
+        if not message_parts:
+            final_message = "No changes detected or no valid transactions to save."
         else:
-            return JsonResponse({'status': 'success', 'message': 'No valid transactions to save.'})
+            final_message = " ".join(message_parts)
+
+        return JsonResponse({'status': 'success', 'message': final_message})
 
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON data.'}, status=400)

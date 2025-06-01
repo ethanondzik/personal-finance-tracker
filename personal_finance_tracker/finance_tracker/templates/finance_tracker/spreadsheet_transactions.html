@@ -12,9 +12,11 @@
     .handsontable .htInvalid {
         background-color: #ffcccc !important;
     }
-    .handsontable .htDimmed { /* Style for read-only cells if needed */
+    .handsontable .htDimmed {
         color: #757575;
     }
+
+    
 </style>
 {% endblock %}
 
@@ -51,7 +53,7 @@
         </div>
     </div>
 </div>
-
+{% csrf_token %}
 {{ accounts_json|json_script:"accounts-data" }}
 {{ categories_json|json_script:"categories-data" }}
 {{ transaction_types_json|json_script:"transaction-types-data" }}
@@ -79,10 +81,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const transactionTypeNames = transactionTypesData.map(tt => tt.name);
 
     const hot = new Handsontable(container, {
-        data: initialSpreadsheetData.length > 0 ? initialSpreadsheetData : [{}], // Start with one empty row if no initial data
+        data: initialSpreadsheetData.length > 0 ? initialSpreadsheetData : [{}],
         rowHeaders: true,
-        colHeaders: ['Date', 'Account', 'Category', 'Description', 'Amount', 'Type'],
+        colHeaders: ['ID', 'Date', 'Account', 'Category', 'Description', 'Amount', 'Type'],
         columns: [
+            { data: 'id', readOnly: true, type: 'numeric', width: 50 }, // Transaction ID column, read only
             { data: 'date', type: 'date', dateFormat: 'YYYY-MM-DD', correctFormat: true, allowInvalid: false },
             { 
                 data: 'account_name',
@@ -90,7 +93,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 source: accountNames,
                 allowInvalid: false,
                 validator: function (value, callback) {
-                    callback(accountNames.includes(value));
+                    // Allow empty for new rows or if account is not set
+                    if (value === null || value === '' || accountNames.includes(value)) {
+                        callback(true);
+                    } else {
+                        callback(false);
+                    }
                 }
             },
             { 
@@ -99,7 +107,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 source: categoryNames,
                 allowInvalid: false,
                 validator: function (value, callback) {
-                    callback(categoryNames.includes(value));
+                     // Allow empty for new rows or if category is not set
+                    if (value === null || value === '' || categoryNames.includes(value)) {
+                        callback(true);
+                    } else {
+                        callback(false);
+                    }
                 }
             },
             { data: 'description', type: 'text' },
@@ -110,15 +123,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 source: transactionTypeNames,
                 allowInvalid: false,
                 validator: function (value, callback) {
-                    callback(transactionTypeNames.includes(value));
+                    if (value === null || value === '' || transactionTypeNames.includes(value)) {
+                        callback(true);
+                    } else {
+                        callback(false);
+                    }
                 }
             }
         ],
+        // to hide the id column:
+        // hiddenColumns: {
+        //  columns: [0], // Index of the ID column
+        //  indicators: false // Do not show hidden column indicators
+        // },
         minRows: 1,
-        minSpareRows: 1, // Always keep one empty row at the bottom
-        width: '100%',
-        height: 'auto', // Will be controlled by parent div height
-        stretchH: 'all', // Stretch columns to fit container
+        minSpareRows: 1,
+        width: '100%', 
+        stretchH: 'all',
         licenseKey: 'non-commercial-and-evaluation',
         manualRowMove: true,
         manualColumnMove: true,
@@ -127,9 +148,9 @@ document.addEventListener('DOMContentLoaded', function () {
         dropdownMenu: true,
         afterChange: function (changes, source) {
             if (source === 'loadData') {
-                return; // Don't do anything on initial load
+                return; 
             }
-            // maybe auto-set category type based on transaction type
+        
         }
     });
 
@@ -138,37 +159,41 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     saveButton.addEventListener('click', function () {
-        const tableData = hot.getSourceData(); // Gets data as array of objects
+        const tableData = hot.getSourceData(); 
         const transactionsToSave = [];
         statusMessageEl.innerHTML = '<span class="text-info">Saving...</span>';
 
         tableData.forEach(row => {
-            if (row.date && row.amount != null) { // Basic check for a valid row
-                const account = accountsData.find(acc => (acc.name + ' (' + acc.account_number + ')') === row.account_name);
+            // Only process rows that have at least a date or an amount, or an existing ID
+            if (row.id || (row.date && row.amount != null)) { 
+                const account = accountsData.find(acc => acc.name === row.account_name);
                 const category = categoriesData.find(cat => cat.name === row.category_name);
                 const transactionType = transactionTypesData.find(tt => tt.name === row.transaction_type_name);
 
                 transactionsToSave.push({
+                    id: row.id || null, // Send ID if it exists
                     date: row.date,
                     account_id: account ? account.id : null,
                     category_id: category ? category.id : null,
                     description: row.description || '',
                     amount: row.amount,
-                    transaction_type: transactionType ? transactionType.id : 'expense' // Default to expense
+                    transaction_type: transactionType ? transactionType.id : (row.transaction_type_name ? row.transaction_type_name.toLowerCase() : 'expense')
                 });
             }
         });
 
         if (transactionsToSave.length === 0) {
-            statusMessageEl.innerHTML = '<span class="text-warning">No valid transactions to save. Please fill in at least Date and Amount.</span>';
+            statusMessageEl.innerHTML = '<span class="text-warning">No valid transactions or changes to save.</span>';
             return;
         }
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         fetch("{% url 'save_spreadsheet_transactions' %}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // 'X-CSRFToken': '{{ csrf_token }}', // Add later
+                'X-CSRFToken': csrfToken,
             },
             body: JSON.stringify(transactionsToSave)
         })
@@ -176,8 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             if (data.status === 'success') {
                 statusMessageEl.innerHTML = `<span class="text-success">${data.message}</span>`;
-                // could also clear the table or refresh data
-                // hot.loadData(initialSpreadsheetData.length > 0 ? initialSpreadsheetData : [{}]);
+                window.location.reload(); // Or fetch and hot.loadData()
             } else {
                 let errorMessages = data.message || 'An error occurred.';
                 if (data.errors && data.errors.length > 0) {
