@@ -878,8 +878,9 @@ def spreadsheet_transactions(request):
 
 
         initial_data_structure.append({
-            'id': t.id, # Crucial for identifying existing transactions
+            'id': t.id, # for identifying existing transactions
             'date': t.date.strftime('%Y-%m-%d') if t.date else None,
+            'account_id': t.account.id if t.account else None,
             'account_name': account_name_display,
             'category_name': t.category.name if t.category else None,
             'description': t.description,

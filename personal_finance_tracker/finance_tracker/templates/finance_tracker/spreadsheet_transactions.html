@@ -75,6 +75,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const addRowButton = document.getElementById('add-row-btn');
     const statusMessageEl = document.getElementById('status-message');
 
+    const modifiedRowIndexes = new Set(); // 1. Initialize Set for dirty rows
+
+
     // Prepare sources for dropdowns
     const accountNames = accountsData.map(acc => acc.name + ' (' + acc.account_number + ')');
     const categoryNames = categoriesData.map(cat => cat.name);
@@ -87,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
         columns: [
             { data: 'id', readOnly: true, type: 'numeric', width: 50 }, // Transaction ID column, read only
             { data: 'date', type: 'date', dateFormat: 'YYYY-MM-DD', correctFormat: true, allowInvalid: false },
-            { 
+            {
                 data: 'account_name',
                 type: 'dropdown', 
                 source: accountNames,
@@ -147,10 +150,15 @@ document.addEventListener('DOMContentLoaded', function () {
         filters: true,
         dropdownMenu: true,
         afterChange: function (changes, source) {
-            if (source === 'loadData') {
+            if (source === 'loadData' || !changes) { // 2. Update afterChange hook
                 return; 
             }
-        
+            changes.forEach(([rowIndex, prop, oldValue, newValue]) => {
+                // Compare as strings to handle type nuances and null vs empty string
+                if (String(oldValue) !== String(newValue)) {
+                    modifiedRowIndexes.add(rowIndex);
+                }
+            });
         }
     });
 
@@ -159,62 +167,67 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     saveButton.addEventListener('click', function () {
-        const tableData = hot.getSourceData(); 
-        const transactionsToSave = [];
-        statusMessageEl.innerHTML = '<span class="text-info">Saving...</span>';
+    const tableData = hot.getSourceData();
+    const transactionsToSave = [];
+    statusMessageEl.innerHTML = '<span class="text-info">Saving...</span>';
 
-        tableData.forEach(row => {
-            // Only process rows that have at least a date or an amount, or an existing ID
-            if (row.id || (row.date && row.amount != null)) { 
-                const account = accountsData.find(acc => acc.name === row.account_name);
-                const category = categoriesData.find(cat => cat.name === row.category_name);
-                const transactionType = transactionTypesData.find(tt => tt.name === row.transaction_type_name);
+    tableData.forEach((row, rowIndex) => {
+        const isNew = !row.id && row.date && row.amount != null;
+        const isModified = row.id && modifiedRowIndexes.has(rowIndex);
+        if (isNew || isModified) {
+            const account = accountsData.find(acc => acc.name === row.account_name);
+            const category = categoriesData.find(cat => cat.name === row.category_name);
+            const transactionType = transactionTypesData.find(tt => tt.name === row.transaction_type_name);
 
-                transactionsToSave.push({
-                    id: row.id || null, // Send ID if it exists
-                    date: row.date,
-                    account_id: account ? account.id : null,
-                    category_id: category ? category.id : null,
-                    description: row.description || '',
-                    amount: row.amount,
-                    transaction_type: transactionType ? transactionType.id : (row.transaction_type_name ? row.transaction_type_name.toLowerCase() : 'expense')
-                });
-            }
-        });
-
-        if (transactionsToSave.length === 0) {
-            statusMessageEl.innerHTML = '<span class="text-warning">No valid transactions or changes to save.</span>';
-            return;
+            transactionsToSave.push({
+                id: row.id || null,
+                date: row.date,
+                account_id: account ? account.id : null,
+                category_id: category ? category.id : null,
+                description: row.description || '',
+                amount: row.amount,
+                transaction_type: transactionType ? transactionType.id : (row.transaction_type_name ? row.transaction_type_name.toLowerCase() : 'expense')
+            });
         }
+    });
 
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    if (transactionsToSave.length === 0) {
+        statusMessageEl.innerHTML = '<span class="text-warning">No new or modified transactions to save.</span>';
+        return;
+    }
 
-        fetch("{% url 'save_spreadsheet_transactions' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify(transactionsToSave)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                statusMessageEl.innerHTML = `<span class="text-success">${data.message}</span>`;
-                window.location.reload(); // Or fetch and hot.loadData()
-            } else {
-                let errorMessages = data.message || 'An error occurred.';
-                if (data.errors && data.errors.length > 0) {
-                    errorMessages += '<ul>' + data.errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
-                }
-                statusMessageEl.innerHTML = `<div class="alert alert-danger">${errorMessages}</div>`;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch("{% url 'save_spreadsheet_transactions' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify(transactionsToSave)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            statusMessageEl.innerHTML = `<span class="text-success">${data.message}</span>`;
+            modifiedRowIndexes.clear();
+            setTimeout(() => {
+            window.location.reload();
+            }, 1500);
+        } else {
+            let errorMessages = data.message || 'An error occurred.';
+            if (data.errors && data.errors.length > 0) {
+                errorMessages += '<ul>' + data.errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            statusMessageEl.innerHTML = '<span class="text-danger">An error occurred while saving. Check console.</span>';
-        });
+            statusMessageEl.innerHTML = `<div class="alert alert-danger">${errorMessages}</div>`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        statusMessageEl.innerHTML = '<span class="text-danger">An error occurred while saving. Check console.</span>';
     });
 });
+});
 </script>
+
 {% endblock %}
