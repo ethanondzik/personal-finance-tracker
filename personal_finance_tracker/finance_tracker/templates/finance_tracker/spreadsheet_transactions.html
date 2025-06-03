@@ -4,53 +4,193 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
 <style>
-    #transaction-spreadsheet {
-        width: 100%;
-        height: 60vh; /* Adjust as needed */
-        overflow: auto;
-    }
-    .handsontable .htInvalid {
-        background-color: #ffcccc !important;
-    }
-    .handsontable .htDimmed {
-        color: #757575;
+    /* Hide the floating dashboard button */
+    .btn.btn-outline-primary.position-fixed {
+        display: none !important;
     }
 
+    /* Full-height layout */
+    .spreadsheet-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .spreadsheet-toolbar {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+        min-height: 48px;
+    }
+    
+    .spreadsheet-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    #transaction-spreadsheet {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        min-height: 0; /* for flex child */
+    }
+    
+    .spreadsheet-status {
+        background: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+        padding: 8px 16px;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+    
+    /* Toolbar buttons styling */
+    .toolbar-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: 1px solid #dadce0;
+        background: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .toolbar-btn:hover {
+        background: #f1f3f4;
+    }
+    
+    .toolbar-btn.primary {
+        background: #1a73e8;
+        color: white;
+        border-color: #1a73e8;
+    }
+    
+    .toolbar-btn.primary:hover {
+        background: #1557b0;
+    }
+    
+    .toolbar-separator {
+        width: 1px;
+        height: 20px;
+        background: #dadce0;
+        margin: 0 4px;
+    }
+    
+    /* Handsontable styling adjustments */
+    .handsontable {
+        font-family: 'Roboto', 'Arial', sans-serif;
+        font-size: 13px;
+    }
+    
+    .handsontable .htInvalid {
+        background-color: #fce8e6 !important;
+    }
+    
+    .handsontable .htDimmed {
+        color: #5f6368;
+    }
+    
+    .handsontable .htCore {
+        border: none;
+    }
+    
+    .handsontable td {
+        border-right: 1px solid #e0e0e0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .handsontable th {
+        background: #f8f9fa;
+        border-right: 1px solid #e0e0e0;
+        border-bottom: 1px solid #e0e0e0;
+        font-weight: 500;
+        color: #3c4043;
+    }
+    
+    /* Dark theme adjustments */
+    body.dark-theme .spreadsheet-toolbar,
+    body.dark-theme .spreadsheet-status {
+        background: #2d2d2d;
+        border-color: #444;
+        color: #e1e1e1;
+    }
+    
+    body.dark-theme .toolbar-btn {
+        background: #3c4043;
+        border-color: #5f6368;
+        color: #e1e1e1;
+    }
+    
+    body.dark-theme .toolbar-btn:hover {
+        background: #48494a;
+    }
+    
+    body.dark-theme .handsontable td {
+        border-color: #444;
+        background: #2d2d2d;
+        color: #e1e1e1;
+    }
+    
+    body.dark-theme .handsontable th {
+        background: #3c4043;
+        border-color: #444;
+        color: #e1e1e1;
+    }
     
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-scroller">
-    <div class="container-fluid page-body-wrapper">
-        <div class="main-panel">
-            <div class="content-wrapper">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title">Enter Transactions via Spreadsheet</h4>
-                        <p class="card-description">
-                            Add or edit transactions directly in the table below.
-                            Make sure to select an Account and Category for each transaction.
-                        </p>
-                        
-                        <div id="transaction-spreadsheet" class="mt-4"></div>
-
-                        <div class="mt-4">
-                            <button id="save-spreadsheet-btn" class="btn btn-primary">
-                                <i class="mdi mdi-content-save"></i> Save Transactions
-                            </button>
-                            <button id="add-row-btn" class="btn btn-success ms-2">
-                                <i class="mdi mdi-plus-circle-outline"></i> Add Row
-                            </button>
-                             <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary ms-2">
-                                <i class="mdi mdi-arrow-left"></i> Back to Dashboard
-                            </a>
-                        </div>
-                        <div id="status-message" class="mt-3"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="spreadsheet-container">
+    <!-- Toolbar -->
+    <div class="spreadsheet-toolbar">
+        <h5 class="mb-0 me-3">Transaction Spreadsheet</h5>
+        
+        <button id="save-spreadsheet-btn" class="toolbar-btn primary">
+            <i class="mdi mdi-content-save"></i>
+            Save
+        </button>
+        
+        <button id="add-row-btn" class="toolbar-btn">
+            <i class="mdi mdi-plus"></i>
+            Add Row
+        </button>
+        
+        <div class="toolbar-separator"></div>
+        
+        <button id="undo-btn" class="toolbar-btn" title="Undo">
+            <i class="mdi mdi-undo"></i>
+        </button>
+        
+        <button id="redo-btn" class="toolbar-btn" title="Redo">
+            <i class="mdi mdi-redo"></i>
+        </button>
+        
+        <div class="toolbar-separator"></div>
+        
+        <a href="{% url 'dashboard' %}" class="toolbar-btn">
+            <i class="mdi mdi-arrow-left"></i>
+            Dashboard
+        </a>
+    </div>
+    
+    <!-- Spreadsheet Content -->
+    <div class="spreadsheet-content">
+        <div id="transaction-spreadsheet"></div>
+    </div>
+    
+    <!-- Status Bar -->
+    <div id="status-message" class="spreadsheet-status">
+        Ready
     </div>
 </div>
 {% csrf_token %}
@@ -75,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const addRowButton = document.getElementById('add-row-btn');
     const statusMessageEl = document.getElementById('status-message');
 
-    const modifiedRowIndexes = new Set(); // 1. Initialize Set for dirty rows
+    const modifiedRowIndexes = new Set(); 
 
 
     // Prepare sources for dropdowns
@@ -139,27 +279,91 @@ document.addEventListener('DOMContentLoaded', function () {
         //  columns: [0], // Index of the ID column
         //  indicators: false // Do not show hidden column indicators
         // },
-        minRows: 1,
-        minSpareRows: 1,
-        width: '100%', 
+        minRows: 50, 
+        minSpareRows: 10, 
+        width: '100%',
+        height: '100%', 
         stretchH: 'all',
         licenseKey: 'non-commercial-and-evaluation',
+        
+        // Enhanced features
         manualRowMove: true,
         manualColumnMove: true,
-        contextMenu: true,
+        manualRowResize: true,
+        manualColumnResize: true,
+        
+        // Context menu and interaction
+        contextMenu: ['row_above', 'row_below', 'remove_row', '---------', 'col_left', 'col_right', 'remove_col'],
         filters: true,
-        dropdownMenu: true,
+        dropdownMenu: ['filter_by_condition', 'filter_operators', 'filter_by_condition2', 'filter_by_value', 'filter_action_bar'],
+        
+        // Selection and navigation
+        fillHandle: true,
+        autoWrapRow: true,
+        autoWrapCol: true,
+        
+        // Grid appearance
+        rowHeaders: true,
+        colHeaders: true,
+        outsideClickDeselects: false,
+        
+        // Performance
+        virtualization: true,
+        
         afterChange: function (changes, source) {
-            if (source === 'loadData' || !changes) { // 2. Update afterChange hook
+            if (source === 'loadData' || !changes) {
                 return; 
             }
             changes.forEach(([rowIndex, prop, oldValue, newValue]) => {
-                // Compare as strings to handle type nuances and null vs empty string
                 if (String(oldValue) !== String(newValue)) {
                     modifiedRowIndexes.add(rowIndex);
+                    updateStatus(`Modified row ${rowIndex + 1}`);
                 }
             });
+        },
+        
+        afterSelection: function(row, column, row2, column2, preventScrolling, selectionLayerLevel) {
+            updateStatus(`Selected: R${row + 1}C${column + 1}`);
         }
+    });
+
+    function updateStatus(message) {
+        const statusEl = document.getElementById('status-message');
+        statusEl.textContent = message;
+        setTimeout(() => {
+            statusEl.textContent = 'Ready';
+        }, 3000);
+    }
+
+    // keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 's':
+                    e.preventDefault();
+                    document.getElementById('save-spreadsheet-btn').click();
+                    break;
+                case 'z':
+                    if (!e.shiftKey) {
+                        e.preventDefault();
+                        hot.undo();
+                    }
+                    break;
+                case 'y':
+                    e.preventDefault();
+                    hot.redo();
+                    break;
+            }
+        }
+    });
+
+    // undo/redo button functionality (fix hot undo/redo with plugin since depreciated)
+    document.getElementById('undo-btn').addEventListener('click', () => {
+        hot.undo();
+    });
+
+    document.getElementById('redo-btn').addEventListener('click', () => {
+        hot.redo();
     });
 
     addRowButton.addEventListener('click', function() {
