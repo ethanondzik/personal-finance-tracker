@@ -884,9 +884,6 @@ def spreadsheet_transactions(request):
             'amount': float(t.amount) if t.amount is not None else None,
             'transaction_type_name': t.get_transaction_type_display() # 'Income' or 'Expense'
         })
-    
-    # If no existing transactions, you might still want a blank row for new entries.
-    # Handsontable's minSpareRows will handle adding new blank rows anyway.
 
     context = {
         'accounts_json': accounts_list_for_json,
