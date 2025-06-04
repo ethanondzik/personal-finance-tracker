@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // Prepare sources for dropdowns
-    const accountNames = accountsData.map(acc => acc.name + ' (' + acc.account_number + ')');
+    const accountNames = accountsData.map(acc => `${acc.account_type} (${acc.account_number})`);
     const categoryNames = categoriesData.map(cat => cat.name);
     const transactionTypeNames = transactionTypesData.map(tt => tt.name);
 
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Grid appearance
         rowHeaders: true,
-        colHeaders: true,
+        // colHeaders: true,
         outsideClickDeselects: false,
         
         // Performance
@@ -379,7 +379,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const isNew = !row.id && row.date && row.amount != null;
         const isModified = row.id && modifiedRowIndexes.has(rowIndex);
         if (isNew || isModified) {
-            const account = accountsData.find(acc => acc.name === row.account_name);
+            // Parse "checking (00010)" format
+            const accountMatch = row.account_name.match(/^(.+?)\s*\((.+?)\)$/);
+            if (accountMatch) {
+                const accountNumber = accountMatch[2];
+                account = accountsData.find(acc => acc.account_number === accountNumber);
+            }
             const category = categoriesData.find(cat => cat.name === row.category_name);
             const transactionType = transactionTypesData.find(tt => tt.name === row.transaction_type_name);
 
@@ -390,7 +395,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 category_id: category ? category.id : null,
                 description: row.description || '',
                 amount: row.amount,
-                transaction_type: transactionType ? transactionType.id : (row.transaction_type_name ? row.transaction_type_name.toLowerCase() : 'expense')
+                transaction_type: transactionType ? transactionType.id : (row.transaction_type_name ? row.transaction_type_name.toLowerCase() : 'expense'),
+                rowIndex: rowIndex // Add row index to track which row this is
             });
         }
     });
@@ -414,10 +420,33 @@ document.addEventListener('DOMContentLoaded', function () {
     .then(data => {
         if (data.status === 'success') {
             statusMessageEl.innerHTML = `<span class="text-success">${data.message}</span>`;
+            
+            // Update the spreadsheet data with new IDs for created transactions
+            if (data.created_transactions) {
+                data.created_transactions.forEach(newTransaction => {
+                    // Find the row that was saved and update it with the new ID
+                    const savedTransaction = transactionsToSave.find(t => 
+                        t.rowIndex !== undefined && 
+                        t.date === newTransaction.date && 
+                        parseFloat(t.amount) === parseFloat(newTransaction.amount) &&
+                        t.description === newTransaction.description
+                    );
+                    
+                    if (savedTransaction) {
+                        // Update the cell data in Handsontable
+                        hot.setDataAtCell(savedTransaction.rowIndex, 0, newTransaction.id, 'loadData');
+                    }
+                });
+            }
+            
+            // Clear modified row tracking
             modifiedRowIndexes.clear();
+            
+            // Show success message temporarily
             setTimeout(() => {
-            window.location.reload();
-            }, 1500);
+                statusMessageEl.textContent = 'Ready';
+            }, 3000);
+            
         } else {
             let errorMessages = data.message || 'An error occurred.';
             if (data.errors && data.errors.length > 0) {

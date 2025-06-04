@@ -9668,3 +9668,9 @@ Traceback (most recent call last):
     raise FieldError(
 django.core.exceptions.FieldError: Cannot resolve keyword 'name' into field. Choices are: account_number, account_type, asset, balance, created_at, debt, id, institution_number, subscription, transaction, transit_number, user, user_id
 "GET /transactions/spreadsheet/ HTTP/1.1" 500 121226
+Internal Server Error: /transactions/spreadsheet/save/
+"POST /transactions/spreadsheet/save/ HTTP/1.1" 500 104
+Internal Server Error: /transactions/spreadsheet/save/
+"POST /transactions/spreadsheet/save/ HTTP/1.1" 500 104
+Internal Server Error: /transactions/spreadsheet/save/
+"POST /transactions/spreadsheet/save/ HTTP/1.1" 500 104

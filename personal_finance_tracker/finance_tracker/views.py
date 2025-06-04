@@ -14,6 +14,7 @@ from decimal import Decimal
 from django.utils import timezone
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from datetime import datetime
 import json
 
 
@@ -859,7 +860,8 @@ def spreadsheet_transactions(request):
         accounts_list_for_json.append({
             'id': acc.id,
             'name': display_name, 
-            'account_number': acc.account_number 
+            'account_number': acc.account_number,
+            'account_type': acc.account_type
         })
 
     # Fetch existing transactions for the user
@@ -869,13 +871,8 @@ def spreadsheet_transactions(request):
     for t in existing_transactions:
         account_name_display = None
         if t.account:
-            # Find the matching display name from accounts_list_for_json
-            matching_account = next((acc_json for acc_json in accounts_list_for_json if acc_json['id'] == t.account.id), None)
-            if matching_account:
-                account_name_display = matching_account['name']
-            else: # Fallback if account somehow not in the list (should not happen if data is consistent)
-                account_name_display = str(t.account.institution_number) if t.account.institution_number else f"Account ending in {t.account.account_number[-4:] if t.account.account_number and len(t.account.account_number) >=4 else t.account.account_number}"
-
+            
+            account_name_display = f"{t.account.account_type} ({t.account.account_number})"
 
         initial_data_structure.append({
             'id': t.id, # for identifying existing transactions
@@ -908,6 +905,7 @@ def save_spreadsheet_transactions(request):
         transactions_to_update = []
         updated_transaction_ids = [] 
         errors = []
+        created_transactions_data = []
 
         for i, row_data in enumerate(data):
             # received_ids.add(row_data.get('id'))
@@ -933,7 +931,16 @@ def save_spreadsheet_transactions(request):
                 account = Account.objects.get(id=account_id, user=request.user) if account_id else None
                 category = Category.objects.get(id=category_id, user=request.user) if category_id else None
                 
-                transaction_date = row_data.get('date')
+                transaction_date_str = row_data.get('date')
+                if isinstance(transaction_date_str, str):
+                    try:
+                        transaction_date = datetime.strptime(transaction_date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        errors.append(f"Row {i+1}: Invalid date format '{transaction_date_str}'. Expected YYYY-MM-DD.")
+                        continue
+                else:
+                    transaction_date = transaction_date_str
+
                 description = row_data.get('description', '')
                 amount = Decimal(row_data.get('amount'))
                 transaction_type = row_data.get('transaction_type', 'expense').lower()
@@ -955,7 +962,7 @@ def save_spreadsheet_transactions(request):
                         t_instance = Transaction.objects.get(id=transaction_id, user=request.user)
                         
                         # Check if anything actually changed to avoid unnecessary updates
-                        if (t_instance.date.strftime('%Y-%m-%d') != transaction_date or
+                        if (str(t_instance.date) != str(transaction_date) or
                             t_instance.account_id != account_id or
                             t_instance.category_id != category_id or
                             t_instance.description != description or
@@ -976,7 +983,6 @@ def save_spreadsheet_transactions(request):
                             t_instance.amount = amount
                             t_instance.transaction_type = transaction_type
                             transactions_to_update.append(t_instance) 
-                            # Note: t_instance.save() will be called later to handle new balance
                         
                     except Transaction.DoesNotExist:
                         errors.append(f"Row {i+1}: Transaction ID '{transaction_id}' not found for update.")
@@ -1002,14 +1008,18 @@ def save_spreadsheet_transactions(request):
         # Process creations
         created_count = 0
         if transactions_to_create:
-            # For simplicity and to trigger signals/save logic, save individually
             for t_new in transactions_to_create:
-                t_new.save() # This will also update account balance via model's save()
+                t_new.save()
                 created_count += 1
-            # Alternatively, for bulk with manual balance update:
-            # Transaction.objects.bulk_create(transactions_to_create)
-            # created_count = len(transactions_to_create)
-            # Then manually update balances for these new transactions
+                # Store created transaction data to return
+                created_transactions_data.append({
+                    'id': t_new.id,
+                    'date': t_new.date.strftime('%Y-%m-%d') if hasattr(t_new.date, 'strftime') else str(t_new.date),
+                    'amount': float(t_new.amount),
+                    'description': t_new.description
+                })
+            
+        
 
         # Process updates
         updated_count = 0
@@ -1020,10 +1030,7 @@ def save_spreadsheet_transactions(request):
                 updated_count += 1
                 if t_upd.account:
                     accounts_to_recalculate_balance.add(t_upd.account)
-            # Alternatively, for bulk_update:
-            # Transaction.objects.bulk_update(transactions_to_update, ['date', 'account', 'category', 'description', 'amount', 'transaction_type'])
-            # updated_count = len(transactions_to_update)
-            # Then manually update balances for these updated transactions
+            
 
         message_parts = []
         if created_count > 0:
@@ -1036,7 +1043,11 @@ def save_spreadsheet_transactions(request):
         else:
             final_message = " ".join(message_parts)
 
-        return JsonResponse({'status': 'success', 'message': final_message})
+        return JsonResponse({
+            'status': 'success', 
+            'message': final_message,
+            'created_transactions': created_transactions_data
+        })
 
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON data.'}, status=400)
