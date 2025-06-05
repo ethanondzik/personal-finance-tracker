@@ -164,6 +164,11 @@
             <i class="mdi mdi-plus"></i>
             Add Row
         </button>
+
+        <button id="delete-row-btn" class="toolbar-btn">
+            <i class="mdi mdi-delete"></i>
+            Delete Row
+        </button>
         
         <div class="toolbar-separator"></div>
         
@@ -193,6 +198,28 @@
         Ready
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the transaction <strong id="transaction"></strong>?
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the transaction <strong id="transaction"></strong>? <!-- This text will be updated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-spreadsheet-delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% csrf_token %}
 {{ accounts_json|json_script:"accounts-data" }}
 {{ categories_json|json_script:"categories-data" }}
@@ -204,6 +231,7 @@
 <!-- Pass url to js as a variable -->
 <script>
   window.saveSpreadsheetUrl = "{% url 'save_spreadsheet_transactions' %}";
+  window.deleteTransactionUrl = "{% url 'delete_transactions' %}";
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>

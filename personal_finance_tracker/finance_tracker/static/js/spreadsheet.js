@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('transaction-spreadsheet');
     const saveButton = document.getElementById('save-spreadsheet-btn');
     const addRowButton = document.getElementById('add-row-btn');
+    const deleteRowButton = document.getElementById('delete-row-btn');
+    const deleteModal = document.getElementById('deleteModal');
+    const deleteModalBody = deleteModal.querySelector('.modal-body');
+    const confirmSpreadsheetDeleteBtn = document.getElementById('confirm-spreadsheet-delete-btn');
     const statusMessageEl = document.getElementById('status-message');
 
     const modifiedRowIndexes = new Set(); 
@@ -128,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
         statusEl.textContent = message;
         setTimeout(() => {
             statusEl.textContent = 'Ready';
-        }, 3000);
+        }, 5000);
     }
 
     // keyboard shortcuts
@@ -257,4 +261,109 @@ document.addEventListener('DOMContentLoaded', function () {
         statusMessageEl.innerHTML = '<span class="text-danger">An error occurred while saving. Check console.</span>';
     });
 });
+
+    let idsPendingServerDeletion = [];
+
+    deleteRowButton.addEventListener('click', function() {
+        const selectedRanges = hot.getSelectedRange();
+        if (!selectedRanges || selectedRanges.length === 0) {
+            updateStatus('No rows selected to delete.');
+            return;
+        }
+
+        const rowsToRemoveLocally = new Set();
+        const transactionsForServerDeletion = []; // Stores { id, visualIndex }
+
+        selectedRanges.forEach(range => {
+            const fromRow = range.from.row;
+            const toRow = range.to.row;
+            for (let rowIndex = Math.min(fromRow, toRow); rowIndex <= Math.max(fromRow, toRow); rowIndex++) {
+                // Ensure row is within current data bounds
+                if (rowIndex < hot.countRows()) {
+                    const rowData = hot.getSourceDataAtRow(rowIndex);
+                    if (rowData && rowData.id) {
+                        if (!transactionsForServerDeletion.some(t => t.id === rowData.id)) {
+                            transactionsForServerDeletion.push({ id: rowData.id, visualIndex: rowIndex });
+                        }
+                    } else if (rowData && (rowData.date || rowData.description || rowData.amount !== undefined)) { // It's a new row with some data
+                        rowsToRemoveLocally.add(rowIndex);
+                    }
+                }
+            }
+        });
+        
+        let localRowsRemovedCount = 0;
+        if (rowsToRemoveLocally.size > 0) {
+            const sortedLocalRows = Array.from(rowsToRemoveLocally).sort((a, b) => b - a);
+            sortedLocalRows.forEach(rowIndex => {
+                hot.alter('remove_row', rowIndex, 1);
+                localRowsRemovedCount++;
+            });
+        }
+
+        if (transactionsForServerDeletion.length > 0) {
+            idsPendingServerDeletion = transactionsForServerDeletion.map(t => t.id);
+            
+            deleteModalBody.innerHTML = `Are you sure you want to delete ${idsPendingServerDeletion.length} selected transaction(s) from the database? This action cannot be undone.`;
+            
+            const modal = new bootstrap.Modal(deleteModal);
+            modal.show();
+        } else if (localRowsRemovedCount > 0) {
+             updateStatus(`${localRowsRemovedCount} new row(s) removed.`);
+             hot.render();
+        } else {
+            updateStatus('No rows with data selected to delete.');
+        }
+    });
+
+    if (confirmSpreadsheetDeleteBtn) {
+        confirmSpreadsheetDeleteBtn.addEventListener('click', function() {
+            if (idsPendingServerDeletion.length > 0) {
+                statusMessageEl.innerHTML = '<span class="text-info">Deleting...</span>';
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                fetch(window.deleteTransactionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ transaction_ids: idsPendingServerDeletion })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const modal = bootstrap.Modal.getInstance(deleteModal);
+                    if (modal) modal.hide();
+
+                    if (data.status === 'success') {
+                        const successfullyDeletedIds = new Set(idsPendingServerDeletion);
+                        const rowsToRemoveFromHot = [];
+                        const currentData = hot.getSourceData();
+
+                        for (let i = 0; i < currentData.length; i++) {
+                            if (currentData[i] && successfullyDeletedIds.has(currentData[i].id)) {
+                                rowsToRemoveFromHot.push(i);
+                            }
+                        }
+                        rowsToRemoveFromHot.sort((a, b) => b - a);
+                        rowsToRemoveFromHot.forEach(visualIndex => {
+                            hot.alter('remove_row', visualIndex, 1);
+                        });
+                        updateStatus(data.message || `${successfullyDeletedIds.size} transaction(s) deleted.`);
+                        hot.render();
+                    } else {
+                        updateStatus(`Error: ${data.message || 'Failed to delete transactions.'}`);
+                    }
+                    idsPendingServerDeletion = [];
+                })
+                .catch(error => {
+                    console.error('Error deleting transactions:', error);
+                    const modal = bootstrap.Modal.getInstance(deleteModal);
+                    if (modal) modal.hide();
+                    updateStatus('An error occurred while deleting transactions.');
+                    idsPendingServerDeletion = [];
+                });
+            }
+        });
+    }
 });
+
