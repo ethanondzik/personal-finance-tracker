@@ -9674,3 +9674,19 @@ Internal Server Error: /transactions/spreadsheet/save/
 "POST /transactions/spreadsheet/save/ HTTP/1.1" 500 104
 Internal Server Error: /transactions/spreadsheet/save/
 "POST /transactions/spreadsheet/save/ HTTP/1.1" 500 104
+Internal Server Error: /transaction_heatmap/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 1128, in transaction_heatmap_view
+    ).values('date').annotate(count=Count('id')).order_by('date')
+                                    ^^^^^
+NameError: name 'Count' is not defined
+"GET /transaction_heatmap/ HTTP/1.1" 500 77704

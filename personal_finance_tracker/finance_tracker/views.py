@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from datetime import datetime
+from django.db.models import Count
 import json
 
 
@@ -156,19 +157,7 @@ def dashboard(request):
     page_number = request.GET.get('page')
     transactions_page = paginator.get_page(page_number)
 
-    # user_custom_notifications = CustomNotification.objects.filter(user=request.user, enabled=True)
-    
-    # # Prepare custom notifications data for JSON script
-    # # We need category_id and potentially category_name if the rule applies to a specific category
-    # custom_notifications_data = list(user_custom_notifications.values(
-    #     'id', 'type', 'title', 'message', 'threshold', 
-    #     'category_id', 'category__name', 'notification_datetime', 
-    #     'recurrence_interval' 
-    # ))
-
-    # for notif_data in custom_notifications_data:
-    #     if notif_data['notification_datetime']:
-    #         notif_data['notification_datetime'] = notif_data['notification_datetime'].isoformat()
+   
     custom_notifications_data = CustomNotification.objects.filter(user=request.user)
     user_custom_notifications_data = []
     for rule in custom_notifications_data:
@@ -1123,3 +1112,30 @@ def save_spreadsheet_transactions(request):
     except Exception as e:
         # Log the exception e
         return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'}, status=500)
+    
+
+@login_required
+def transaction_heatmap_view(request):
+    """
+    Renders a page with a calendar heatmap of transaction activity.
+    """
+    user = request.user
+    one_year_ago = timezone.now().date() - timedelta(days=365)
+
+    # Aggregate transaction counts per day for the last year
+    heatmap_transactions_data = Transaction.objects.filter(
+        user=user,
+        date__gte=one_year_ago
+    ).values('date').annotate(count=Count('id')).order_by('date')
+
+    # Convert to a dictionary format: {"YYYY-MM-DD": count}
+    calendar_heatmap_data = {
+        item['date'].strftime('%Y-%m-%d'): item['count']
+        for item in heatmap_transactions_data
+    }
+
+    context = {
+        'calendar_heatmap_data_json': calendar_heatmap_data,
+    }
+    
+    return render(request, 'finance_tracker/transaction_heatmap.html', context)

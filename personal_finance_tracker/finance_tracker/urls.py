@@ -27,5 +27,7 @@ urlpatterns = [
     path('manage-budgets/', views.manage_budgets, name='manage_budgets'),
     path('transactions/spreadsheet/', views.spreadsheet_transactions, name='spreadsheet_transactions'),
     path('transactions/spreadsheet/save/', views.save_spreadsheet_transactions, name='save_spreadsheet_transactions'),
+    path('transaction_heatmap/', views.transaction_heatmap_view, name='transaction_heatmap'),
+
 
 ]
