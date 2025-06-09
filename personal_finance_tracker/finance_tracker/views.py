@@ -1126,13 +1126,22 @@ def transaction_heatmap_view(request):
     heatmap_transactions_data = Transaction.objects.filter(
         user=user,
         date__gte=one_year_ago
-    ).values('date').annotate(count=Count('id')).order_by('date')
+    ).values('date').annotate(
+        count=Count('id'),
+        total_income=Sum('amount', filter=Q(transaction_type='income')),
+        total_expense=Sum('amount', filter=Q(transaction_type='expense'))
+    ).order_by('date')
 
-    # Convert to a dictionary format: {"YYYY-MM-DD": count}
-    calendar_heatmap_data = {
-        item['date'].strftime('%Y-%m-%d'): item['count']
-        for item in heatmap_transactions_data
-    }
+    # Convert to a dictionary format: 
+    # {"YYYY-MM-DD": {"count": count, "income": total_income, "expense": total_expense}}
+    calendar_heatmap_data = {}
+    for item in heatmap_transactions_data:
+        date_str = item['date'].strftime('%Y-%m-%d')
+        calendar_heatmap_data[date_str] = {
+            'count': item['count'],
+            'income': float(item['total_income'] or 0),
+            'expense': float(item['total_expense'] or 0)
+        }
 
     context = {
         'calendar_heatmap_data_json': calendar_heatmap_data,

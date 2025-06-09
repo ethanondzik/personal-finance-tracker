@@ -8,13 +8,12 @@
   <style>
     .heatmap-container-wrapper {
         padding: 20px;
-        background-color: var(--bs-body-bg); /* Adapts to light/dark theme via CSS var */
+        background-color: var(--bs-body-bg);
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         margin-top: 1rem;
-        overflow-x: auto; /* Allow horizontal scrolling if content is too wide */
+        overflow-x: auto;
     }
-    /* Ensure card title color adapts to theme */
     body.dark-theme .card-title {
         color: #e1e1e1; 
     }
@@ -23,7 +22,6 @@
         border: 1px solid #444;
     }
 
-    /* D3 Calendar Styles */
     .calendar-heatmap {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     }
@@ -43,7 +41,6 @@
         fill: #767676;
     }
 
-    /* Dark theme adjustments for D3 calendar */
     body.dark-theme .calendar-heatmap .month-label,
     body.dark-theme .calendar-heatmap .wday-label {
         fill: #888;
@@ -66,79 +63,19 @@
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.2s;
+        z-index: 1070; /* Ensure tooltip is above other elements */
     }
     body.dark-theme .tooltip {
         background: #f0f0f0;
         color: #333;
     }
-
-  </style>
-
-<style>
-    .heatmap-container-wrapper {
-        padding: 20px;
-        background-color: var(--bs-body-bg); /* Adapts to light/dark theme via CSS var */
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        margin-top: 1rem;
-        overflow-x: auto; /* Allow horizontal scrolling if content is too wide */
-    }
-    /* Ensure card title color adapts to theme */
-    body.dark-theme .card-title {
-        color: #e1e1e1; 
-    }
-    body.dark-theme .heatmap-container-wrapper {
-        background-color: #232227; 
-        border: 1px solid #444;
-    }
-
-    /* D3 Calendar Styles */
-    .calendar-heatmap {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-    }
-    .calendar-heatmap .month-label {
-        font-size: 10px;
-        fill: #767676;
-    }
-    .calendar-heatmap .day-cell {
-        stroke: rgba(27, 31, 35, 0.06);
-        stroke-width: 1px;
-    }
-    .calendar-heatmap .day-cell:hover {
-        stroke: rgba(27, 31, 35, 0.3);
-    }
-    .calendar-heatmap .wday-label {
-        font-size: 9px;
-        fill: #767676;
-    }
-
-    /* Dark theme adjustments for D3 calendar */
-    body.dark-theme .calendar-heatmap .month-label,
-    body.dark-theme .calendar-heatmap .wday-label {
-        fill: #888;
-    }
-    body.dark-theme .calendar-heatmap .day-cell {
-        stroke: rgba(100, 100, 100, 0.2);
-    }
-     body.dark-theme .calendar-heatmap .day-cell:hover {
-        stroke: rgba(150, 150, 150, 0.5);
-    }
-    .tooltip {
-        position: absolute;
+    .heatmap-toggle {
+        margin-bottom: 15px;
         text-align: center;
-        padding: 4px 8px;
-        font: 12px sans-serif;
-        background: #333;
-        color: #fff;
-        border: 0px;
-        border-radius: 4px;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.2s;
     }
-    body.dark-theme .tooltip {
-        background: #f0f0f0;
-        color: #333;
+    .heatmap-toggle label {
+        margin-right: 10px;
+        margin-left: 5px;
     }
 
   </style>
@@ -153,11 +90,17 @@
                     <div class="col-12">
                         <div class="card card-rounded">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h2 class="card-title mb-0">Transaction Activity Heatmap (D3.js)</h2>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h2 class="card-title mb-0">Transaction Activity Heatmap</h2>
                                     <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
                                         <i class="mdi mdi-arrow-left me-2"></i>Back to Dashboard
                                     </a>
+                                </div>
+                                <div class="heatmap-toggle">
+                                    <input type="radio" id="modeCount" name="heatmapMode" value="count" checked>
+                                    <label for="modeCount">Transaction Count</label>
+                                    <input type="radio" id="modeNetActivity" name="heatmapMode" value="netActivity">
+                                    <label for="modeNetActivity">Net Activity (Income/Expense)</label>
                                 </div>
                                 <div class="heatmap-container-wrapper">
                                     <div id="d3-calendar-heatmap-container">
@@ -178,13 +121,13 @@
 
 {% block extra_js %}
   {{ block.super }}
-  <!-- D3.js -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
         const heatmapDataEl = document.getElementById('calendar-heatmap-data');
         const container = document.getElementById('d3-calendar-heatmap-container');
+        const modeRadios = document.querySelectorAll('input[name="heatmapMode"]');
 
         if (!heatmapDataEl || !container) {
             console.error('Required elements for D3 heatmap not found.');
@@ -192,45 +135,55 @@
             return;
         }
 
-        try {
-            const rawData = JSON.parse(heatmapDataEl.textContent || '{}'); 
-            
-            const cellSize = 15; 
-            const cellPadding = 2; 
-            const weekDayLabelWidth = 30; 
-            const monthLabelHeight = 20; 
-
-            // Determine the year to display (current year)
-            const currentYear = new Date().getFullYear();
-            
-            // Set startDate to January 1st of the current year
-            const startDate = new Date(currentYear, 0, 1); // Month is 0-indexed (0 for January)
-
-            // Set endDate to January 1st of the NEXT year to include all days of current year
-            const endDate = new Date(currentYear + 1, 0, 1);
-
-            // Calculate the number of weeks for the width calculation
-            // This ensures the SVG width accommodates all weeks that contain days of the target year.
-            const firstDayOfYearForWeekCalc = d3.timeSunday.floor(new Date(currentYear, 0, 1)); // Sunday of or before Jan 1
-            const lastDayOfYearForWeekCalc = d3.timeSunday.ceil(new Date(currentYear, 11, 31)); // Sunday of or after Dec 31
-            const numWeeks = d3.timeWeek.count(firstDayOfYearForWeekCalc, lastDayOfYearForWeekCalc);
-
-            const width = (cellSize + cellPadding) * numWeeks + weekDayLabelWidth; 
-            const height = (cellSize + cellPadding) * 7 + monthLabelHeight; 
-
-            // Generate all days from Jan 1 (current year) to Dec 31 (current year)
-            const dates = d3.timeDays(startDate, endDate); 
-            
-            const dataByDate = new Map();
-            for (const dateStr in rawData) {
-                if (rawData.hasOwnProperty(dateStr)) {
-                    dataByDate.set(dateStr, Number(rawData[dateStr]));
-                }
+        const rawData = JSON.parse(heatmapDataEl.textContent || '{}'); 
+        const dataByDate = new Map();
+        for (const dateStr in rawData) {
+            if (rawData.hasOwnProperty(dateStr)) {
+                dataByDate.set(dateStr, rawData[dateStr]);
             }
+        }
 
-            const colorScale = d3.scaleThreshold()
-                .domain([1, 3, 6, 10]) 
-                .range(['#EBEDF0', '#c6e48b', '#7bc96f', '#239a3b', '#196127']); 
+        const cellSize = 15; 
+        const cellPadding = 2; 
+        const weekDayLabelWidth = 30; 
+        const monthLabelHeight = 20; 
+        const currentYear = new Date().getFullYear();
+        const startDate = new Date(currentYear, 0, 1); 
+        const endDate = new Date(currentYear + 1, 0, 1);
+        const firstDayOfYearForWeekCalc = d3.timeSunday.floor(new Date(currentYear, 0, 1)); 
+        const lastDayOfYearForWeekCalc = d3.timeSunday.ceil(new Date(currentYear, 11, 31)); 
+        const numWeeks = d3.timeWeek.count(firstDayOfYearForWeekCalc, lastDayOfYearForWeekCalc);
+        const width = (cellSize + cellPadding) * numWeeks + weekDayLabelWidth; 
+        const height = (cellSize + cellPadding) * 7 + monthLabelHeight; 
+        const dates = d3.timeDays(startDate, endDate); 
+
+        // Define color variables for transaction count, from light grey to dark green
+        const colourLowCount = '#EBEDF0'; 
+        const colourMidLowCount = '#c6e48b';
+        const colourMidCount = '#7bc96f';
+        const colourMidHighCount = '#239a3b';
+        const colourHighCount = '#196127'; 
+
+        const countColorScale = d3.scaleThreshold()
+            .domain([1, 3, 6, 10]) 
+            .range([colourLowCount, colourMidLowCount, colourMidCount, colourMidHighCount, colourHighCount]); 
+
+        
+        // Define color variables for net activity
+        const colourNetIncome = "rgba(76, 175, 80, 0.8)";       // Green
+        const colourNetExpense = "rgba(244, 67, 54, 0.8)";      // Red
+        const colourNeutralOrMixed = "rgba(255, 193, 7, 0.7)";  // Amber/Yellow
+        const colourNoTransactions = "#EBEDF0";                 // Light Grey
+
+        const netActivityColorScale = d3.scaleOrdinal()
+            .domain(["netIncome", "netExpense", "neutralOrMixed", "noTransactions"])
+            .range([colourNetIncome, colourNetExpense, colourNeutralOrMixed, colourNoTransactions]); 
+
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip");
+
+        function drawHeatmap(mode) {
+            container.innerHTML = ''; // Clear previous heatmap
 
             const svg = d3.select(container)
                 .append("svg")
@@ -238,10 +191,6 @@
                 .attr("height", height)
                 .attr("class", "calendar-heatmap");
 
-            const tooltip = d3.select("body").append("div")
-                .attr("class", "tooltip");
-
-            // Day cells
             svg.append("g")
                 .attr("transform", `translate(${weekDayLabelWidth}, ${monthLabelHeight})`)
                 .selectAll(".day-cell")
@@ -250,20 +199,47 @@
                 .attr("class", "day-cell")
                 .attr("width", cellSize)
                 .attr("height", cellSize)
-                // Position cells relative to the actual startDate of the calendar display (Jan 1st)
                 .attr("x", d => d3.timeWeek.count(startDate, d) * (cellSize + cellPadding))
                 .attr("y", d => d.getDay() * (cellSize + cellPadding))
                 .attr("fill", d => {
                     const dateStr = d3.timeFormat("%Y-%m-%d")(d);
-                    const count = dataByDate.get(dateStr) || 0; // Use data if available for this date
-                    return colorScale(count);
+                    const dayData = dataByDate.get(dateStr);
+
+                    if (mode === 'count') {
+                        const count = dayData ? dayData.count : 0;
+                        return countColorScale(count);
+                    } else if (mode === 'netActivity') {
+                        if (!dayData || dayData.count === 0) {
+                            return netActivityColorScale("noTransactions");
+                        }
+                        const net = dayData.income - dayData.expense;
+                        if (net > 0) {
+                            return netActivityColorScale("netIncome");
+                        } else if (net < 0) {
+                            return netActivityColorScale("netExpense");
+                        } else { // net === 0 but there were transactions
+                            return netActivityColorScale("neutralOrMixed");
+                        }
+                    }
+                    return '#EBEDF0'; // Default fallback
                 })
                 .on("mouseover", function(event, d) {
                     d3.select(this).style("stroke", "black"); 
                     tooltip.transition().duration(100).style("opacity", .9);
                     const dateStr = d3.timeFormat("%Y-%m-%d")(d);
-                    const count = dataByDate.get(dateStr) || 0;
-                    tooltip.html(`${count} transaction(s)<br/>on ${d3.timeFormat("%b %d, %Y")(d)}`)
+                    const dayData = dataByDate.get(dateStr);
+                    
+                    let tooltipHtml = `No transactions<br/>on ${d3.timeFormat("%b %d, %Y")(d)}`;
+                    if (dayData) {
+                        tooltipHtml = `
+                            ${dayData.count} transaction(s)<br/>
+                            Income: ${dayData.income.toFixed(2)}<br/>
+                            Expense: ${dayData.expense.toFixed(2)}<br/>
+                            Net: ${(dayData.income - dayData.expense).toFixed(2)}<br/>
+                            on ${d3.timeFormat("%b %d, %Y")(d)}
+                        `;
+                    }
+                    tooltip.html(tooltipHtml)
                         .style("left", (event.pageX + 5) + "px")
                         .style("top", (event.pageY - 28) + "px");
                 })
@@ -272,20 +248,16 @@
                     tooltip.transition().duration(300).style("opacity", 0);
                 });
                 
-            // Month labels
             svg.append("g")
                 .attr("transform", `translate(${weekDayLabelWidth}, 0)`) 
                 .selectAll(".month-label")
-                // Generate months from Jan 1 of current year to Dec 1 of current year
-                .data(d3.timeMonths(new Date(currentYear, 0, 1), new Date(currentYear, 11, 2))) // Jan to Dec
+                .data(d3.timeMonths(new Date(currentYear, 0, 1), new Date(currentYear, 11, 2))) 
                 .enter().append("text")
                 .attr("class", "month-label")
-                // Position month label based on the first week of that month relative to startDate (Jan 1st)
                 .attr("x", d => d3.timeWeek.count(startDate, d3.timeWeek.floor(d)) * (cellSize + cellPadding) + (cellSize + cellPadding)/2)
                 .attr("y", monthLabelHeight - 5)
                 .text(d3.timeFormat("%b"));
 
-            // Day of the week labels (M, W, F)
             const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             svg.append("g")
                 .attr("transform", `translate(0, ${monthLabelHeight})`)
@@ -297,14 +269,22 @@
                 .attr("y", d => d * (cellSize + cellPadding) + cellSize / 1.5) 
                 .attr("text-anchor", "end")
                 .text(d => dayLabels[d].substring(0,1)); 
+        }
 
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                drawHeatmap(this.value);
+            });
+        });
+
+        // Initial draw
+        try {
+            drawHeatmap(document.querySelector('input[name="heatmapMode"]:checked').value);
             if (Object.keys(rawData).length === 0 && dates.length > 0) {
-                 //blank heatmap
-                 // container.insertAdjacentHTML('beforeend', '<p class="text-muted small text-center mt-2">Displaying ' + currentYear + '. Data reflects last 365 days.</p>');
+                 // console.log('No raw data, but dates generated. Displaying blank heatmap for ' + currentYear);
             } else if (dates.length === 0) {
                 container.innerHTML = '<p class="text-danger">Error generating dates for the calendar.</p>';
             }
-
         } catch (e) {
             console.error('Error rendering D3 heatmap:', e);
             if (container) container.innerHTML = '<p class="text-danger">An error occurred while rendering the D3 heatmap.</p>';
@@ -312,5 +292,4 @@
     });
   </script>
 {% endblock %}
-```
 
