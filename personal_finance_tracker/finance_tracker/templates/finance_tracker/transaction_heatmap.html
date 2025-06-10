@@ -4,16 +4,40 @@
 {% block title %}Transaction Heatmap (D3) - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
-  {{ block.super }}
+
   <style>
+    
     .heatmap-container-wrapper {
-        padding: 20px;
-        background-color: var(--bs-body-bg);
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        margin-top: 1rem;
-        overflow-x: auto;
+      padding: 10px;
+      background-color: var(--bs-body-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      margin-top: 1rem;
+
+      overflow-x: auto;
+      overflow-y: hidden; 
+
+      width: 100%;
+      padding-bottom: 15px; /* Room for scrollbar */
     }
+
+    #d3-calendar-heatmap-container {
+        display: inline-block; 
+        vertical-align: top; 
+        
+    }
+
+    .calendar-heatmap-svg {
+        display: block; 
+    }
+
+    .year-group .year-title {
+        font-size: 16px;
+        font-weight: bold;
+        fill: #555;
+        text-anchor: middle;
+    }
+
     body.dark-theme .card-title {
         color: #e1e1e1; 
     }
@@ -22,9 +46,6 @@
         border: 1px solid #444;
     }
 
-    .calendar-heatmap {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-    }
     .calendar-heatmap .month-label {
         font-size: 10px;
         fill: #767676;
@@ -100,7 +121,11 @@
                                     <input type="radio" id="modeCount" name="heatmapMode" value="count" checked>
                                     <label for="modeCount">Transaction Count</label>
                                     <input type="radio" id="modeNetActivity" name="heatmapMode" value="netActivity">
-                                    <label for="modeNetActivity">Net Activity (Income/Expense)</label>
+                                    <label for="modeNetActivity">Net Activity</label>
+                                    <input type="radio" id="modeTotalSpending" name="heatmapMode" value="totalSpending">
+                                    <label for="modeTotalSpending">Total Spending</label>
+                                    <input type="radio" id="modeTotalIncome" name="heatmapMode" value="totalIncome">
+                                    <label for="modeTotalIncome">Total Income</label>
                                 </div>
                                 <div class="heatmap-container-wrapper">
                                     <div id="d3-calendar-heatmap-container">
@@ -126,149 +151,192 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
         const heatmapDataEl = document.getElementById('calendar-heatmap-data');
-        const container = document.getElementById('d3-calendar-heatmap-container');
+        const d3Container = document.getElementById('d3-calendar-heatmap-container');
         const modeRadios = document.querySelectorAll('input[name="heatmapMode"]');
 
-        if (!heatmapDataEl || !container) {
+        if (!heatmapDataEl || !d3Container) {
             console.error('Required elements for D3 heatmap not found.');
-            if (container) container.innerHTML = '<p class="text-danger">Error: Could not initialize heatmap.</p>';
+            if (d3Container) d3Container.innerHTML = '<p class="text-danger">Error: Could not initialize heatmap.</p>';
             return;
         }
 
         const rawData = JSON.parse(heatmapDataEl.textContent || '{}'); 
+        if (Object.keys(rawData).length === 0) {
+            d3Container.innerHTML = '<p class="no-heatmap-data">No transaction data available to display.</p>';
+            return;
+        }
+
         const dataByDate = new Map();
+        let minDate = null;
+        let maxDate = null;
+
         for (const dateStr in rawData) {
             if (rawData.hasOwnProperty(dateStr)) {
                 dataByDate.set(dateStr, rawData[dateStr]);
+                const currentDate = new Date(dateStr + "T00:00:00"); // Ensure local time
+                if (!minDate || currentDate < minDate) minDate = currentDate;
+                if (!maxDate || currentDate > maxDate) maxDate = currentDate;
             }
         }
+        
+        if (!minDate || !maxDate) {
+             d3Container.innerHTML = '<p class="no-heatmap-data">Could not determine date range from data.</p>';
+            return;
+        }
 
-        const cellSize = 15; 
+        const minYear = minDate.getFullYear();
+        const maxYear = maxDate.getFullYear();
+
+        const cellSize = 14; 
         const cellPadding = 2; 
-        const weekDayLabelWidth = 30; 
-        const monthLabelHeight = 20; 
-        const currentYear = new Date().getFullYear();
-        const startDate = new Date(currentYear, 0, 1); 
-        const endDate = new Date(currentYear + 1, 0, 1);
-        const firstDayOfYearForWeekCalc = d3.timeSunday.floor(new Date(currentYear, 0, 1)); 
-        const lastDayOfYearForWeekCalc = d3.timeSunday.ceil(new Date(currentYear, 11, 31)); 
-        const numWeeks = d3.timeWeek.count(firstDayOfYearForWeekCalc, lastDayOfYearForWeekCalc);
-        const width = (cellSize + cellPadding) * numWeeks + weekDayLabelWidth; 
-        const height = (cellSize + cellPadding) * 7 + monthLabelHeight; 
-        const dates = d3.timeDays(startDate, endDate); 
+        const weekDayLabelWidth = 25; 
+        const monthLabelHeight = 20;
+        const yearTitleHeight = 30; 
+        const yearPadding = 40; // Horizontal padding between year blocks
 
-        // Define color variables for transaction count, from light grey to dark green
-        const colourLowCount = '#EBEDF0'; 
-        const colourMidLowCount = '#c6e48b';
-        const colourMidCount = '#7bc96f';
-        const colourMidHighCount = '#239a3b';
-        const colourHighCount = '#196127'; 
+        const singleYearWidth = (cellSize + cellPadding) * 53 + weekDayLabelWidth;
+        const totalSVGHeight = (cellSize + cellPadding) * 7 + monthLabelHeight + yearTitleHeight;
+        
+        let totalSVGWidth = 0;
+        for (let y = minYear; y <= maxYear; y++) {
+            totalSVGWidth += singleYearWidth + (y < maxYear ? yearPadding : 0);
+        }
+
 
         const countColorScale = d3.scaleThreshold()
-            .domain([1, 3, 6, 10]) 
-            .range([colourLowCount, colourMidLowCount, colourMidCount, colourMidHighCount, colourHighCount]); 
+            .domain([1, 3, 6, 10, 15]) 
+            .range(['#EBEDF0', '#c6e48b', '#7bc96f', '#239a3b', '#196127', '#0e4429']);
 
-        
-        // Define color variables for net activity
-        const colourNetIncome = "rgba(76, 175, 80, 0.8)";       // Green
-        const colourNetExpense = "rgba(244, 67, 54, 0.8)";      // Red
-        const colourNeutralOrMixed = "rgba(255, 193, 7, 0.7)";  // Amber/Yellow
-        const colourNoTransactions = "#EBEDF0";                 // Light Grey
+        const colorNetIncome = "#28a745"; // Green
+        const colorNetExpense = "#dc3545"; // Red
+        const colorNeutralOrMixed = "#ffc107"; // Amber/Yellow
+        const colorNoTransactions = "#EBEDF0";
 
         const netActivityColorScale = d3.scaleOrdinal()
             .domain(["netIncome", "netExpense", "neutralOrMixed", "noTransactions"])
-            .range([colourNetIncome, colourNetExpense, colourNeutralOrMixed, colourNoTransactions]); 
+            .range([colorNetIncome, colorNetExpense, colorNeutralOrMixed, colorNoTransactions]);
+        
+        const amountColorScale = d3.scaleThreshold()
+            .domain([1, 50, 100, 250, 500]) //income thresholds
+            .range(['#EBEDF0', '#D1E5F0', '#92C5DE', '#4393C3', '#2166AC', '#053061']); 
+
 
         const tooltip = d3.select("body").append("div")
             .attr("class", "tooltip");
 
-        function drawHeatmap(mode) {
-            container.innerHTML = ''; // Clear previous heatmap
+        function drawHeatmap(selectedMode) {
+            d3Container.innerHTML = ''; // Clear previous heatmap
 
-            const svg = d3.select(container)
+            const mainSvg = d3.select(d3Container)
                 .append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .attr("class", "calendar-heatmap");
+                .attr("width", totalSVGWidth)
+                .attr("height", totalSVGHeight)
+                .attr("class", "calendar-heatmap-svg");
 
-            svg.append("g")
-                .attr("transform", `translate(${weekDayLabelWidth}, ${monthLabelHeight})`)
-                .selectAll(".day-cell")
-                .data(dates)
-                .enter().append("rect")
-                .attr("class", "day-cell")
-                .attr("width", cellSize)
-                .attr("height", cellSize)
-                .attr("x", d => d3.timeWeek.count(startDate, d) * (cellSize + cellPadding))
-                .attr("y", d => d.getDay() * (cellSize + cellPadding))
-                .attr("fill", d => {
-                    const dateStr = d3.timeFormat("%Y-%m-%d")(d);
-                    const dayData = dataByDate.get(dateStr);
+            let currentXOffset = 0;
 
-                    if (mode === 'count') {
-                        const count = dayData ? dayData.count : 0;
-                        return countColorScale(count);
-                    } else if (mode === 'netActivity') {
-                        if (!dayData || dayData.count === 0) {
-                            return netActivityColorScale("noTransactions");
-                        }
-                        const net = dayData.income - dayData.expense;
-                        if (net > 0) {
-                            return netActivityColorScale("netIncome");
-                        } else if (net < 0) {
-                            return netActivityColorScale("netExpense");
-                        } else { // net === 0 but there were transactions
+            for (let year = minYear; year <= maxYear; year++) {
+                const yearGroup = mainSvg.append("g")
+                    .attr("class", "year-group")
+                    .attr("transform", `translate(${currentXOffset}, 0)`);
+
+                yearGroup.append("text")
+                    .attr("class", "year-title")
+                    .attr("x", (singleYearWidth - weekDayLabelWidth) / 2 + weekDayLabelWidth)
+                    .attr("y", yearTitleHeight - 10)
+                    .text(year);
+
+                const yearStartDate = new Date(year, 0, 1);
+                const yearEndDate = new Date(year + 1, 0, 1);
+                const datesForYear = d3.timeDays(yearStartDate, yearEndDate);
+
+                const yearDataGroup = yearGroup.append("g")
+                    .attr("transform", `translate(0, ${yearTitleHeight})`);
+
+                // Day cells for the current year
+                yearDataGroup.append("g")
+                    .attr("transform", `translate(${weekDayLabelWidth}, ${monthLabelHeight})`)
+                    .selectAll(`.day-cell-year-${year}`)
+                    .data(datesForYear)
+                    .enter().append("rect")
+                    .attr("class", `day-cell day-cell-year-${year}`)
+                    .attr("width", cellSize)
+                    .attr("height", cellSize)
+                    .attr("x", d => d3.timeWeek.count(yearStartDate, d) * (cellSize + cellPadding))
+                    .attr("y", d => d.getDay() * (cellSize + cellPadding))
+                    .attr("fill", d => {
+                        const dateStr = d3.timeFormat("%Y-%m-%d")(d);
+                        const dayData = dataByDate.get(dateStr);
+
+                        if (selectedMode === 'count') {
+                            const count = dayData ? dayData.count : 0;
+                            return countColorScale(count);
+                        } else if (selectedMode === 'netActivity') {
+                            if (!dayData || dayData.count === 0) return netActivityColorScale("noTransactions");
+                            const net = dayData.income - dayData.expense;
+                            if (net > 0.01) return netActivityColorScale("netIncome"); // Use a small threshold for float precision
+                            if (net < -0.01) return netActivityColorScale("netExpense");
                             return netActivityColorScale("neutralOrMixed");
+                        } else if (selectedMode === 'totalSpending') {
+                            const expense = dayData ? dayData.expense : 0;
+                            return amountColorScale(expense);
+                        } else if (selectedMode === 'totalIncome') {
+                            const income = dayData ? dayData.income : 0;
+                            return amountColorScale(income);
                         }
-                    }
-                    return '#EBEDF0'; // Default fallback
-                })
-                .on("mouseover", function(event, d) {
-                    d3.select(this).style("stroke", "black"); 
-                    tooltip.transition().duration(100).style("opacity", .9);
-                    const dateStr = d3.timeFormat("%Y-%m-%d")(d);
-                    const dayData = dataByDate.get(dateStr);
-                    
-                    let tooltipHtml = `No transactions<br/>on ${d3.timeFormat("%b %d, %Y")(d)}`;
-                    if (dayData) {
-                        tooltipHtml = `
-                            ${dayData.count} transaction(s)<br/>
-                            Income: ${dayData.income.toFixed(2)}<br/>
-                            Expense: ${dayData.expense.toFixed(2)}<br/>
-                            Net: ${(dayData.income - dayData.expense).toFixed(2)}<br/>
-                            on ${d3.timeFormat("%b %d, %Y")(d)}
-                        `;
-                    }
-                    tooltip.html(tooltipHtml)
-                        .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 28) + "px");
-                })
-                .on("mouseout", function(d) {
-                    d3.select(this).style("stroke", null); 
-                    tooltip.transition().duration(300).style("opacity", 0);
-                });
-                
-            svg.append("g")
-                .attr("transform", `translate(${weekDayLabelWidth}, 0)`) 
-                .selectAll(".month-label")
-                .data(d3.timeMonths(new Date(currentYear, 0, 1), new Date(currentYear, 11, 2))) 
-                .enter().append("text")
-                .attr("class", "month-label")
-                .attr("x", d => d3.timeWeek.count(startDate, d3.timeWeek.floor(d)) * (cellSize + cellPadding) + (cellSize + cellPadding)/2)
-                .attr("y", monthLabelHeight - 5)
-                .text(d3.timeFormat("%b"));
+                        return colorNoTransactions; 
+                    })
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).style("stroke", "black");
+                        tooltip.transition().duration(100).style("opacity", .9);
+                        const dateStr = d3.timeFormat("%Y-%m-%d")(d);
+                        const dayData = dataByDate.get(dateStr);
+                        let tooltipHtml = `No transactions<br/>on ${d3.timeFormat("%b %d, %Y")(d)}`;
+                        if (dayData) {
+                            tooltipHtml = `
+                                ${dayData.count} transaction(s)<br/>
+                                Income: ${dayData.income.toFixed(2)}<br/>
+                                Expense: ${dayData.expense.toFixed(2)}<br/>
+                                Net: ${(dayData.income - dayData.expense).toFixed(2)}<br/>
+                                on ${d3.timeFormat("%b %d, %Y")(d)}
+                            `;
+                        }
+                        tooltip.html(tooltipHtml)
+                            .style("left", (event.pageX + 5) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function() {
+                        d3.select(this).style("stroke", null);
+                        tooltip.transition().duration(300).style("opacity", 0);
+                    });
 
-            const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            svg.append("g")
-                .attr("transform", `translate(0, ${monthLabelHeight})`)
-                .selectAll(".wday-label")
-                .data([1, 3, 5]) 
-                .enter().append("text")
-                .attr("class", "wday-label")
-                .attr("x", weekDayLabelWidth - 5)
-                .attr("y", d => d * (cellSize + cellPadding) + cellSize / 1.5) 
-                .attr("text-anchor", "end")
-                .text(d => dayLabels[d].substring(0,1)); 
+                // Month labels for the current year
+                yearDataGroup.append("g")
+                    .attr("transform", `translate(${weekDayLabelWidth}, 0)`)
+                    .selectAll(`.month-label-year-${year}`)
+                    .data(d3.timeMonths(new Date(year, 0, 1), new Date(year, 11, 2)))
+                    .enter().append("text")
+                    .attr("class", `month-label month-label-year-${year}`)
+                    .attr("x", d => d3.timeWeek.count(yearStartDate, d3.timeWeek.floor(d)) * (cellSize + cellPadding) + (cellSize + cellPadding) / 2)
+                    .attr("y", monthLabelHeight - 5)
+                    .text(d3.timeFormat("%b"));
+
+                // Day of the week labels (M, W, F) - only need to draw once if consistent, but per year is fine
+                const dayLabels = ["S", "M", "T", "W", "T", "F", "S"]; // Show all for clarity
+                 yearDataGroup.append("g")
+                    .attr("transform", `translate(0, ${monthLabelHeight})`)
+                    .selectAll(`.wday-label-year-${year}`)
+                    .data(d3.range(7)) // 0 (Sun) to 6 (Sat)
+                    .enter().append("text")
+                    .attr("class", `wday-label wday-label-year-${year}`)
+                    .attr("x", weekDayLabelWidth - 10) // Adjusted for better centering
+                    .attr("y", d => d * (cellSize + cellPadding) + cellSize / 1.5)
+                    .attr("text-anchor", "middle")
+                    .text(d => (d % 2 !== 0) ? dayLabels[d] : ""); // Show M, W, F (or adjust as preferred)
+
+
+                currentXOffset += singleYearWidth + yearPadding;
+            }
         }
 
         modeRadios.forEach(radio => {
@@ -277,17 +345,11 @@
             });
         });
 
-        // Initial draw
         try {
             drawHeatmap(document.querySelector('input[name="heatmapMode"]:checked').value);
-            if (Object.keys(rawData).length === 0 && dates.length > 0) {
-                 // console.log('No raw data, but dates generated. Displaying blank heatmap for ' + currentYear);
-            } else if (dates.length === 0) {
-                container.innerHTML = '<p class="text-danger">Error generating dates for the calendar.</p>';
-            }
         } catch (e) {
             console.error('Error rendering D3 heatmap:', e);
-            if (container) container.innerHTML = '<p class="text-danger">An error occurred while rendering the D3 heatmap.</p>';
+            if (d3Container) d3Container.innerHTML = '<p class="text-danger">An error occurred while rendering the D3 heatmap.</p>';
         }
     });
   </script>

@@ -1120,12 +1120,12 @@ def transaction_heatmap_view(request):
     Renders a page with a calendar heatmap of transaction activity.
     """
     user = request.user
-    one_year_ago = timezone.now().date() - timedelta(days=365)
+    #one_year_ago = timezone.now().date() - timedelta(days=365)
 
     # Aggregate transaction counts per day for the last year
     heatmap_transactions_data = Transaction.objects.filter(
-        user=user,
-        date__gte=one_year_ago
+        user=user
+        #date__gte=one_year_ago
     ).values('date').annotate(
         count=Count('id'),
         total_income=Sum('amount', filter=Q(transaction_type='income')),
