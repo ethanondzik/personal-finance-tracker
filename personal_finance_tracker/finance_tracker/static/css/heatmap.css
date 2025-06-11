@@ -1,0 +1,251 @@
+/* For the heatmap template that is implemented with the D3 js library */
+
+.heatmap-page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.heatmap-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin: 0 auto;
+    max-width: 95%;
+}
+
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.back-btn {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+    font-weight: 500;
+}
+
+.back-btn:hover {
+    transform: translateY(-2px);
+    color: white;
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.control-panel {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.mode-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.mode-option {
+    position: relative;
+}
+
+.mode-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.mode-label {
+    display: block;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.mode-option input[type="radio"]:checked + .mode-label {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.mode-label:hover {
+    border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+.chart-container {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.heatmap-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    border-radius: 10px;
+    background: #fafafa;
+    padding: 1rem;
+    max-height: 80vh;
+}
+
+.heatmap-svg {
+    display: block;
+    margin: 0 auto;
+}
+
+.year-label {
+    font-size: 18px;
+    font-weight: 600;
+    fill: #495057;
+}
+
+.month-text {
+    font-size: 11px;
+    font-weight: 500;
+    fill: #6c757d;
+}
+
+.day-text {
+    font-size: 10px;
+    font-weight: 500;
+    fill: #6c757d;
+}
+
+.day-square {
+    stroke: #ffffff;
+    stroke-width: 2px;
+    rx: 2;
+    ry: 2;
+    transition: all 0.2s ease;
+}
+
+.day-square:hover {
+    stroke: #495057;
+    stroke-width: 3px;
+}
+
+.info-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    max-width: 250px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.legend-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1.5rem;
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid #dee2e6;
+}
+
+body.dark-theme .heatmap-page {
+    background: linear-gradient(135deg, #2c3e50 0%, #3a5998 100%);
+}
+
+body.dark-theme .heatmap-card {
+    background: rgba(45, 45, 45, 0.95);
+    color: #e1e1e1;
+}
+
+body.dark-theme .control-panel,
+body.dark-theme .chart-container {
+    background: #2a2a2e;
+    color: #e1e1e1;
+}
+
+body.dark-theme .mode-label {
+    background: #3a3a3e;
+    border-color: #555;
+    color: #e1e1e1;
+}
+
+body.dark-theme .heatmap-wrapper {
+    background: #232327;
+}
+
+body.dark-theme .year-label,
+body.dark-theme .month-text,
+body.dark-theme .day-text {
+    fill: #e1e1e1;
+}
+
+body.dark-theme .day-square {
+    stroke: #444;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
