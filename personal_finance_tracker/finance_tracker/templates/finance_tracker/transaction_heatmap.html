@@ -1,357 +1,526 @@
 {% extends "authenticated_base.html" %}
 {% load static %}
 
-{% block title %}Transaction Heatmap (D3) - {{ block.super }}{% endblock %}
-
 {% block extra_css %}
-
-  <style>
-    
-    .heatmap-container-wrapper {
-      padding: 10px;
-      background-color: var(--bs-body-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      margin-top: 1rem;
-
-      overflow-x: auto;
-      overflow-y: hidden; 
-
-      width: 100%;
-      padding-bottom: 15px; /* Room for scrollbar */
+<style>
+    .heatmap-page {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
     }
 
-    #d3-calendar-heatmap-container {
-        display: inline-block; 
-        vertical-align: top; 
-        
+    .heatmap-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        padding: 2rem;
+        margin: 0 auto;
+        max-width: 95%;
     }
 
-    .calendar-heatmap-svg {
-        display: block; 
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
     }
 
-    .year-group .year-title {
-        font-size: 16px;
-        font-weight: bold;
-        fill: #555;
-        text-anchor: middle;
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
     }
 
-    body.dark-theme .card-title {
-        color: #e1e1e1; 
-    }
-    body.dark-theme .heatmap-container-wrapper {
-        background-color: #232227; 
-        border: 1px solid #444;
-    }
-
-    .calendar-heatmap .month-label {
-        font-size: 10px;
-        fill: #767676;
-    }
-    .calendar-heatmap .day-cell {
-        stroke: rgba(27, 31, 35, 0.06);
-        stroke-width: 1px;
-    }
-    .calendar-heatmap .day-cell:hover {
-        stroke: rgba(27, 31, 35, 0.3);
-    }
-    .calendar-heatmap .wday-label {
-        font-size: 9px;
-        fill: #767676;
+    .back-btn {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        text-decoration: none;
+        transition: transform 0.3s ease;
+        font-weight: 500;
     }
 
-    body.dark-theme .calendar-heatmap .month-label,
-    body.dark-theme .calendar-heatmap .wday-label {
-        fill: #888;
+    .back-btn:hover {
+        transform: translateY(-2px);
+        color: white;
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
     }
-    body.dark-theme .calendar-heatmap .day-cell {
-        stroke: rgba(100, 100, 100, 0.2);
+
+    .control-panel {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
     }
-     body.dark-theme .calendar-heatmap .day-cell:hover {
-        stroke: rgba(150, 150, 150, 0.5);
+
+    .mode-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
     }
-    .tooltip {
+
+    .mode-option {
+        position: relative;
+    }
+
+    .mode-option input[type="radio"] {
         position: absolute;
+        opacity: 0;
+    }
+
+    .mode-label {
+        display: block;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1rem;
         text-align: center;
-        padding: 4px 8px;
-        font: 12px sans-serif;
-        background: #333;
-        color: #fff;
-        border: 0px;
-        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .mode-option input[type="radio"]:checked + .mode-label {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .mode-label:hover {
+        border-color: #667eea;
+        transform: translateY(-1px);
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .heatmap-wrapper {
+        overflow-x: auto;
+        overflow-y: auto;
+        border-radius: 10px;
+        background: #fafafa;
+        padding: 1rem;
+        max-height: 80vh;
+    }
+
+    .heatmap-svg {
+        display: block;
+        margin: 0 auto;
+    }
+
+    .year-label {
+        font-size: 18px;
+        font-weight: 600;
+        fill: #495057;
+    }
+
+    .month-text {
+        font-size: 11px;
+        font-weight: 500;
+        fill: #6c757d;
+    }
+
+    .day-text {
+        font-size: 10px;
+        font-weight: 500;
+        fill: #6c757d;
+    }
+
+    .day-square {
+        stroke: #ffffff;
+        stroke-width: 2px;
+        rx: 2;
+        ry: 2;
+        transition: all 0.2s ease;
+    }
+
+    .day-square:hover {
+        stroke: #495057;
+        stroke-width: 3px;
+        transform: scale(1.1);
+    }
+
+    .info-tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 13px;
         pointer-events: none;
         opacity: 0;
-        transition: opacity 0.2s;
-        z-index: 1070; /* Ensure tooltip is above other elements */
-    }
-    body.dark-theme .tooltip {
-        background: #f0f0f0;
-        color: #333;
-    }
-    .heatmap-toggle {
-        margin-bottom: 15px;
-        text-align: center;
-    }
-    .heatmap-toggle label {
-        margin-right: 10px;
-        margin-left: 5px;
+        transition: opacity 0.3s ease;
+        z-index: 1000;
+        max-width: 250px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     }
 
-  </style>
+    .legend-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 1.5rem;
+        gap: 1rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px solid #dee2e6;
+    }
+
+    body.dark-theme .heatmap-page {
+        background: linear-gradient(135deg, #2c3e50 0%, #3a5998 100%);
+    }
+
+    body.dark-theme .heatmap-card {
+        background: rgba(45, 45, 45, 0.95);
+        color: #e1e1e1;
+    }
+
+    body.dark-theme .control-panel,
+    body.dark-theme .chart-container {
+        background: #2a2a2e;
+        color: #e1e1e1;
+    }
+
+    body.dark-theme .mode-label {
+        background: #3a3a3e;
+        border-color: #555;
+        color: #e1e1e1;
+    }
+
+    body.dark-theme .heatmap-wrapper {
+        background: #232327;
+    }
+
+    body.dark-theme .year-label,
+    body.dark-theme .month-text,
+    body.dark-theme .day-text {
+        fill: #e1e1e1;
+    }
+
+    body.dark-theme .day-square {
+        stroke: #444;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container-scroller">
-    <div class="container-fluid page-body-wrapper">
-        <div class="main-panel" style="width: 100%;">
-            <div class="content-wrapper">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card card-rounded">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h2 class="card-title mb-0">Transaction Activity Heatmap</h2>
-                                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-                                        <i class="mdi mdi-arrow-left me-2"></i>Back to Dashboard
-                                    </a>
-                                </div>
-                                <div class="heatmap-toggle">
-                                    <input type="radio" id="modeCount" name="heatmapMode" value="count" checked>
-                                    <label for="modeCount">Transaction Count</label>
-                                    <input type="radio" id="modeNetActivity" name="heatmapMode" value="netActivity">
-                                    <label for="modeNetActivity">Net Activity</label>
-                                    <input type="radio" id="modeTotalSpending" name="heatmapMode" value="totalSpending">
-                                    <label for="modeTotalSpending">Total Spending</label>
-                                    <input type="radio" id="modeTotalIncome" name="heatmapMode" value="totalIncome">
-                                    <label for="modeTotalIncome">Total Income</label>
-                                </div>
-                                <div class="heatmap-container-wrapper">
-                                    <div id="d3-calendar-heatmap-container">
-                                        <!-- D3 Heatmap rendered here -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+<div class="heatmap-page">
+    <div class="container-fluid">
+        <div class="heatmap-card">
+            <div class="header-section">
+                <h1 class="page-title">Transaction Activity Map</h1>
+                <a href="{% url 'dashboard' %}" class="back-btn">
+                    <i class="mdi mdi-arrow-left me-2"></i>Dashboard
+                </a>
+            </div>
+
+            <div class="stats-grid" id="statsGrid">
+            </div>
+
+            <div class="control-panel">
+                <div class="mode-selector">
+                    <div class="mode-option">
+                        <input type="radio" id="modeActivity" name="viewMode" value="activity" checked>
+                        <label for="modeActivity" class="mode-label">
+                            <i class="mdi mdi-chart-line me-2"></i>Activity Level
+                        </label>
                     </div>
+                    <div class="mode-option">
+                        <input type="radio" id="modeBalance" name="viewMode" value="balance">
+                        <label for="modeBalance" class="mode-label">
+                            <i class="mdi mdi-scale-balance me-2"></i>Net Balance
+                        </label>
+                    </div>
+                    <div class="mode-option">
+                        <input type="radio" id="modeSpending" name="viewMode" value="spending">
+                        <label for="modeSpending" class="mode-label">
+                            <i class="mdi mdi-trending-down me-2"></i>Spending
+                        </label>
+                    </div>
+                    <div class="mode-option">
+                        <input type="radio" id="modeIncome" name="viewMode" value="income">
+                        <label for="modeIncome" class="mode-label">
+                            <i class="mdi mdi-trending-up me-2"></i>Income
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="heatmap-wrapper">
+                    <div id="heatmap-display"></div>
+                </div>
+                <div class="legend-container" id="legendContainer">
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-{{ calendar_heatmap_data_json|json_script:"calendar-heatmap-data" }}
+{{ calendar_heatmap_data_json|json_script:"heatmap-data" }}
 {% endblock %}
 
 {% block extra_js %}
-  {{ block.super }}
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const heatmapDataEl = document.getElementById('calendar-heatmap-data');
-        const d3Container = document.getElementById('d3-calendar-heatmap-container');
-        const modeRadios = document.querySelectorAll('input[name="heatmapMode"]');
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dataElement = document.getElementById('heatmap-data');
+    const container = document.getElementById('heatmap-display');
+    const statsGrid = document.getElementById('statsGrid');
+    const legendContainer = document.getElementById('legendContainer');
+    const modeInputs = document.querySelectorAll('input[name="viewMode"]');
 
-        if (!heatmapDataEl || !d3Container) {
-            console.error('Required elements for D3 heatmap not found.');
-            if (d3Container) d3Container.innerHTML = '<p class="text-danger">Error: Could not initialize heatmap.</p>';
-            return;
-        }
+    if (!dataElement || !container) {
+        container.innerHTML = '<p class="text-center text-danger">Unable to load heatmap data</p>';
+        return;
+    }
 
-        const rawData = JSON.parse(heatmapDataEl.textContent || '{}'); 
-        if (Object.keys(rawData).length === 0) {
-            d3Container.innerHTML = '<p class="no-heatmap-data">No transaction data available to display.</p>';
-            return;
-        }
+    const rawData = JSON.parse(dataElement.textContent || '{}');
+    if (Object.keys(rawData).length === 0) {
+        container.innerHTML = '<p class="text-center text-muted">No transaction data available</p>';
+        return;
+    }
 
-        const dataByDate = new Map();
-        let minDate = null;
-        let maxDate = null;
+    const processedData = new Map();
+    let totalTransactions = 0, totalIncome = 0, totalExpenses = 0;
+    let dateRange = { min: null, max: null };
 
-        for (const dateStr in rawData) {
-            if (rawData.hasOwnProperty(dateStr)) {
-                dataByDate.set(dateStr, rawData[dateStr]);
-                const currentDate = new Date(dateStr + "T00:00:00"); // Ensure local time
-                if (!minDate || currentDate < minDate) minDate = currentDate;
-                if (!maxDate || currentDate > maxDate) maxDate = currentDate;
-            }
-        }
+    Object.keys(rawData).forEach(dateStr => {
+        const data = rawData[dateStr];
+        processedData.set(dateStr, data);
+        totalTransactions += data.count;
+        totalIncome += data.income;
+        totalExpenses += data.expense;
         
-        if (!minDate || !maxDate) {
-             d3Container.innerHTML = '<p class="no-heatmap-data">Could not determine date range from data.</p>';
-            return;
-        }
-
-        const minYear = minDate.getFullYear();
-        const maxYear = maxDate.getFullYear();
-
-        const cellSize = 14; 
-        const cellPadding = 2; 
-        const weekDayLabelWidth = 25; 
-        const monthLabelHeight = 20;
-        const yearTitleHeight = 30; 
-        const yearPadding = 40; // Horizontal padding between year blocks
-
-        const singleYearWidth = (cellSize + cellPadding) * 53 + weekDayLabelWidth;
-        const totalSVGHeight = (cellSize + cellPadding) * 7 + monthLabelHeight + yearTitleHeight;
-        
-        let totalSVGWidth = 0;
-        for (let y = minYear; y <= maxYear; y++) {
-            totalSVGWidth += singleYearWidth + (y < maxYear ? yearPadding : 0);
-        }
-
-
-        const countColorScale = d3.scaleThreshold()
-            .domain([1, 3, 6, 10, 15]) 
-            .range(['#EBEDF0', '#c6e48b', '#7bc96f', '#239a3b', '#196127', '#0e4429']);
-
-        const colorNetIncome = "#28a745"; // Green
-        const colorNetExpense = "#dc3545"; // Red
-        const colorNeutralOrMixed = "#ffc107"; // Amber/Yellow
-        const colorNoTransactions = "#EBEDF0";
-
-        const netActivityColorScale = d3.scaleOrdinal()
-            .domain(["netIncome", "netExpense", "neutralOrMixed", "noTransactions"])
-            .range([colorNetIncome, colorNetExpense, colorNeutralOrMixed, colorNoTransactions]);
-        
-        const amountColorScale = d3.scaleThreshold()
-            .domain([1, 50, 100, 250, 500]) //income thresholds
-            .range(['#EBEDF0', '#D1E5F0', '#92C5DE', '#4393C3', '#2166AC', '#053061']); 
-
-
-        const tooltip = d3.select("body").append("div")
-            .attr("class", "tooltip");
-
-        function drawHeatmap(selectedMode) {
-            d3Container.innerHTML = ''; // Clear previous heatmap
-
-            const mainSvg = d3.select(d3Container)
-                .append("svg")
-                .attr("width", totalSVGWidth)
-                .attr("height", totalSVGHeight)
-                .attr("class", "calendar-heatmap-svg");
-
-            let currentXOffset = 0;
-
-            for (let year = minYear; year <= maxYear; year++) {
-                const yearGroup = mainSvg.append("g")
-                    .attr("class", "year-group")
-                    .attr("transform", `translate(${currentXOffset}, 0)`);
-
-                yearGroup.append("text")
-                    .attr("class", "year-title")
-                    .attr("x", (singleYearWidth - weekDayLabelWidth) / 2 + weekDayLabelWidth)
-                    .attr("y", yearTitleHeight - 10)
-                    .text(year);
-
-                const yearStartDate = new Date(year, 0, 1);
-                const yearEndDate = new Date(year + 1, 0, 1);
-                const datesForYear = d3.timeDays(yearStartDate, yearEndDate);
-
-                const yearDataGroup = yearGroup.append("g")
-                    .attr("transform", `translate(0, ${yearTitleHeight})`);
-
-                // Day cells for the current year
-                yearDataGroup.append("g")
-                    .attr("transform", `translate(${weekDayLabelWidth}, ${monthLabelHeight})`)
-                    .selectAll(`.day-cell-year-${year}`)
-                    .data(datesForYear)
-                    .enter().append("rect")
-                    .attr("class", `day-cell day-cell-year-${year}`)
-                    .attr("width", cellSize)
-                    .attr("height", cellSize)
-                    .attr("x", d => d3.timeWeek.count(yearStartDate, d) * (cellSize + cellPadding))
-                    .attr("y", d => d.getDay() * (cellSize + cellPadding))
-                    .attr("fill", d => {
-                        const dateStr = d3.timeFormat("%Y-%m-%d")(d);
-                        const dayData = dataByDate.get(dateStr);
-
-                        if (selectedMode === 'count') {
-                            const count = dayData ? dayData.count : 0;
-                            return countColorScale(count);
-                        } else if (selectedMode === 'netActivity') {
-                            if (!dayData || dayData.count === 0) return netActivityColorScale("noTransactions");
-                            const net = dayData.income - dayData.expense;
-                            if (net > 0.01) return netActivityColorScale("netIncome"); // Use a small threshold for float precision
-                            if (net < -0.01) return netActivityColorScale("netExpense");
-                            return netActivityColorScale("neutralOrMixed");
-                        } else if (selectedMode === 'totalSpending') {
-                            const expense = dayData ? dayData.expense : 0;
-                            return amountColorScale(expense);
-                        } else if (selectedMode === 'totalIncome') {
-                            const income = dayData ? dayData.income : 0;
-                            return amountColorScale(income);
-                        }
-                        return colorNoTransactions; 
-                    })
-                    .on("mouseover", function(event, d) {
-                        d3.select(this).style("stroke", "black");
-                        tooltip.transition().duration(100).style("opacity", .9);
-                        const dateStr = d3.timeFormat("%Y-%m-%d")(d);
-                        const dayData = dataByDate.get(dateStr);
-                        let tooltipHtml = `No transactions<br/>on ${d3.timeFormat("%b %d, %Y")(d)}`;
-                        if (dayData) {
-                            tooltipHtml = `
-                                ${dayData.count} transaction(s)<br/>
-                                Income: ${dayData.income.toFixed(2)}<br/>
-                                Expense: ${dayData.expense.toFixed(2)}<br/>
-                                Net: ${(dayData.income - dayData.expense).toFixed(2)}<br/>
-                                on ${d3.timeFormat("%b %d, %Y")(d)}
-                            `;
-                        }
-                        tooltip.html(tooltipHtml)
-                            .style("left", (event.pageX + 5) + "px")
-                            .style("top", (event.pageY - 28) + "px");
-                    })
-                    .on("mouseout", function() {
-                        d3.select(this).style("stroke", null);
-                        tooltip.transition().duration(300).style("opacity", 0);
-                    });
-
-                // Month labels for the current year
-                yearDataGroup.append("g")
-                    .attr("transform", `translate(${weekDayLabelWidth}, 0)`)
-                    .selectAll(`.month-label-year-${year}`)
-                    .data(d3.timeMonths(new Date(year, 0, 1), new Date(year, 11, 2)))
-                    .enter().append("text")
-                    .attr("class", `month-label month-label-year-${year}`)
-                    .attr("x", d => d3.timeWeek.count(yearStartDate, d3.timeWeek.floor(d)) * (cellSize + cellPadding) + (cellSize + cellPadding) / 2)
-                    .attr("y", monthLabelHeight - 5)
-                    .text(d3.timeFormat("%b"));
-
-                // Day of the week labels (M, W, F) - only need to draw once if consistent, but per year is fine
-                const dayLabels = ["S", "M", "T", "W", "T", "F", "S"]; // Show all for clarity
-                 yearDataGroup.append("g")
-                    .attr("transform", `translate(0, ${monthLabelHeight})`)
-                    .selectAll(`.wday-label-year-${year}`)
-                    .data(d3.range(7)) // 0 (Sun) to 6 (Sat)
-                    .enter().append("text")
-                    .attr("class", `wday-label wday-label-year-${year}`)
-                    .attr("x", weekDayLabelWidth - 10) // Adjusted for better centering
-                    .attr("y", d => d * (cellSize + cellPadding) + cellSize / 1.5)
-                    .attr("text-anchor", "middle")
-                    .text(d => (d % 2 !== 0) ? dayLabels[d] : ""); // Show M, W, F (or adjust as preferred)
-
-
-                currentXOffset += singleYearWidth + yearPadding;
-            }
-        }
-
-        modeRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                drawHeatmap(this.value);
-            });
-        });
-
-        try {
-            drawHeatmap(document.querySelector('input[name="heatmapMode"]:checked').value);
-        } catch (e) {
-            console.error('Error rendering D3 heatmap:', e);
-            if (d3Container) d3Container.innerHTML = '<p class="text-danger">An error occurred while rendering the D3 heatmap.</p>';
-        }
+        const date = new Date(dateStr);
+        if (!dateRange.min || date < dateRange.min) dateRange.min = date;
+        if (!dateRange.max || date > dateRange.max) dateRange.max = date;
     });
-  </script>
-{% endblock %}
 
+    function updateStats() {
+        const netBalance = totalIncome - totalExpenses;
+        statsGrid.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-value">${totalTransactions}</div>
+                <div class="stat-label">Total Transactions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">$${totalIncome.toFixed(0)}</div>
+                <div class="stat-label">Total Income</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">$${totalExpenses.toFixed(0)}</div>
+                <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value ${netBalance >= 0 ? 'text-success' : 'text-danger'}">$${netBalance.toFixed(0)}</div>
+                <div class="stat-label">Net Balance</div>
+            </div>
+        `;
+    }
+
+    function getColorScale(mode) {
+        switch(mode) {
+            case 'activity':
+                return d3.scaleSequential(d3.interpolateBlues).domain([0, 15]);
+            case 'balance':
+                return d3.scaleSequential(d3.interpolateRdYlGn).domain([-500, 500]);
+            case 'spending':
+                return d3.scaleSequential(d3.interpolateReds).domain([0, 500]);
+            case 'income':
+                return d3.scaleSequential(d3.interpolateGreens).domain([0, 500]);
+            default:
+                return d3.scaleSequential(d3.interpolateBlues).domain([0, 10]);
+        }
+    }
+
+    function getValue(data, mode) {
+        if (!data) return 0;
+        switch(mode) {
+            case 'activity': return data.count;
+            case 'balance': return data.income - data.expense;
+            case 'spending': return data.expense;
+            case 'income': return data.income;
+            default: return data.count;
+        }
+    }
+
+    function createLegend(mode) {
+        const colors = getColorScale(mode);
+        const values = mode === 'balance' ? [-500, -250, 0, 250, 500] : [0, 25, 50, 75, 100];
+        
+        legendContainer.innerHTML = values.map(val => `
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: ${colors(val)}"></div>
+                <span>${mode === 'balance' && val > 0 ? '+' : ''}${val}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderHeatmap(mode = 'activity') {
+        container.innerHTML = '';
+        
+        const yearStart = dateRange.min.getFullYear();
+        const yearEnd = dateRange.max.getFullYear();
+        const cellSize = 12;
+        const cellGap = 3;
+        const yearGap = 80;
+        const yearLabelHeight = 40;
+        const monthLabelHeight = 25;
+        const dayLabelWidth = 30;
+        
+        const yearWidth = (cellSize + cellGap) * 53 + dayLabelWidth;
+        const yearHeight = (cellSize + cellGap) * 7 + yearLabelHeight + monthLabelHeight;
+        const totalWidth = yearWidth;
+        const totalHeight = (yearEnd - yearStart + 1) * (yearHeight + yearGap);
+
+        const svg = d3.select(container)
+            .append('svg')
+            .attr('class', 'heatmap-svg')
+            .attr('width', totalWidth)
+            .attr('height', totalHeight);
+
+        const tooltip = d3.select('body').append('div')
+            .attr('class', 'info-tooltip');
+
+        const colorScale = getColorScale(mode);
+
+        let yOffset = 0;
+        for (let year = yearStart; year <= yearEnd; year++) {
+            const yearGroup = svg.append('g')
+                .attr('transform', `translate(0, ${yOffset})`);
+
+            yearGroup.append('text')
+                .attr('class', 'year-label')
+                .attr('x', 20)
+                .attr('y', 25)
+                .attr('text-anchor', 'start')
+                .text(year);
+
+            const dataGroup = yearGroup.append('g')
+                .attr('transform', `translate(0, ${yearLabelHeight})`);
+
+            const yearData = d3.timeDays(new Date(year, 0, 1), new Date(year + 1, 0, 1));
+
+            dataGroup.selectAll('.day-square')
+                .data(yearData)
+                .enter().append('rect')
+                .attr('class', 'day-square')
+                .attr('width', cellSize)
+                .attr('height', cellSize)
+                .attr('x', d => d3.timeWeek.count(d3.timeYear(d), d) * (cellSize + cellGap) + dayLabelWidth)
+                .attr('y', d => d.getDay() * (cellSize + cellGap) + monthLabelHeight)
+                .attr('fill', d => {
+                    const dateStr = d3.timeFormat('%Y-%m-%d')(d);
+                    const data = processedData.get(dateStr);
+                    return colorScale(getValue(data, mode));
+                })
+                .on('mouseover', function(event, d) {
+                    const dateStr = d3.timeFormat('%Y-%m-%d')(d);
+                    const data = processedData.get(dateStr);
+                    
+                    tooltip.transition().duration(200).style('opacity', 1);
+                    tooltip.html(`
+                        <strong>${d3.timeFormat('%B %d, %Y')(d)}</strong><br/>
+                        Transactions: ${data ? data.count : 0}<br/>
+                        Income: $${data ? data.income.toFixed(2) : '0.00'}<br/>
+                        Expenses: $${data ? data.expense.toFixed(2) : '0.00'}<br/>
+                        Net: $${data ? (data.income - data.expense).toFixed(2) : '0.00'}
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    tooltip.transition().duration(300).style('opacity', 0);
+                });
+
+            const months = d3.timeMonths(new Date(year, 0, 1), new Date(year + 1, 0, 1));
+            dataGroup.selectAll('.month-text')
+                .data(months)
+                .enter().append('text')
+                .attr('class', 'month-text')
+                .attr('x', d => d3.timeWeek.count(d3.timeYear(d), d) * (cellSize + cellGap) + dayLabelWidth + cellSize/2)
+                .attr('y', 15)
+                .attr('text-anchor', 'middle')
+                .text(d3.timeFormat('%b'));
+
+            const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+            dataGroup.selectAll('.day-text')
+                .data(dayLabels)
+                .enter().append('text')
+                .attr('class', 'day-text')
+                .attr('x', 20)
+                .attr('y', (d, i) => i * (cellSize + cellGap) + monthLabelHeight + cellSize/2 + 3)
+                .attr('text-anchor', 'middle')
+                .text(d => d);
+
+            yOffset += yearHeight + yearGap;
+        }
+
+        createLegend(mode);
+    }
+
+    modeInputs.forEach(input => {
+        input.addEventListener('change', () => renderHeatmap(input.value));
+    });
+
+    updateStats();
+    renderHeatmap();
+});
+</script>
+{% endblock %}
