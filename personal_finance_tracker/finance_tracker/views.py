@@ -1147,4 +1147,61 @@ def transaction_heatmap_view(request):
         'calendar_heatmap_data_json': calendar_heatmap_data,
     }
     
-    return render(request, 'finance_tracker/transaction_heatmap.html', context)
+    return render(request, 'finance_tracker/visualizations/heatmap.html', context)
+
+@login_required
+def visualization_hub(request):
+    """
+    Main hub for all financial data visualizations.
+    Provides links to different visualization types.
+    """
+    return render(request, 'finance_tracker/visualization_hub.html')
+
+@login_required
+def sankey_visualization(request):
+    """
+    Money flow visualization using Sankey diagrams.
+    """
+    user = request.user
+    
+    # Get user's accounts, categories, and recent transactions
+    accounts = Account.objects.filter(user=user)
+    categories = Category.objects.filter(user=user)
+    transactions = Transaction.objects.filter(user=user).select_related('account', 'category')
+    
+    # Aggregate data for Sankey
+    income_categories = categories.filter(type='income')
+    expense_categories = categories.filter(type='expense')
+    
+    # Calculate flows
+    income_flows = []
+    for category in income_categories:
+        total = transactions.filter(category=category, transaction_type='income').aggregate(
+            total=Sum('amount'))['total'] or 0
+        if total > 0:
+            income_flows.append({
+                'category': category.name,
+                'amount': float(total),
+                'type': 'income'
+            })
+    
+    expense_flows = []
+    for category in expense_categories:
+        total = transactions.filter(category=category, transaction_type='expense').aggregate(
+            total=Sum('amount'))['total'] or 0
+        if total > 0:
+            expense_flows.append({
+                'category': category.name,
+                'amount': float(total),
+                'type': 'expense'
+            })
+    
+    context = {
+        'income_flows': income_flows,
+        'expense_flows': expense_flows,
+        'accounts': list(accounts.values('id', 'account_number', 'account_type', 'balance')),
+        'total_income': sum(flow['amount'] for flow in income_flows),
+        'total_expenses': sum(flow['amount'] for flow in expense_flows),
+    }
+    
+    return render(request, 'finance_tracker/visualizations/sankey.html', context)

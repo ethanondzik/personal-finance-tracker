@@ -130,13 +130,13 @@
                 <i class="mdi mdi-table-large menu-icon"></i>
                 <span class="menu-title">Spreadsheet Entry</span>
               </a>
-            </li> 
+            </li>
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'transaction_heatmap' %}">
-                  <i class="mdi mdi-calendar-check menu-icon"></i>
-                  <span class="menu-title">Transaction Heatmap</span>
-              </a>
-            </li>       
+                <a class="nav-link" href="{% url 'visualization_hub' %}">
+                    <i class="mdi mdi-chart-multiple menu-icon"></i>
+                    <span class="menu-title">Data Visualizations</span>
+                </a>
+            </li>        
           </ul>
         </nav>
 
@@ -904,10 +904,8 @@
               setInterval(function() {
                   // console.log("Periodic check for generic/reminder notifications...");
                   checkGenericCustomNotifications();
-                  // Optionally, re-check other dynamic built-in notifications if needed
-                  // checkAccountBalances(); // If balances can change without page reload and need immediate notification
-                  // checkBudgetLimits(); // If spending can change without page reload
-              }, 30000); // Check every 30 seconds (adjust as needed, 60000 for 1 minute is common)
+                  
+              }, 30000); // Check every 30 seconds 
 
           } else if (Notification.permission === 'denied') {
               console.log('Notification permission denied. Timed notifications will not be checked.');

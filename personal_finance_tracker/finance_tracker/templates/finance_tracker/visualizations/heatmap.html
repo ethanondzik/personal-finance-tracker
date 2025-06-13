@@ -3,7 +3,7 @@
 
 {% block extra_css %}
 <!-- Custom CSS rules for this template -->
-<link rel="stylesheet" href="{% static 'css/heatmap.css' %}">
+<link rel="stylesheet" href="{% static 'css/visualizations/heatmap.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -12,9 +12,14 @@
         <div class="heatmap-card">
             <div class="header-section">
                 <h1 class="page-title">Transaction Activity Map</h1>
-                <a href="{% url 'dashboard' %}" class="back-btn">
-                    <i class="mdi mdi-arrow-left me-2"></i>Dashboard
-                </a>
+                <div class="nav-buttons">
+                    <a href="{% url 'visualization_hub' %}" class="nav-btn">
+                        <i class="mdi mdi-arrow-left me-2"></i>All Visualizations
+                    </a>
+                    <a href="{% url 'dashboard' %}" class="nav-btn">
+                        <i class="mdi mdi-view-dashboard me-2"></i>Dashboard
+                    </a>
+                </div>
             </div>
 
             <div class="stats-grid" id="statsGrid">
@@ -63,6 +68,6 @@
 {{ calendar_heatmap_data_json|json_script:"heatmap-data" }} <!-- Data passed from the view for the custom JS to use -->
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script src="{% static 'js/heatmap.js' %}"></script> <!--Custom JS that uses the D3 js library to draw the heatmaps-->
+<script src="{% static 'js/visualizations/heatmap.js' %}"></script> <!--Custom JS that uses the D3 js library to draw the heatmaps-->
 
 {% endblock %}
