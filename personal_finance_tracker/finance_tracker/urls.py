@@ -30,6 +30,8 @@ urlpatterns = [
     path('visualizations/heatmap/', views.transaction_heatmap_view, name='transaction_heatmap'),
     path('visualizations/', views.visualization_hub, name='visualization_hub'),
     path('visualizations/sankey/', views.sankey_visualization, name='sankey_visualization'),
+    path('visualizations/treemap/', views.treemap_visualization, name='treemap_visualization'),
+
 
 
 ]

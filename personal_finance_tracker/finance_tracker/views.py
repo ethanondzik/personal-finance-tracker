@@ -1205,3 +1205,42 @@ def sankey_visualization(request):
     }
     
     return render(request, 'finance_tracker/visualizations/sankey.html', context)
+
+
+
+@login_required
+def treemap_visualization(request):
+    """
+    Prepares data for and renders the treemap visualization of expenses by category.
+    """
+    user = request.user
+    expense_categories = Category.objects.filter(user=user, type='expense')
+    
+    treemap_data_children = []
+    total_expenses_for_treemap = Decimal(0)
+
+    for category in expense_categories:
+        category_total = Transaction.objects.filter(
+            user=user, 
+            category=category, 
+            transaction_type='expense'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal(0)
+        
+        if category_total > 0:
+            treemap_data_children.append({
+                "name": category.name,
+                "value": float(category_total), 
+            })
+            total_expenses_for_treemap += category_total
+
+    
+    treemap_data = {
+        "name": "Expenses",
+        "children": treemap_data_children
+    }
+
+    context = {
+        'treemap_data_json': treemap_data,
+        'total_expenses_for_treemap': float(total_expenses_for_treemap),
+    }
+    return render(request, 'finance_tracker/visualizations/treemap.html', context)

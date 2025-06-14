@@ -1,0 +1,46 @@
+{% extends "authenticated_base.html" %}
+{% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/visualizations/treemap.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="treemap-page">
+    <div class="container-fluid">
+        <div class="treemap-card">
+            <div class="header-section">
+                <h1 class="page-title">Expense Distribution Treemap</h1>
+                <div class="nav-buttons">
+                    <a href="{% url 'visualization_hub' %}" class="nav-btn">
+                        <i class="mdi mdi-arrow-left me-2"></i>All Visualizations
+                    </a>
+                    <a href="{% url 'dashboard' %}" class="nav-btn">
+                        <i class="mdi mdi-view-dashboard me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <div class="visualization-container">
+                <div id="treemap-chart">
+
+                </div>
+            </div>
+            
+            {% if total_expenses_for_treemap > 0 %}
+            <div class="text-center mt-3">
+                <p class="text-muted small">Total expenses visualized: <strong>${{ total_expenses_for_treemap|floatformat:2 }}</strong></p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{{ treemap_data_json|json_script:"treemap-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="{% static 'js/visualizations/treemap.js' %}"></script>
+{% endblock %} 
