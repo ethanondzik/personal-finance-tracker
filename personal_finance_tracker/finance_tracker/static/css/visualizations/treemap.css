@@ -142,3 +142,146 @@ body.dark-theme .treemap-label {
 body.dark-theme .no-data-message {
     color: #909090;
 }
+
+stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid transparent;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card.income {
+    border-left-color: #4CAF50;
+}
+
+.stat-card.expense {
+    border-left-color: #F44336;
+}
+
+.stat-card.net.positive {
+    border-left-color: #4CAF50;
+}
+
+.stat-card.net.negative {
+    border-left-color: #F44336;
+}
+
+.stat-card h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.stat-card.income h3 {
+    color: #4CAF50;
+}
+
+.stat-card.expense h3 {
+    color: #F44336;
+}
+
+.stat-card.net.positive h3 {
+    color: #4CAF50;
+}
+
+.stat-card.net.negative h3 {
+    color: #F44336;
+}
+
+.stat-card p {
+    color: #666;
+    margin: 0;
+    font-weight: 500;
+}
+
+.control-panel {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.view-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.view-option {
+    position: relative;
+}
+
+.view-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.view-label {
+    display: block;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.view-option input[type="radio"]:checked + .view-label {
+    background: linear-gradient(45deg, #6a11cb, #2575fc);
+    color: white;
+    border-color: #6a11cb;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(106, 17, 203, 0.3);
+}
+
+.view-label:hover {
+    border-color: #6a11cb;
+    transform: translateY(-1px);
+}
+
+/* Dark theme adjustments */
+body.dark-theme .stat-card {
+    background: #2a2a2e;
+    color: #e1e1e1;
+}
+
+body.dark-theme .stat-card h3 {
+    color: #e1e1e1;
+}
+
+body.dark-theme .stat-card.income h3 {
+    color: #4CAF50;
+}
+
+body.dark-theme .stat-card.expense h3 {
+    color: #F44336;
+}
+
+body.dark-theme .control-panel {
+    background: #2a2a2e;
+    color: #e1e1e1;
+}
+
+body.dark-theme .view-label {
+    background: #3a3a3e;
+    border-color: #555;
+    color: #e1e1e1;
+}
+

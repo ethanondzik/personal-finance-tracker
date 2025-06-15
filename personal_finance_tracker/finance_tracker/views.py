@@ -1214,11 +1214,32 @@ def treemap_visualization(request):
     Prepares data for and renders the treemap visualization of expenses by category.
     """
     user = request.user
+
+    # Get all categories (both income and expense)
+    income_categories = Category.objects.filter(user=user, type='income')
     expense_categories = Category.objects.filter(user=user, type='expense')
     
-    treemap_data_children = []
-    total_expenses_for_treemap = Decimal(0)
-
+    # Prepare income data
+    income_data = []
+    total_income = Decimal(0)
+    for category in income_categories:
+        category_total = Transaction.objects.filter(
+            user=user, 
+            category=category, 
+            transaction_type='income'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal(0)
+        
+        if category_total > 0:
+            income_data.append({
+                "name": category.name,
+                "value": float(category_total),
+                "type": "income"
+            })
+            total_income += category_total
+    
+    # Prepare expense data
+    expense_data = []
+    total_expenses = Decimal(0)
     for category in expense_categories:
         category_total = Transaction.objects.filter(
             user=user, 
@@ -1227,20 +1248,36 @@ def treemap_visualization(request):
         ).aggregate(total=Sum('amount'))['total'] or Decimal(0)
         
         if category_total > 0:
-            treemap_data_children.append({
+            expense_data.append({
                 "name": category.name,
-                "value": float(category_total), 
+                "value": float(category_total),
+                "type": "expense"
             })
-            total_expenses_for_treemap += category_total
-
+            total_expenses += category_total
     
+    # Combined data structure
     treemap_data = {
-        "name": "Expenses",
-        "children": treemap_data_children
+        "name": "Transactions",
+        "children": [
+            {
+                "name": "Income",
+                "children": income_data,
+                "type": "income"
+            },
+            {
+                "name": "Expenses", 
+                "children": expense_data,
+                "type": "expense"
+            }
+        ]
     }
-
+    
     context = {
         'treemap_data_json': treemap_data,
-        'total_expenses_for_treemap': float(total_expenses_for_treemap),
+        'income_data_json': {"name": "Income", "children": income_data},
+        'expense_data_json': {"name": "Expenses", "children": expense_data},
+        'total_income': float(total_income),
+        'total_expenses': float(total_expenses),
+        'net_balance': float(total_income - total_expenses),
     }
     return render(request, 'finance_tracker/visualizations/treemap.html', context)
