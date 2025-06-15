@@ -17,6 +17,7 @@ from django.core.paginator import Paginator
 from datetime import datetime
 from django.db.models import Count
 import json
+import calendar
 
 
 
@@ -1281,3 +1282,163 @@ def treemap_visualization(request):
         'net_balance': float(total_income - total_expenses),
     }
     return render(request, 'finance_tracker/visualizations/treemap.html', context)
+
+
+
+@login_required
+def bar_chart_visualization(request):
+    """
+    Monthly income vs expenses bar chart visualization.
+    """
+    user = request.user
+    
+    # Get daily transaction data for the last 30 days
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=30)
+    
+    daily_data = []
+    current_date = start_date
+    
+    while current_date <= end_date:
+        daily_income = Transaction.objects.filter(
+            user=user,
+            transaction_type='income',
+            date=current_date
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        daily_expenses = Transaction.objects.filter(
+            user=user,
+            transaction_type='expense',
+            date=current_date
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        daily_data.append({
+            'date': current_date.strftime('%Y-%m-%d'),
+            'formatted_date': current_date.strftime('%b %d'),
+            'income': float(daily_income),
+            'expenses': float(daily_expenses),
+            'net': float(daily_income - daily_expenses)
+        })
+        
+        current_date += timedelta(days=1)
+    
+    # Calculate totals
+    total_period_income = sum(data['income'] for data in daily_data)
+    total_period_expenses = sum(data['expenses'] for data in daily_data)
+    net_period_balance = total_period_income - total_period_expenses
+    
+    context = {
+        'daily_data': daily_data,
+        'date_range': f"{start_date.strftime('%B %d')} - {end_date.strftime('%B %d, %Y')}",
+        'total_period_income': total_period_income,
+        'total_period_expenses': total_period_expenses,
+        'net_period_balance': net_period_balance, 
+    }
+    
+    return render(request, 'finance_tracker/visualizations/line_chart.html', context)
+
+@login_required
+def line_chart_visualization(request):
+    """
+    Transaction trend line chart visualization.
+    """
+    user = request.user
+    
+    # Get daily transaction data for the last 30 days
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=30)
+    
+    daily_data = []
+    current_date = start_date
+    total_period_income = 0
+    total_period_expenses = 0
+    
+    while current_date <= end_date:
+        daily_income = Transaction.objects.filter(
+            user=user,
+            transaction_type='income',
+            date=current_date
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        daily_expenses = Transaction.objects.filter(
+            user=user,
+            transaction_type='expense',
+            date=current_date
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        daily_data.append({
+            'date': current_date.strftime('%Y-%m-%d'),
+            'formatted_date': current_date.strftime('%b %d'),
+            'income': float(daily_income),
+            'expenses': float(daily_expenses),
+            'net': float(daily_income - daily_expenses)
+        })
+        
+        total_period_income += float(daily_income)
+        total_period_expenses += float(daily_expenses)
+        
+        current_date += timedelta(days=1)
+    
+    # Calculate net period balance
+    net_period_balance = total_period_income - total_period_expenses
+    
+    context = {
+        'daily_data': daily_data,
+        'date_range': f"{start_date.strftime('%B %d')} - {end_date.strftime('%B %d, %Y')}",
+        'total_period_income': total_period_income,
+        'total_period_expenses': total_period_expenses,
+        'net_period_balance': net_period_balance,  
+    }
+    
+    return render(request, 'finance_tracker/visualizations/line_chart.html', context)
+
+
+
+@login_required
+def pie_chart_visualization(request):
+    """
+    Income vs expenses pie chart with category breakdowns.
+    """
+    user = request.user
+    
+    # Get total income and expenses
+    total_income = Transaction.objects.filter(
+        user=user,
+        transaction_type='income'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    total_expenses = Transaction.objects.filter(
+        user=user,
+        transaction_type='expense'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Get category breakdowns
+    income_categories = Transaction.objects.filter(
+        user=user,
+        transaction_type='income'
+    ).values('category__name').annotate(
+        total=Sum('amount')
+    ).order_by('-total')
+    
+    expense_categories = Transaction.objects.filter(
+        user=user,
+        transaction_type='expense'
+    ).values('category__name').annotate(
+        total=Sum('amount')
+    ).order_by('-total')
+    
+    context = {
+        'total_income': float(total_income),
+        'total_expenses': float(total_expenses),
+        'net_balance': float(total_income - total_expenses),
+        'income_categories': [
+            {'name': item['category__name'] or 'Uncategorized', 'amount': float(item['total'])}
+            for item in income_categories
+        ],
+        'expense_categories': [
+            {'name': item['category__name'] or 'Uncategorized', 'amount': float(item['total'])}
+            for item in expense_categories
+        ],
+    }
+    
+    return render(request, 'finance_tracker/visualizations/pie_chart.html', context)

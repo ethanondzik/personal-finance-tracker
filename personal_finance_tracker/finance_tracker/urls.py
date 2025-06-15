@@ -31,6 +31,9 @@ urlpatterns = [
     path('visualizations/', views.visualization_hub, name='visualization_hub'),
     path('visualizations/sankey/', views.sankey_visualization, name='sankey_visualization'),
     path('visualizations/treemap/', views.treemap_visualization, name='treemap_visualization'),
+    path('visualizations/bar-chart/', views.bar_chart_visualization, name='bar_chart_visualization'),
+    path('visualizations/line-chart/', views.line_chart_visualization, name='line_chart_visualization'),
+    path('visualizations/pie-chart/', views.pie_chart_visualization, name='pie_chart_visualization'),
 
 
 
