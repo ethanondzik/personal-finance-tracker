@@ -1,0 +1,171 @@
+{% extends "authenticated_base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/visualizations/network.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="network-page">
+    <div class="container-fluid">
+        <div class="network-card">
+            <div class="header-section">
+                <h1 class="page-title">Financial Network Analysis</h1>
+                <div class="nav-buttons">
+                    <a href="{% url 'visualization_hub' %}" class="nav-btn">
+                        <i class="mdi mdi-arrow-left me-2"></i>All Visualizations
+                    </a>
+                    <a href="{% url 'dashboard' %}" class="nav-btn">
+                        <i class="mdi mdi-view-dashboard me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Network Statistics -->
+            <div class="stats-summary">
+                <div class="stat-card nodes">
+                    <h3>{{ network_stats.total_nodes }}</h3>
+                    <p>Total Nodes</p>
+                    <small>{{ network_stats.total_accounts }} accounts, {{ network_stats.total_categories }} categories</small>
+                </div>
+                <div class="stat-card connections">
+                    <h3>{{ network_stats.total_connections }}</h3>
+                    <p>Connections</p>
+                    <small>{{ network_stats.avg_transactions_per_connection }} avg transactions</small>
+                </div>
+                <div class="stat-card income">
+                    <h3>${{ total_income|floatformat:2 }}</h3>
+                    <p>Total Income</p>
+                    <small>Flowing through network</small>
+                </div>
+                <div class="stat-card expense">
+                    <h3>${{ total_expenses|floatformat:2 }}</h3>
+                    <p>Total Expenses</p>
+                    <small>Distributed across categories</small>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <h4 class="control-title">Visualization Controls</h4>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>Layout Algorithm:</label>
+                        <select id="layoutSelect" class="form-control">
+                            <option value="force">Force-Directed</option>
+                            <option value="circular">Circular</option>
+                            <option value="hierarchical">Hierarchical</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Node Size:</label>
+                        <select id="nodeSizeSelect" class="form-control">
+                            <option value="volume">Transaction Volume</option>
+                            <option value="balance">Account Balance</option>
+                            <option value="uniform">Uniform Size</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Link Width:</label>
+                        <select id="linkWidthSelect" class="form-control">
+                            <option value="amount">Transaction Amount</option>
+                            <option value="count">Transaction Count</option>
+                            <option value="uniform">Uniform Width</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Color Scheme:</label>
+                        <select id="colorSchemeSelect" class="form-control">
+                            <option value="type">By Node Type</option>
+                            <option value="activity">By Activity Level</option>
+                            <option value="balance">By Balance/Volume</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-actions">
+                    <button id="resetZoom" class="btn btn-outline-secondary">
+                        <i class="mdi mdi-magnify-minus me-1"></i>Reset Zoom
+                    </button>
+                    <button id="centerNetwork" class="btn btn-outline-secondary">
+                        <i class="mdi mdi-crosshairs me-1"></i>Center Network
+                    </button>
+                    <button id="exportNetwork" class="btn btn-outline-primary">
+                        <i class="mdi mdi-download me-1"></i>Export PNG
+                    </button>
+                </div>
+            </div>
+
+            <!-- Network Visualization -->
+            <div class="visualization-container">
+                <div id="network-chart">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Building financial network...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="network-legend">
+                <h5>Legend</h5>
+                <div class="legend-grid">
+                    <div class="legend-item">
+                        <div class="legend-node account"></div>
+                        <span>Bank Accounts</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-node category income"></div>
+                        <span>Income Categories</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-node category expense"></div>
+                        <span>Expense Categories</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-link"></div>
+                        <span>Transaction Flow</span>
+                    </div>
+                </div>
+                <div class="legend-info">
+                    <p><strong>Node Size:</strong> Represents transaction volume or account balance</p>
+                    <p><strong>Link Thickness:</strong> Represents transaction amount or frequency</p>
+                    <p><strong>Hover:</strong> View detailed connection information</p>
+                    <p><strong>Drag:</strong> Rearrange nodes manually</p>
+                </div>
+            </div>
+
+            <!-- Network Insights -->
+            <div class="insights-panel">
+                <h5>Network Insights</h5>
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <h6>Most Active Account</h6>
+                        <p>{{ network_stats.most_active_account }}</p>
+                    </div>
+                    <div class="insight-card">
+                        <h6>Most Active Category</h6>
+                        <p>{{ network_stats.most_active_category }}</p>
+                    </div>
+                    <div class="insight-card">
+                        <h6>Network Density</h6>
+                        <p id="networkDensity">Calculating...</p>
+                    </div>
+                    <div class="insight-card">
+                        <h6>Avg. Connections per Node</h6>
+                        <p id="avgConnections">Calculating...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Scripts -->
+{{ network_data|json_script:"network-data" }}
+{{ network_stats|json_script:"network-stats" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="{% static 'js/visualizations/network.js' %}"></script>
+{% endblock %}

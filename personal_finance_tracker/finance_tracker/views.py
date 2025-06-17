@@ -1489,3 +1489,132 @@ def pie_chart_visualization(request):
     }
     
     return render(request, 'finance_tracker/visualizations/pie_chart.html', context)
+
+
+
+@login_required
+def network_visualization(request):
+    """
+    Network diagram visualization showing relationships between accounts, categories, and transactions.
+    """
+    user = request.user
+    
+    # Get user's data
+    accounts = Account.objects.filter(user=user)
+    categories = Category.objects.filter(user=user)
+    transactions = Transaction.objects.filter(user=user).select_related('account', 'category')
+    
+    # Build nodes (accounts and categories)
+    nodes = []
+    links = []
+    node_id_map = {}
+    
+    # Add account nodes
+    for account in accounts:
+        node_id = f"account_{account.id}"
+        nodes.append({
+            'id': node_id,
+            'name': account.account_number,
+            'type': 'account',
+            'balance': float(account.balance),
+            'account_type': account.account_type,
+            'size': min(max(float(account.balance) / 100, 10), 50)  # Size based on balance
+        })
+        node_id_map[f"account_{account.id}"] = len(nodes) - 1
+    
+    # Add category nodes
+    for category in categories:
+        node_id = f"category_{category.id}"
+        # Calculate total transaction volume for this category
+        total_volume = transactions.filter(category=category).aggregate(
+            total=Sum('amount'))['total'] or 0
+        
+        nodes.append({
+            'id': node_id,
+            'name': category.name,
+            'type': 'category',
+            'category_type': category.type if hasattr(category, 'type') else 'general',
+            'total_volume': float(total_volume),
+            'size': min(max(float(total_volume) / 50, 8), 40)  # Size based on volume
+        })
+        node_id_map[f"category_{category.id}"] = len(nodes) - 1
+    
+    # Build links (transaction relationships)
+    account_category_flows = {}
+    
+    for transaction in transactions:
+        account_id = f"account_{transaction.account.id}"
+        category_id = f"category_{transaction.category.id}" if transaction.category else "category_uncategorized"
+        
+        # Create uncategorized node if needed
+        if not transaction.category and category_id not in node_id_map:
+            nodes.append({
+                'id': category_id,
+                'name': 'Uncategorized',
+                'type': 'category',
+                'category_type': 'general',
+                'total_volume': 0,
+                'size': 10
+            })
+            node_id_map[category_id] = len(nodes) - 1
+        
+        # Track flows between accounts and categories
+        flow_key = f"{account_id}:{category_id}"
+        if flow_key not in account_category_flows:
+            account_category_flows[flow_key] = {
+                'source': account_id,
+                'target': category_id,
+                'total_amount': 0,
+                'transaction_count': 0,
+                'income_amount': 0,
+                'expense_amount': 0
+            }
+        
+        account_category_flows[flow_key]['total_amount'] += float(transaction.amount)
+        account_category_flows[flow_key]['transaction_count'] += 1
+        
+        if transaction.transaction_type == 'income':
+            account_category_flows[flow_key]['income_amount'] += float(transaction.amount)
+        else:
+            account_category_flows[flow_key]['expense_amount'] += float(transaction.amount)
+    
+    # Convert flows to links
+    for flow_key, flow_data in account_category_flows.items():
+        if flow_data['total_amount'] > 0:  # Only include flows with actual transactions
+            links.append({
+                'source': flow_data['source'],
+                'target': flow_data['target'],
+                'value': flow_data['total_amount'],
+                'transaction_count': flow_data['transaction_count'],
+                'income_amount': flow_data['income_amount'],
+                'expense_amount': flow_data['expense_amount'],
+                'width': min(max(flow_data['total_amount'] / 100, 1), 20)  # Link width based on amount
+            })
+    
+    # Calculate network statistics
+    total_accounts = len(accounts)
+    total_categories = len(categories)
+    total_connections = len(links)
+    avg_transactions_per_connection = sum(link['transaction_count'] for link in links) / len(links) if links else 0
+    
+    network_stats = {
+        'total_nodes': len(nodes),
+        'total_accounts': total_accounts,
+        'total_categories': total_categories,
+        'total_connections': total_connections,
+        'avg_transactions_per_connection': round(avg_transactions_per_connection, 1),
+        'most_active_account': max(nodes, key=lambda x: x.get('size', 0) if x['type'] == 'account' else 0)['name'] if any(n['type'] == 'account' for n in nodes) else 'None',
+        'most_active_category': max(nodes, key=lambda x: x.get('size', 0) if x['type'] == 'category' else 0)['name'] if any(n['type'] == 'category' for n in nodes) else 'None'
+    }
+    
+    context = {
+        'network_data': {
+            'nodes': nodes,
+            'links': links
+        },
+        'network_stats': network_stats,
+        'total_income': transactions.filter(transaction_type='income').aggregate(total=Sum('amount'))['total'] or 0,
+        'total_expenses': transactions.filter(transaction_type='expense').aggregate(total=Sum('amount'))['total'] or 0,
+    }
+    
+    return render(request, 'finance_tracker/visualizations/network.html', context)

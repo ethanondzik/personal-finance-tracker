@@ -34,7 +34,5 @@ urlpatterns = [
     path('visualizations/bar-chart/', views.bar_chart_visualization, name='bar_chart_visualization'),
     path('visualizations/line-chart/', views.line_chart_visualization, name='line_chart_visualization'),
     path('visualizations/pie-chart/', views.pie_chart_visualization, name='pie_chart_visualization'),
-
-
-
+    path('visualizations/network/', views.network_visualization, name='network_visualization'),
 ]
