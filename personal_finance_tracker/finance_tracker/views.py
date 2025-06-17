@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from .models import Transaction, Account, Category, Subscription, Budget, CustomNotification
-from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm, CustomNotificationForm
+from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm, CustomNotificationForm, DateRangeForm
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
@@ -1291,51 +1291,75 @@ def bar_chart_visualization(request):
     Monthly income vs expenses bar chart visualization.
     """
     user = request.user
+    form = DateRangeForm(request.GET or None)
     
-    # Get daily transaction data for the last 30 days
-    end_date = timezone.now().date()
-    start_date = end_date - timedelta(days=30)
+    # Get date range
+    if form.is_valid():
+        start_date, end_date = form.get_date_range()
+    else:
+        # Default to last 3 months
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=90)
     
-    daily_data = []
-    current_date = start_date
+    # Filter transactions by date range
+    transactions = Transaction.objects.filter(
+        user=user,
+        date__gte=start_date,
+        date__lte=end_date
+    )
     
-    while current_date <= end_date:
-        daily_income = Transaction.objects.filter(
-            user=user,
+    # Group by month and aggregate
+    monthly_data = []
+    total_income = 0
+    total_expenses = 0
+    
+    # Get all months in the date range
+    current_date = start_date.replace(day=1)  # Start from first day of month
+    end_month = end_date.replace(day=1)
+    
+    while current_date <= end_month:
+        # Get next month
+        if current_date.month == 12:
+            next_month = current_date.replace(year=current_date.year + 1, month=1)
+        else:
+            next_month = current_date.replace(month=current_date.month + 1)
+        
+        # Filter transactions for this month
+        month_income = transactions.filter(
             transaction_type='income',
-            date=current_date
+            date__gte=current_date,
+            date__lt=next_month
         ).aggregate(total=Sum('amount'))['total'] or 0
         
-        daily_expenses = Transaction.objects.filter(
-            user=user,
+        month_expenses = transactions.filter(
             transaction_type='expense',
-            date=current_date
+            date__gte=current_date,
+            date__lt=next_month
         ).aggregate(total=Sum('amount'))['total'] or 0
         
-        daily_data.append({
-            'date': current_date.strftime('%Y-%m-%d'),
-            'formatted_date': current_date.strftime('%b %d'),
-            'income': float(daily_income),
-            'expenses': float(daily_expenses),
-            'net': float(daily_income - daily_expenses)
+        monthly_data.append({
+            'month': current_date.strftime('%b %Y'),
+            'income': float(month_income),
+            'expenses': float(month_expenses),
+            'net': float(month_income - month_expenses)
         })
         
-        current_date += timedelta(days=1)
-    
-    # Calculate totals
-    total_period_income = sum(data['income'] for data in daily_data)
-    total_period_expenses = sum(data['expenses'] for data in daily_data)
-    net_period_balance = total_period_income - total_period_expenses
+        total_income += float(month_income)
+        total_expenses += float(month_expenses)
+        
+        current_date = next_month
     
     context = {
-        'daily_data': daily_data,
-        'date_range': f"{start_date.strftime('%B %d')} - {end_date.strftime('%B %d, %Y')}",
-        'total_period_income': total_period_income,
-        'total_period_expenses': total_period_expenses,
-        'net_period_balance': net_period_balance, 
+        'form': form,
+        'monthly_data': monthly_data,
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_income': total_income,
+        'total_expenses': total_expenses,
+        'net_balance': total_income - total_expenses,
     }
     
-    return render(request, 'finance_tracker/visualizations/line_chart.html', context)
+    return render(request, 'finance_tracker/visualizations/bar_chart.html', context)
 
 @login_required
 def line_chart_visualization(request):
@@ -1343,11 +1367,17 @@ def line_chart_visualization(request):
     Transaction trend line chart visualization.
     """
     user = request.user
+    form = DateRangeForm(request.GET or None)
     
-    # Get daily transaction data for the last 30 days
-    end_date = timezone.now().date()
-    start_date = end_date - timedelta(days=30)
+    # Get date range
+    if form.is_valid():
+        start_date, end_date = form.get_date_range()
+    else:
+        # Default to last 30 days
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=30)
     
+    # Generate daily data
     daily_data = []
     current_date = start_date
     total_period_income = 0
@@ -1379,15 +1409,17 @@ def line_chart_visualization(request):
         
         current_date += timedelta(days=1)
     
-    # Calculate net period balance
     net_period_balance = total_period_income - total_period_expenses
     
     context = {
+        'form': form,
         'daily_data': daily_data,
+        'start_date': start_date,
+        'end_date': end_date,
         'date_range': f"{start_date.strftime('%B %d')} - {end_date.strftime('%B %d, %Y')}",
         'total_period_income': total_period_income,
         'total_period_expenses': total_period_expenses,
-        'net_period_balance': net_period_balance,  
+        'net_period_balance': net_period_balance,
     }
     
     return render(request, 'finance_tracker/visualizations/line_chart.html', context)
@@ -1400,34 +1432,49 @@ def pie_chart_visualization(request):
     Income vs expenses pie chart with category breakdowns.
     """
     user = request.user
+    form = DateRangeForm(request.GET or None)
     
-    # Get total income and expenses
-    total_income = Transaction.objects.filter(
+    # Get date range
+    if form.is_valid():
+        start_date, end_date = form.get_date_range()
+    else:
+        # Default to last 3 months
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=90)
+    
+    # Filter transactions by date range
+    transactions = Transaction.objects.filter(
         user=user,
+        date__gte=start_date,
+        date__lte=end_date
+    )
+    
+    # Get totals
+    total_income = transactions.filter(
         transaction_type='income'
     ).aggregate(total=Sum('amount'))['total'] or 0
     
-    total_expenses = Transaction.objects.filter(
-        user=user,
+    total_expenses = transactions.filter(
         transaction_type='expense'
     ).aggregate(total=Sum('amount'))['total'] or 0
     
     # Get category breakdowns
-    income_categories = Transaction.objects.filter(
-        user=user,
+    income_categories = transactions.filter(
         transaction_type='income'
     ).values('category__name').annotate(
         total=Sum('amount')
     ).order_by('-total')
     
-    expense_categories = Transaction.objects.filter(
-        user=user,
+    expense_categories = transactions.filter(
         transaction_type='expense'
     ).values('category__name').annotate(
         total=Sum('amount')
     ).order_by('-total')
     
     context = {
+        'form': form,
+        'start_date': start_date,
+        'end_date': end_date,
         'total_income': float(total_income),
         'total_expenses': float(total_expenses),
         'net_balance': float(total_income - total_expenses),

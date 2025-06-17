@@ -11051,3 +11051,19 @@ Traceback (most recent call last):
     raise TemplateSyntaxError("Invalid filter: '%s'" % filter_name)
 django.template.exceptions.TemplateSyntaxError: Invalid filter: 'div'
 "GET /visualizations/pie-chart/ HTTP/1.1" 500 275284
+Internal Server Error: /visualizations/bar-chart/
+Traceback (most recent call last):
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/.venv/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ethan/GitHub/personal-finance-tracker/personal_finance_tracker/finance_tracker/views.py", line 1294, in bar_chart_visualization
+    form = DateRangeForm(request.GET or None)
+           ^^^^^^^^^^^^^
+NameError: name 'DateRangeForm' is not defined
+"GET /visualizations/bar-chart/ HTTP/1.1" 500 77452

@@ -2,6 +2,7 @@ from django import forms
 from .models import Transaction, Account, Category, User, Subscription, Budget, CustomNotification
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from datetime import date, timedelta
 
 import csv
 import mimetypes
@@ -534,3 +535,63 @@ class CustomNotificationForm(forms.ModelForm):
             cleaned_data['recurrence_interval'] = None
             
         return cleaned_data
+    
+
+class DateRangeForm(forms.Form):
+    DATE_RANGE_CHOICES = [
+        ('30days', 'Last 30 Days'),
+        ('3months', 'Last 3 Months'),
+        ('6months', 'Last 6 Months'),
+        ('1year', 'Last Year'),
+        ('ytd', 'Year to Date'),
+        ('custom', 'Custom Range'),
+    ]
+    
+    date_range = forms.ChoiceField(
+        choices=DATE_RANGE_CHOICES,
+        initial='3months',
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_date_range'})
+    )
+    
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+            'id': 'id_start_date'
+        })
+    )
+    
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+            'id': 'id_end_date'
+        })
+    )
+    
+    def get_date_range(self):
+        """
+        Returns the actual start and end dates based on the selection.
+        """
+        date_range = self.cleaned_data.get('date_range')
+        start_date = self.cleaned_data.get('start_date')
+        end_date = self.cleaned_data.get('end_date')
+        
+        today = date.today()
+        
+        if date_range == 'custom':
+            return start_date, end_date
+        elif date_range == '30days':
+            return today - timedelta(days=30), today
+        elif date_range == '3months':
+            return today - timedelta(days=90), today
+        elif date_range == '6months':
+            return today - timedelta(days=180), today
+        elif date_range == '1year':
+            return today - timedelta(days=365), today
+        elif date_range == 'ytd':
+            return date(today.year, 1, 1), today
+        else:
+            return today - timedelta(days=90), today  # Default to 3 months

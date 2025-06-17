@@ -21,18 +21,43 @@
                 </div>
             </div>
 
+            <!-- Date Range Filter -->
+            <div class="date-range-filter">
+                <form method="get" class="d-flex align-items-end gap-3">
+                    <div class="form-group">
+                        <label for="{{ form.date_range.id_for_label }}" class="form-label">Date Range</label>
+                        {{ form.date_range }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.start_date.id_for_label }}" class="form-label">Start Date</label>
+                        {{ form.start_date }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.end_date.id_for_label }}" class="form-label">End Date</label>
+                        {{ form.end_date }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="mdi mdi-filter me-2"></i>Apply Filter
+                    </button>
+                </form>
+            </div>
+
+            <div class="period-info">
+                Showing data for: {{ start_date|date:"M d, Y" }} - {{ end_date|date:"M d, Y" }}
+            </div>
+
             <div class="stats-summary">
                 <div class="stat-card income">
-                    <h3>${{ total_yearly_income|floatformat:2 }}</h3>
-                    <p>Total {{ current_year }} Income</p>
+                    <h3>${{ total_income|floatformat:2 }}</h3>
+                    <p>Total Income</p>
                 </div>
                 <div class="stat-card expense">
-                    <h3>${{ total_yearly_expenses|floatformat:2 }}</h3>
-                    <p>Total {{ current_year }} Expenses</p>
+                    <h3>${{ total_expenses|floatformat:2 }}</h3>
+                    <p>Total Expenses</p>
                 </div>
-                <div class="stat-card net {% if net_yearly_balance >= 0 %}positive{% else %}negative{% endif %}">
-                    <h3>${{ net_yearly_balance|floatformat:2 }}</h3>
-                    <p>Net {{ current_year }} Balance</p>
+                <div class="stat-card net {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
+                    <h3>${{ net_balance|floatformat:2 }}</h3>
+                    <p>Net Balance</p>
                 </div>
             </div>
 
@@ -46,7 +71,10 @@
 {{ monthly_data|json_script:"monthly-data" }}
 {% endblock %}
 
+
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/visualizations/bar_chart.js' %}"></script>
+<script src="{% static 'js/visualizations/date_range_handler.js' %}"></script>
+
 {% endblock %}
