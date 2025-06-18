@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from .models import Transaction, Account, Category, Subscription, Budget, CustomNotification
 from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm, CustomNotificationForm, DateRangeForm
 from django.contrib.auth import login, update_session_auth_hash
@@ -21,6 +21,8 @@ import calendar
 
 
 
+
+
 def landing(request):
     """
     Renders the landing page of the application.
@@ -35,162 +37,132 @@ def landing(request):
 
 
 @login_required
-def dashboard(request):
+@require_http_methods(["GET"])
+def dashboard_api(request):
     """
-    Renders the dashboard page for the logged-in user.
-
-    - Displays a list of all transactions for the user, ordered by date.
-    - Aggregates income and expenses by date to prepare data for the transactions graph.
-    - Passes the transactions and chart data to the template for rendering.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The rendered dashboard page with the user's transactions and chart data.
+    Modern API endpoint for dashboard data - returns JSON only
     """
-
-    #Shows all income and all expenses on the same day for each day
-    transactions = Transaction.objects.filter(user=request.user).order_by('date')
-    accounts = list(Account.objects.filter(user=request.user).values(
-        'account_number', 'account_type', 'balance'
-    ))
-    categories = Category.objects.filter(user=request.user)
-
-    
-    #Total income and expenses for the logged-in user
-    total_income = transactions.filter(transaction_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
-    total_expenses = transactions.filter(transaction_type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
-
-    #Monthly aggregation
-    monthly_data = Transaction.objects.filter(user=request.user).annotate(
-        month=TruncMonth('date')
-    ).values('month').annotate(
-        income=Sum('amount', filter=Q(transaction_type='income')),
-        expenses=Sum('amount', filter=Q(transaction_type='expense'))
-    ).order_by('month')
-
-    # Calculate the total income and expenses for each month
-    months = []
-    monthly_income = []
-    monthly_expenses = []
-    for entry in monthly_data:
-        months.append(entry['month'].strftime("%b %Y"))
-        monthly_income.append(float(entry['income'] or 0))
-        monthly_expenses.append(float(entry['expenses'] or 0))
-
-    # Use a dictionary to aggregate income and expenses by date
-    aggregated_data = defaultdict(lambda: {"income": 0, "expenses": 0})
-    for transaction in transactions:
-        date_str = transaction.date.strftime('%Y-%m-%d')
-        if transaction.transaction_type == 'income':
-            aggregated_data[date_str]["income"] += float(transaction.amount)
-        elif transaction.transaction_type == 'expense':
-            aggregated_data[date_str]["expenses"] += float(transaction.amount)
-
-    # Sort the dates and prepare the chart data
-    sorted_dates = sorted(aggregated_data.keys())
-    chart_data = {
-        "dates": sorted_dates,
-        "income": [aggregated_data[date]["income"] for date in sorted_dates],
-        "expenses": [aggregated_data[date]["expenses"] for date in sorted_dates],
-        "total_income": float(total_income),
-        "total_expenses": float(total_expenses),
-        "months": months,
-        "monthly_income": monthly_income,
-        "monthly_expenses": monthly_expenses,
-    }
-
+    user = request.user
     today = timezone.now().date()
     
-    # Get upcoming subscriptions (due in the next 30 days)
-    upcoming_subscriptions = Subscription.objects.filter(
-        user=request.user,
-        is_active=True,
-        next_payment_date__gte=today,
-        next_payment_date__lte=today + timedelta(days=30)
-    ).order_by('next_payment_date')[:3]  # Limit to 3 most upcoming
+    # Get transactions with basic filtering
+    transactions = Transaction.objects.filter(user=user).order_by('-date')
     
-    # Calculate days until due for each subscription
-    for subscription in upcoming_subscriptions:
-        delta = subscription.next_payment_date - today
-        subscription.days_until = delta.days
-
-    # Filtering logic
+    # Apply any filters from query params
     tx_type = request.GET.get("type")
     if tx_type in ("income", "expense"):
         transactions = transactions.filter(transaction_type=tx_type)
+    
     category_id = request.GET.get("category")
     if category_id:
         transactions = transactions.filter(category_id=category_id)
-    start = request.GET.get("start")
-    if start:
-        transactions = transactions.filter(date__gte=start)
-    end = request.GET.get("end")
-    if end:
-        transactions = transactions.filter(date__lte=end)
-
-    budgets = Budget.objects.filter(user=request.user)
-    first_of_month = today.replace(day=1)
-
-    budget_data = []
     
-    for budget in budgets:
-        spent = Transaction.objects.filter(
-            user=request.user,
-            category=budget.category,
-            date__gte=first_of_month,  # for monthly budgets
-            date__lte=today,
-            transaction_type='expense'
+    start_date = request.GET.get("start")
+    if start_date:
+        transactions = transactions.filter(date__gte=start_date)
+    
+    end_date = request.GET.get("end")
+    if end_date:
+        transactions = transactions.filter(date__lte=end_date)
+
+    # Calculate totals
+    total_income = transactions.filter(transaction_type='income').aggregate(
+        total=Sum('amount'))['total'] or 0
+    total_expenses = transactions.filter(transaction_type='expense').aggregate(
+        total=Sum('amount'))['total'] or 0
+    
+    # Get recent transactions (limit for performance)
+    recent_transactions = transactions[:10]
+    
+    # Get accounts
+    accounts = Account.objects.filter(user=user)
+    
+    # Calculate monthly data (last 6 months for performance)
+    monthly_data = []
+    for i in range(6):
+        month_start = (today.replace(day=1) - timedelta(days=i*30)).replace(day=1)
+        if month_start.month == 12:
+            month_end = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            month_end = month_start.replace(month=month_start.month + 1)
+        
+        month_income = Transaction.objects.filter(
+            user=user, transaction_type='income',
+            date__gte=month_start, date__lt=month_end
         ).aggregate(total=Sum('amount'))['total'] or 0
-        progress = float(spent) / float(budget.amount) if budget.amount else 0
-        budget_data.append({
-            'id': budget.category.id,
-            'name': budget.category.name,
-            'budget': float(budget.amount),
-            'spent': float(spent),
-            'progress': progress * 100,
-            'remaining': float(budget.amount) - float(spent),
-        })
-
-    # Pagination
-    paginator = Paginator(transactions, 20)
-    page_number = request.GET.get('page')
-    transactions_page = paginator.get_page(page_number)
-
-   
-    custom_notifications_data = CustomNotification.objects.filter(user=request.user)
-    user_custom_notifications_data = []
-    for rule in custom_notifications_data:
-        user_custom_notifications_data.append({
-            'id': rule.id,
-            'title': rule.title,
-            'message': rule.message,
-            'type': rule.type,
-            'threshold': float(rule.threshold) if rule.threshold is not None else None,
-            'category_id': rule.category.id if rule.category else None,
-            'category_name': rule.category.name if rule.category else None,
-            'notification_datetime': rule.notification_datetime.strftime('%Y-%m-%dT%H:%M') if rule.notification_datetime else None,
-            'recurrence_interval': rule.recurrence_interval,
-            'enabled': rule.enabled,
+        
+        month_expenses = Transaction.objects.filter(
+            user=user, transaction_type='expense',
+            date__gte=month_start, date__lt=month_end
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        monthly_data.append({
+            'month': month_start.strftime('%b %Y'),
+            'income': float(month_income),
+            'expenses': float(month_expenses),
+            'net': float(month_income - month_expenses)
         })
     
-    # Return the rendered template with ALL context data
-    response = render(request, 'finance_tracker/dashboard.html', {
-        'transactions': transactions_page,
-        'chart_data': chart_data,   
-        'accounts': accounts,
-        'categories': categories,
-        'upcoming_subscriptions': upcoming_subscriptions,
-        'today': today,
-        'budget_data': budget_data,
-        'user_custom_notifications': user_custom_notifications_data,
-    })
+    monthly_data.reverse()
 
-    # Clear the notification flag after rendering
-    if 'show_large_transaction_notification' in request.session:
+    # Prepare response data
+    response_data = {
+        'status': 'success',
+        'data': {
+            'financial_summary': {
+                'total_income': float(total_income),
+                'total_expenses': float(total_expenses),
+                'net_balance': float(total_income - total_expenses),
+                'account_count': accounts.count()
+            },
+            'accounts': [
+                {
+                    'id': acc.id,
+                    'account_number': acc.account_number,
+                    'account_type': acc.account_type,
+                    'balance': float(acc.balance)
+                } for acc in accounts
+            ],
+            'recent_transactions': [
+                {
+                    'id': t.id,
+                    'description': t.description,
+                    'amount': float(t.amount),
+                    'type': t.transaction_type,
+                    'date': t.date.strftime('%Y-%m-%d'),
+                    'category': t.category.name if t.category else 'Uncategorized',
+                    'account': t.account.account_number
+                } for t in recent_transactions
+            ],
+            'chart_data': {
+                'monthly_data': monthly_data,
+            }
+        }
+    }
+    
+    return JsonResponse(response_data)
+
+@login_required
+def dashboard(request):
+    """
+    Simplified dashboard view - mainly renders template
+    AJAX will handle data loading
+    """
+    # Only get essential data for initial page load
+    user = request.user
+    categories = Category.objects.filter(user=user)
+    
+    # Get any flash messages or session data
+    show_notification = request.session.get('show_large_transaction_notification', False)
+    if show_notification:
         del request.session['show_large_transaction_notification']
-    return response
+    
+    context = {
+        'categories': categories,  # For filter dropdown
+        'show_notification': show_notification,
+    }
+    
+    return render(request, 'finance_tracker/dashboard.html', context)
 
 @login_required
 def add_transaction(request):
