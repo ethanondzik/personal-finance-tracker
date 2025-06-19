@@ -37,6 +37,21 @@ def landing(request):
 
 
 @login_required
+def subscriptions_api(request):
+    user = request.user
+    subscriptions = Subscription.objects.filter(user=user, is_active=True)
+    next_due = subscriptions.order_by('next_payment_date').first()
+    preview = list(subscriptions.order_by('next_payment_date').values('name', 'amount', 'next_payment_date')[:3])
+    data = {
+        'total': subscriptions.count(),
+        'next_due_date': next_due.next_payment_date.isoformat() if next_due else None,
+        'next_due_name': next_due.name if next_due else None,
+        'preview': preview,
+    }
+    return JsonResponse({'status': 'success', 'data': data})
+
+
+@login_required
 @require_http_methods(["GET"])
 def dashboard_api(request):
     """
@@ -105,6 +120,17 @@ def dashboard_api(request):
     
     monthly_data.reverse()
 
+    # Subscriptions data
+    subscriptions = Subscription.objects.filter(user=user)
+    active_subs = subscriptions.filter(is_active=True)
+    total_subs = subscriptions.count()
+    active_count = active_subs.count()
+    next_due = active_subs.order_by('next_payment_date').first()
+    next_due_date = next_due.next_payment_date if next_due else None
+    next_due_name = next_due.name if next_due else None
+    # print(subscriptions)
+
+
     # Prepare response data
     response_data = {
         'status': 'success',
@@ -136,10 +162,15 @@ def dashboard_api(request):
             ],
             'chart_data': {
                 'monthly_data': monthly_data,
-            }
+            },
+            'subscriptions': {
+                'total': total_subs,
+                'active': active_count,
+                'next_due_date': next_due_date.isoformat() if next_due_date else None,
+                'next_due_name': next_due_name,
+            },
         }
     }
-    
     return JsonResponse(response_data)
 
 @login_required

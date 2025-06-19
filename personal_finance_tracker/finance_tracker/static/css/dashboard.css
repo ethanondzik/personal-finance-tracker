@@ -354,3 +354,27 @@ body.dark-theme .loading-overlay {
         max-height: 300px;
     }
 }
+
+/* Subscription Card */
+.overview-card.subscriptions::before {
+    background: linear-gradient(90deg, #f59e42, #fbbf24);
+}
+
+.overview-card.subscriptions .icon-wrapper {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e42 100%);
+    color: #f59e42;
+}
+
+.subscription-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    font-size: 0.95rem;
+}
+.subscription-list li {
+    margin-bottom: 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}

@@ -19,6 +19,7 @@ urlpatterns = [
     path("query-transactions/", views.query_transactions, name="query_transactions"),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('manage-subscriptions/', views.manage_subscriptions, name='manage_subscriptions'),
+    path('api/subscriptions/', views.subscriptions_api, name='subscriptions_api'),
     path('update-subscription/<int:subscription_id>/', views.update_subscription, name='update_subscription'),
     path('update-theme-preference/', views.update_theme_preference, name='update_theme_preference'),
     path('transactions/calendar/', views.transaction_calendar, name='transaction_calendar'),

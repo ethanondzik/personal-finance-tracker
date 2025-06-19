@@ -321,6 +321,29 @@
                                     </div>
                                 </div>
 
+                                <!-- Subscriptions -->
+                                <div class="card dashboard-card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="card-title">
+                                            <i class="mdi mdi-calendar-clock me-2"></i>Subscriptions
+                                        </h5>
+                                        <div class="chart-actions">
+                                            <a href="{% url 'manage_subscriptions' %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="mdi mdi-cog me-1"></i>Manage
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="subscriptions-summary">
+                                            <span class="fw-bold" id="subscriptions-count">0 active</span>
+                                            <span class="text-muted ms-2" id="subscriptions-next-due"></span>
+                                        </div>
+                                        <div id="subscriptions-list-container" class="mt-3">
+                                            <ul class="subscriptions-list" id="subscriptions-list"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Filters -->
                                 <div class="card dashboard-card">
                                     <div class="card-header">
@@ -383,5 +406,6 @@
     <script src="{% static 'js/greetings.js' %}"></script>
     <script src="{% static 'js/theme-toggle.js' %}"></script>
     <script src="{% static 'js/custom_dashboard.js' %}"></script>
+    <script src="{% static 'js/subscriptions.js' %}"></script>
 </body>
 </html>
