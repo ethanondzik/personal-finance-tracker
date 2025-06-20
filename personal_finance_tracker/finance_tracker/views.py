@@ -40,13 +40,26 @@ def landing(request):
 def subscriptions_api(request):
     user = request.user
     subscriptions = Subscription.objects.filter(user=user, is_active=True)
-    next_due = subscriptions.order_by('next_payment_date').first()
-    preview = list(subscriptions.order_by('next_payment_date').values('name', 'amount', 'next_payment_date')[:3])
+    today = date.today()
+    preview = []
+    for sub in subscriptions:
+        # Recalculate next payment date if needed
+        if sub.next_payment_date < today:
+            sub.calculate_next_payment_date()
+            sub.save(update_fields=['next_payment_date'])
+        preview.append({
+            'name': sub.name,
+            'amount': float(sub.amount),
+            'next_payment_date': sub.next_payment_date.isoformat(),
+        })
+    
+    #get next due subscription
+    next_due_sub = min(subscriptions, key=lambda s: s.next_payment_date, default=None)
     data = {
         'total': subscriptions.count(),
-        'next_due_date': next_due.next_payment_date.isoformat() if next_due else None,
-        'next_due_name': next_due.name if next_due else None,
-        'preview': preview,
+        'next_due_date': next_due_sub.next_payment_date.isoformat() if next_due_sub else None,
+        'next_due_name': next_due_sub.name if next_due_sub else None,
+        'preview': sorted(preview, key=lambda s: s['next_payment_date'])[:5],
     }
     return JsonResponse({'status': 'success', 'data': data})
 
