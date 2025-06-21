@@ -220,7 +220,7 @@ class ModernDashboard {
                     <div class="transaction-amount ${transaction.type}">
                         ${transaction.type === 'income' ? '+' : '-'}${this.formatCurrency(transaction.amount)}
                     </div>
-                    <a href="/update-transaction/${transaction.id}/?next=/dashboard/" class="btn btn-sm btn-outline-info" title="Edit">
+                    <a href="/update_transaction/${transaction.id}/?next=/dashboard/" class="btn btn-sm btn-outline-info" title="Edit">
                         <i class="mdi mdi-pencil"></i>
                     </a>
                     <button class="btn btn-sm btn-outline-danger delete-transaction-btn" data-transaction-id="${transaction.id}" title="Delete">

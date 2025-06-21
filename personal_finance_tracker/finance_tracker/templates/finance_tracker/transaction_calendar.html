@@ -83,6 +83,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container-scroller">
     <div class="container-fluid page-body-wrapper">
         <div class="main-panel">
@@ -152,6 +153,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="deleteCalendarTransactionBtn">Delete</button>
                 <a href="#" id="editTransactionLink" class="btn btn-primary">Edit Transaction</a>
             </div>
         </div>
@@ -164,6 +166,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Parse the transaction data passed from the view
     const transactions = JSON.parse(document.getElementById('transaction-data').textContent || '[]');
+    let currentTransactionId = null;
+
     
     // Format transactions for FullCalendar
     const events = transactions.map(t => {
@@ -210,6 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to show transaction details in a modal
     function showTransactionDetails(transaction) {
+        currentTransactionId = transaction.transactionId;
         const detailsContent = document.getElementById('transactionDetailsContent');
         const typeClass = transaction.type === 'income' ? 'text-success' : 'text-danger';
         
@@ -238,6 +243,66 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show the modal
         const modal = new bootstrap.Modal(document.getElementById('transactionDetailsModal'));
         modal.show();
+    }
+
+    // Handle delete button click
+    document.getElementById('deleteCalendarTransactionBtn').addEventListener('click', function() {
+        if (!currentTransactionId) return;
+        
+        if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            fetch('/delete-transactions/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `transaction_ids=${currentTransactionId}&confirm=1`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Remove event from calendar
+                    const event = calendar.getEventById(currentTransactionId);
+                    if (event) {
+                        event.remove();
+                    }
+                    
+                    // Hide modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('transactionDetailsModal'));
+                    if (modal) modal.hide();
+                    
+                    // Show success message
+                    showToast('Transaction deleted successfully.', 'success');
+                } else {
+                    showToast(data.message || 'Failed to delete transaction.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error deleting transaction.', 'error');
+            });
+        }
+    });
+
+    // Toast notification function
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 3000);
     }
 });
 </script>
