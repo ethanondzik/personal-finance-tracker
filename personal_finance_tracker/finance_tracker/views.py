@@ -328,7 +328,6 @@ def dashboard_api(request):
     next_due = active_subs.order_by('next_payment_date').first()
     next_due_date = next_due.next_payment_date if next_due else None
     next_due_name = next_due.name if next_due else None
-    # print(subscriptions)
 
 
     # Prepare response data
@@ -515,59 +514,46 @@ def update_transaction(request, transaction_id):
 def delete_transactions(request):
     """
     Handles the deletion of one or more transactions for the logged-in user.
-
-    - If the request method is POST and the user confirms deletion, deletes the selected transactions.
-    - If no valid transactions are found, displays an error message.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponseRedirect: Redirects to the dashboard after processing the deletion.
     """
     if request.method == 'POST':
-        is_ajax_json_request = request.content_type == 'application/json'
+        is_ajax_json_request = request.content_type == 'application/json' or \
+            (hasattr(request, 'headers') and request.headers.get('x-requested-with') == 'XMLHttpRequest')
         
         try:
             transaction_ids = []
             if is_ajax_json_request:
-                data = json.loads(request.body)
-                transaction_ids = data.get('transaction_ids', [])
-            else: # Standard form post (e.g., from dashboard)
+                if request.content_type == 'application/json':
+                    data = json.loads(request.body)
+                    transaction_ids = data.get('transaction_ids', [])
+                else:
+                    # Handle URL-encoded AJAX requests
+                    transaction_ids = request.POST.getlist('transaction_ids')
+                    if not transaction_ids:
+                        # Try single value fallback
+                        single_id = request.POST.get('transaction_ids')
+                        if single_id:
+                            transaction_ids = [single_id]
+            else:
                 transaction_ids = request.POST.getlist('transaction_ids')
-                # The dashboard form includes a 'confirm' hidden input.
-                # For AJAX, confirmation is handled client-side before the request.
-                if 'confirm' not in request.POST:
-                    messages.error(request, "Deletion not confirmed.")
-                    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
             if not transaction_ids:
-                message = 'No transaction IDs provided.'
+                message = 'No transactions selected for deletion.'
                 if is_ajax_json_request:
                     return JsonResponse({'status': 'error', 'message': message}, status=400)
                 else:
                     messages.error(request, message)
-                    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+                    return redirect('dashboard')
 
-            # Ensure all provided IDs are integers if they are strings
+            # Ensure all provided IDs are integers
             try:
-                # Filter out empty strings or None before attempting int conversion
-                valid_transaction_ids_str = [tid for tid in transaction_ids if tid]
-                if not valid_transaction_ids_str: # All IDs were empty or None
-                    message = 'No valid transaction IDs provided.'
-                    if is_ajax_json_request:
-                        return JsonResponse({'status': 'error', 'message': message}, status=400)
-                    else:
-                        messages.error(request, message)
-                        return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
-                processed_transaction_ids = [int(tid) for tid in valid_transaction_ids_str]
+                processed_transaction_ids = [int(tid) for tid in transaction_ids]
             except ValueError:
-                message = 'Invalid transaction ID format. IDs must be numbers.'
+                message = 'Invalid transaction ID format.'
                 if is_ajax_json_request:
                     return JsonResponse({'status': 'error', 'message': message}, status=400)
                 else:
                     messages.error(request, message)
-                    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+                    return redirect('dashboard')
 
             transactions = Transaction.objects.filter(id__in=processed_transaction_ids, user=request.user)
             count = 0
@@ -582,29 +568,26 @@ def delete_transactions(request):
                     return JsonResponse({'status': 'success', 'message': message})
                 else:
                     messages.success(request, message)
-                    # For dashboard deletions, redirect back to the dashboard
-                    return redirect('dashboard') 
+                    return redirect('dashboard')
             else:
-                message = 'No valid transactions found to delete or you do not own them.'
+                message = 'No valid transactions found to delete.'
                 if is_ajax_json_request:
                     return JsonResponse({'status': 'error', 'message': message}, status=404)
                 else:
-                    messages.error(request, message)
-                    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+                    messages.warning(request, message)
+                    return redirect('dashboard')
         
-        except json.JSONDecodeError: # This error is specific to AJAX requests with malformed JSON
+        except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON format.'}, status=400)
         except Exception as e:
-            # logger.error(f"Error deleting transactions: {str(e)}")
             error_message = f'An unexpected error occurred: {str(e)}'
             if is_ajax_json_request:
                 return JsonResponse({'status': 'error', 'message': error_message}, status=500)
             else:
                 messages.error(request, error_message)
-                return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+                return redirect('dashboard')
         
     # For GET or other methods
-    # Distinguish response type for non-POST requests as well
     if request.content_type == 'application/json' or \
        (hasattr(request, 'headers') and request.headers.get('x-requested-with') == 'XMLHttpRequest'):
         return JsonResponse({'status': 'error', 'message': 'Invalid request method. Only POST is allowed for this operation.'}, status=405)

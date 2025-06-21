@@ -192,7 +192,7 @@ class ModernDashboard {
     updateTransactionsList() {
         const container = document.getElementById('transactions-list');
         const { recent_transactions } = this.data;
-
+    
         if (recent_transactions.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -203,21 +203,229 @@ class ModernDashboard {
             `;
             return;
         }
-
+    
         container.innerHTML = recent_transactions.map(transaction => `
-            <div class="transaction-item">
-                <div class="transaction-icon ${transaction.type}">
-                    <i class="mdi mdi-${transaction.type === 'income' ? 'arrow-down' : 'arrow-up'}"></i>
+            <div class="transaction-item d-flex align-items-center justify-content-between" data-transaction-id="${transaction.id}">
+                <div class="d-flex align-items-center">
+                    <input type="checkbox" class="transaction-checkbox" value="${transaction.id}">
+                    <div class="transaction-icon ${transaction.type}">
+                        <i class="mdi mdi-${transaction.type === 'income' ? 'arrow-down' : 'arrow-up'}"></i>
+                    </div>
+                    <div class="transaction-details ms-2">
+                        <div class="transaction-description">${transaction.description}</div>
+                        <div class="transaction-meta">${transaction.date} • ${transaction.category}</div>
+                    </div>
                 </div>
-                <div class="transaction-details">
-                    <div class="transaction-description">${transaction.description}</div>
-                    <div class="transaction-meta">${transaction.date} • ${transaction.category}</div>
-                </div>
-                <div class="transaction-amount ${transaction.type}">
-                    ${transaction.type === 'income' ? '+' : '-'}${this.formatCurrency(transaction.amount)}
+                <div class="d-flex align-items-center gap-2">
+                    <div class="transaction-amount ${transaction.type}">
+                        ${transaction.type === 'income' ? '+' : '-'}${this.formatCurrency(transaction.amount)}
+                    </div>
+                    <a href="/update-transaction/${transaction.id}/?next=/dashboard/" class="btn btn-sm btn-outline-info" title="Edit">
+                        <i class="mdi mdi-pencil"></i>
+                    </a>
+                    <button class="btn btn-sm btn-outline-danger delete-transaction-btn" data-transaction-id="${transaction.id}" title="Delete">
+                        <i class="mdi mdi-delete"></i>
+                    </button>
                 </div>
             </div>
         `).join('');
+    
+        // Setup multi-select functionality
+        this.setupMultiSelect();
+        
+        // Attach individual delete event listeners
+        container.querySelectorAll('.delete-transaction-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const transactionId = btn.getAttribute('data-transaction-id');
+                this.confirmAndDeleteTransaction([transactionId]);
+            });
+        });
+    }
+    
+    setupMultiSelect() {
+        const checkboxes = document.querySelectorAll('.transaction-checkbox');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const selectedCountSpan = document.getElementById('selected-count');
+    
+        // Handle individual checkbox changes
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                const item = checkbox.closest('.transaction-item');
+                if (checkbox.checked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+                this.updateBulkActions();
+            });
+        });
+    
+        // Handle select all
+        selectAllBtn.addEventListener('click', () => {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = !allChecked;
+                const item = checkbox.closest('.transaction-item');
+                if (checkbox.checked) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+            this.updateBulkActions();
+        });
+    
+        // Handle bulk delete
+        bulkDeleteBtn.addEventListener('click', () => {
+            const selectedIds = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            
+            if (selectedIds.length > 0) {
+                this.confirmAndDeleteTransaction(selectedIds);
+            }
+        });
+    }
+    
+    updateBulkActions() {
+        const checkboxes = document.querySelectorAll('.transaction-checkbox');
+        const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const selectedCountSpan = document.getElementById('selected-count');
+        const selectAllBtn = document.getElementById('select-all-btn');
+    
+        const selectedCount = selectedCheckboxes.length;
+        selectedCountSpan.textContent = selectedCount;
+    
+        if (selectedCount > 0) {
+            bulkDeleteBtn.style.display = 'inline-block';
+            selectAllBtn.innerHTML = '<i class="mdi mdi-checkbox-multiple-blank me-1"></i>Deselect All';
+        } else {
+            bulkDeleteBtn.style.display = 'none';
+            selectAllBtn.innerHTML = '<i class="mdi mdi-checkbox-multiple-marked me-1"></i>Select All';
+        }
+    }
+    
+    confirmAndDeleteTransaction(transactionIds) {
+        // Ensure transactionIds is always an array
+        if (!Array.isArray(transactionIds)) {
+            transactionIds = [transactionIds];
+        }
+    
+        // Create modal if not exists
+        let modal = document.getElementById('deleteTransactionModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'deleteTransactionModal';
+            modal.className = 'modal fade';
+            modal.tabIndex = -1;
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Confirm Deletion</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" id="deleteModalBody">
+                            <!-- Content will be updated dynamically -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-danger" id="confirmDeleteTransactionBtn">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+    
+        // Update modal content based on selection count
+        const modalBody = modal.querySelector('#deleteModalBody');
+        if (transactionIds.length === 1) {
+            modalBody.innerHTML = 'Are you sure you want to delete this transaction? This action cannot be undone.';
+        } else {
+            modalBody.innerHTML = `Are you sure you want to delete ${transactionIds.length} transactions? This action cannot be undone.`;
+        }
+    
+        // Show modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    
+        // Attach confirm handler
+        const confirmBtn = modal.querySelector('#confirmDeleteTransactionBtn');
+        confirmBtn.onclick = () => {
+            confirmBtn.disabled = true;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            // Send as comma-separated list like your backend expects
+            const formData = new URLSearchParams();
+            transactionIds.forEach(id => formData.append('transaction_ids', id));
+            formData.append('confirm', '1');
+    
+            fetch('/delete-transactions/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Refresh dashboard data to update totals
+                    this.refreshData();
+
+                    // Clear all checkboxes and reset bulk actions
+                    const checkboxes = document.querySelectorAll('.transaction-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                        const item = checkbox.closest('.transaction-item');
+                        if (item) item.classList.remove('selected');
+                    });
+                    this.updateBulkActions();
+
+                    this.showSuccess(data.message || `${transactionIds.length} transaction(s) deleted successfully.`);
+                } else {
+                    this.showError(data.message || 'Failed to delete transactions.');
+                }
+                bsModal.hide();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.showError('Error deleting transactions.');
+                bsModal.hide();
+            })
+            .finally(() => {
+                confirmBtn.disabled = false;
+            });
+        };
+    }
+    
+    // Add this method if you don't have it
+    showSuccess(message) {
+        const toast = document.createElement('div');
+        toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 3000);
     }
 
     updateAccountsList() {

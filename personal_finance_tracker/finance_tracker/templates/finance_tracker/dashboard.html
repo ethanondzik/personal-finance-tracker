@@ -40,7 +40,7 @@
                         </a>
                         <div class="dropdown-menu dropdown-menu-right navbar-dropdown" aria-labelledby="UserDropdown">
                             <div class="dropdown-header text-center">
-                                <img class="img-md rounded-circle" src="{% static 'images/profile-user.png' %}" alt="Profile image">
+                                <img class="img-sm rounded-circle" src="{% static 'images/profile-user.png' %}" alt="Profile image">
                                 <p class="mb-1 mt-3 fw-semibold">{{ user.username }}</p>
                                 <p class="fw-light text-muted mb-0">{{ user.email }}</p>
                             </div>
@@ -258,6 +258,12 @@
                                             <i class="mdi mdi-format-list-bulleted me-2"></i>Recent Transactions
                                         </h5>
                                         <div class="chart-actions">
+                                            <button id="bulk-delete-btn" class="btn btn-sm btn-outline-danger me-2" style="display: none;">
+                                                <i class="mdi mdi-delete me-1"></i>Delete Selected (<span id="selected-count">0</span>)
+                                            </button>
+                                            <button id="select-all-btn" class="btn btn-sm btn-outline-secondary me-2">
+                                                <i class="mdi mdi-checkbox-multiple-marked me-1"></i>Select All
+                                            </button>
                                             <a href="{% url 'query_transactions' %}" class="btn btn-sm btn-outline-primary">
                                                 <i class="mdi mdi-eye me-1"></i>View All
                                             </a>

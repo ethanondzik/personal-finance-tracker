@@ -378,3 +378,141 @@ body.dark-theme .loading-overlay {
     align-items: center;
     gap: 0.25rem;
 }
+
+/* For transaction multiselect */
+.transaction-item {
+    transition: background-color 0.2s ease;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid transparent;
+}
+
+.transaction-item.selected {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    border-color: rgba(13, 110, 253, 0.3);
+}
+
+.transaction-checkbox {
+    margin-right: 12px;
+    transform: scale(1.2);
+}
+
+.bulk-actions {
+    background: #f8f9fa;
+    padding: 8px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid #e9ecef;
+}
+
+body.dark-theme .bulk-actions {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.dark-theme .transaction-item.selected {
+    background-color: rgba(13, 110, 253, 0.2) !important;
+    border-color: rgba(13, 110, 253, 0.5);
+}
+
+/* Better spacing for transaction checkboxes */
+.transaction-checkbox {
+    margin-right: 16px !important; /* Increased from 12px */
+    margin-left: 8px;
+    transform: scale(1.1); 
+    flex-shrink: 0; /* Prevent checkbox from shrinking */
+}
+
+.transaction-item {
+    padding: 16px 12px; /* More padding for better spacing */
+    transition: background-color 0.2s ease;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid transparent;
+}
+
+.transaction-item .d-flex.align-items-center:first-child {
+    gap: 0; /* Remove default gap, use margin instead for better control */
+}
+
+.transaction-icon {
+    margin-right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.transaction-icon.income {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.transaction-icon.expense {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+}
+
+.transaction-details {
+    min-width: 0; /* Allow text to wrap properly */
+    flex: 1;
+}
+
+.transaction-description {
+    font-weight: 500;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.transaction-meta {
+    font-size: 0.875rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.transaction-amount {
+    font-weight: 600;
+    margin-right: 12px;
+    min-width: 80px;
+    text-align: right;
+}
+
+/* Selected state styling */
+.transaction-item.selected {
+    background-color: rgba(13, 110, 253, 0.08) !important;
+    border-color: rgba(13, 110, 253, 0.25);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.1);
+}
+
+/* Dark theme adjustments */
+body.dark-theme .transaction-item.selected {
+    background-color: rgba(13, 110, 253, 0.15) !important;
+    border-color: rgba(13, 110, 253, 0.4);
+}
+
+body.dark-theme .transaction-icon.income {
+    background-color: rgba(76, 175, 80, 0.2);
+}
+
+body.dark-theme .transaction-icon.expense {
+    background-color: rgba(244, 67, 54, 0.2);
+}
+
+/* Ensure proper spacing in action buttons */
+.transaction-item .gap-2 {
+    gap: 8px !important;
+}
+
+/* Better hover states */
+.transaction-item:hover:not(.selected) {
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+body.dark-theme .transaction-item:hover:not(.selected) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
