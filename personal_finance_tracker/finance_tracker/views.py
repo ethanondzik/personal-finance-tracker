@@ -329,6 +329,49 @@ def dashboard_api(request):
     next_due_date = next_due.next_payment_date if next_due else None
     next_due_name = next_due.name if next_due else None
 
+    # Budgets data
+    budgets = Budget.objects.filter(user=user).select_related('category')
+    budget_data = []
+    total_budget_amount = 0
+    total_spent_against_budgets = 0
+    
+    for budget in budgets:
+        # Calculate spent amount for this budget's category
+        if budget.period == 'monthly':
+            period_start = today.replace(day=1)
+            period_end = (period_start.replace(month=period_start.month % 12 + 1, day=1) - timedelta(days=1)) if period_start.month < 12 else period_start.replace(year=period_start.year + 1, month=1, day=1) - timedelta(days=1)
+        elif budget.period == 'weekly':
+            period_start = today - timedelta(days=today.weekday())
+            period_end = period_start + timedelta(days=6)
+        else:  # yearly
+            period_start = today.replace(month=1, day=1)
+            period_end = today.replace(month=12, day=31)
+        
+        spent = Transaction.objects.filter(
+            user=user,
+            category=budget.category,
+            transaction_type='expense',
+            date__gte=period_start,
+            date__lte=period_end
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        percentage_used = (float(spent) / float(budget.amount)) * 100 if budget.amount > 0 else 0
+        remaining = float(budget.amount) - float(spent)
+        
+        budget_data.append({
+            'id': budget.id,
+            'category_name': budget.category.name,
+            'amount': float(budget.amount),
+            'spent': float(spent),
+            'remaining': remaining,
+            'percentage_used': round(percentage_used, 1),
+            'period': budget.get_period_display(),
+            'status': 'over' if spent > budget.amount else 'warning' if percentage_used > 80 else 'good'
+        })
+        
+        total_budget_amount += float(budget.amount)
+        total_spent_against_budgets += float(spent)
+
 
     # Prepare response data
     response_data = {
@@ -348,6 +391,12 @@ def dashboard_api(request):
                     'balance': float(acc.balance)
                 } for acc in accounts
             ],
+            'budgets': {
+                'total_budget_amount': total_budget_amount,
+                'total_spent': total_spent_against_budgets,
+                'budget_items': budget_data,
+                'budget_count': len(budget_data)
+            },
             'recent_transactions': [
                 {
                     'id': t.id,

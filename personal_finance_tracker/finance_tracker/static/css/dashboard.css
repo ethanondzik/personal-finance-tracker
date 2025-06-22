@@ -516,3 +516,62 @@ body.dark-theme .transaction-icon.expense {
 body.dark-theme .transaction-item:hover:not(.selected) {
     background-color: rgba(255, 255, 255, 0.05);
 }
+
+/* Budget Card Styles */
+.budget-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.budget-item:last-child {
+    border-bottom: none;
+}
+
+.budget-info {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.budget-category {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.budget-amount {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.budget-progress {
+    height: 6px;
+    margin-bottom: 0.25rem;
+}
+
+.budget-status {
+    font-size: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.budget-status.good {
+    color: #28a745;
+}
+
+.budget-status.warning {
+    color: #ffc107;
+}
+
+.budget-status.over {
+    color: #dc3545;
+}
+
+.overview-card.budgets::before {
+    background: linear-gradient(90deg, #17a2b8, #138496);
+}
+
+.overview-card.budgets .icon-wrapper {
+    background: linear-gradient(135deg, rgba(23, 162, 184, 0.1), rgba(19, 132, 150, 0.1));
+    color: #17a2b8;
+}

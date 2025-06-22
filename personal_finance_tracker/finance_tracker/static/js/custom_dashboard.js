@@ -92,9 +92,111 @@ class ModernDashboard {
         
         // Update accounts list
         this.updateAccountsList();
+
+        // Update budgets
+        this.updateBudgets();
         
         // Show dashboard content
         document.getElementById('dashboard-content').style.display = 'block';
+    }
+
+    updateBudgets() {
+        const { budgets } = this.data;
+        
+        // Update summary
+        document.getElementById('total-budget-amount').textContent = 
+            this.formatCurrency(budgets.total_budget_amount);
+        document.getElementById('total-spent-amount').textContent = 
+            this.formatCurrency(budgets.total_spent);
+        
+        // Update progress bar
+        const overallPercentage = budgets.total_budget_amount > 0 
+            ? (budgets.total_spent / budgets.total_budget_amount) * 100 
+            : 0;
+        
+        const progressBar = document.getElementById('budget-progress-bar');
+        progressBar.style.width = `${Math.min(overallPercentage, 100)}%`;
+        progressBar.setAttribute('aria-valuenow', overallPercentage);
+        
+        // Set progress bar color based on percentage
+        progressBar.className = 'progress-bar';
+        if (overallPercentage > 100) {
+            progressBar.classList.add('bg-danger');
+        } else if (overallPercentage > 80) {
+            progressBar.classList.add('bg-warning');
+        } else {
+            progressBar.classList.add('bg-success');
+        }
+        
+        // Update overall status text
+        const statusElement = document.getElementById('overall-budget-status');
+        if (overallPercentage > 100) {
+            statusElement.textContent = `Over budget by ${this.formatCurrency(budgets.total_spent - budgets.total_budget_amount)}`;
+            statusElement.className = 'text-danger';
+        } else if (overallPercentage > 80) {
+            statusElement.textContent = `${overallPercentage.toFixed(1)}% of budget used`;
+            statusElement.className = 'text-warning';
+        } else {
+            statusElement.textContent = `${overallPercentage.toFixed(1)}% of budget used`;
+            statusElement.className = 'text-success';
+        }
+        
+        // Update budget items
+        this.updateBudgetItems(budgets.budget_items);
+    }
+    
+    updateBudgetItems(budgetItems) {
+        const container = document.getElementById('budget-items-container');
+        
+        if (budgetItems.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state text-center py-3">
+                    <i class="mdi mdi-cash-multiple mdi-36px text-muted"></i>
+                    <p class="text-muted mb-2">No budgets set</p>
+                    <a href="/manage-budgets/" class="btn btn-primary btn-sm">Create Budget</a>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = budgetItems.map(budget => `
+            <div class="budget-item">
+                <div class="budget-info">
+                    <div class="d-flex align-items-center">
+                        <span class="budget-category">${budget.category_name}</span>
+                        <span class="budget-period">${budget.period}</span>
+                    </div>
+                    <div class="budget-amount">${this.formatCurrency(budget.spent)} / ${this.formatCurrency(budget.amount)}</div>
+                </div>
+                <div class="progress budget-progress">
+                    <div class="progress-bar ${this.getBudgetProgressClass(budget.status)}" 
+                         role="progressbar" 
+                         style="width: ${Math.min(budget.percentage_used, 100)}%" 
+                         aria-valuenow="${budget.percentage_used}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+                <div class="budget-status ${budget.status}">
+                    <span><strong>${budget.percentage_used}%</strong> used</span>
+                    <span class="fw-bold">
+                        ${budget.remaining >= 0 
+                            ? this.formatCurrency(budget.remaining) + ' left' 
+                            : this.formatCurrency(Math.abs(budget.remaining)) + ' over'
+                        }
+                    </span>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    getBudgetProgressClass(status) {
+        switch(status) {
+            case 'good': return 'bg-success';
+            case 'warning': return 'bg-warning';
+            case 'over': return 'bg-danger';
+            default: return 'bg-primary';
+        }
     }
 
     updateOverviewCards() {
