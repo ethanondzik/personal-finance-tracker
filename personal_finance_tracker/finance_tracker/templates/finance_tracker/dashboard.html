@@ -251,6 +251,49 @@
                                     </div>
                                 </div>
 
+                                <!-- Filters -->
+                                <div class="card dashboard-card mb-3 compact-filters-card">
+                                    <div class="card-body py-2">
+                                        <form id="filter-form" class="compact-filter-form">
+                                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                <div class="filter-group">
+                                                    <label for="filter-type" class="form-label mb-1">Type</label>
+                                                    <select id="filter-type" class="form-select form-select-sm">
+                                                        <option value="">All</option>
+                                                        <option value="income">Income</option>
+                                                        <option value="expense">Expense</option>
+                                                    </select>
+                                                </div>
+                                                <div class="filter-group">
+                                                    <label for="filter-category" class="form-label mb-1">Category</label>
+                                                    <select id="filter-category" class="form-select form-select-sm">
+                                                        <option value="">All</option>
+                                                        {% for category in categories %}
+                                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="filter-group">
+                                                    <label for="filter-start" class="form-label mb-1">From</label>
+                                                    <input type="date" id="filter-start" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="filter-group">
+                                                    <label for="filter-end" class="form-label mb-1">To</label>
+                                                    <input type="date" id="filter-end" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="filter-actions">
+                                                    <button type="submit" id="apply-filters" class="btn btn-primary btn-sm">
+                                                        <i class="mdi mdi-filter me-1"></i>Filter
+                                                    </button>
+                                                    <button type="button" id="clear-filters" class="btn btn-outline-secondary btn-sm">
+                                                        <i class="mdi mdi-refresh me-1"></i>Clear
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
                                 <!-- Recent Transactions -->
                                 <div class="card dashboard-card">
                                     <div class="card-header">
@@ -385,45 +428,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Filters -->
-                                <div class="card dashboard-card">
-                                    <div class="card-header">
-                                        <h5 class="card-title">
-                                            <i class="mdi mdi-filter me-2"></i>Filters
-                                        </h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <form id="filter-form">
-                                            <div class="mb-3">
-                                                <label for="filter-type" class="form-label">Type</label>
-                                                <select id="filter-type" class="form-select">
-                                                    <option value="">All</option>
-                                                    <option value="income">Income</option>
-                                                    <option value="expense">Expense</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="filter-category" class="form-label">Category</label>
-                                                <select id="filter-category" class="form-select">
-                                                    <option value="">All</option>
-                                                    {% for category in categories %}
-                                                    <option value="{{ category.id }}">{{ category.name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="filter-start" class="form-label">Start Date</label>
-                                                <input type="date" id="filter-start" class="form-control">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="filter-end" class="form-label">End Date</label>
-                                                <input type="date" id="filter-end" class="form-control">
-                                            </div>
-                                            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-                                            <button type="button" id="clear-filters" class="btn btn-secondary w-100 mt-2">Clear Filters</button>
-                                        </form>
-                                    </div>
-                                </div>
+                                
                             </div>
                         </div>
                     </div>

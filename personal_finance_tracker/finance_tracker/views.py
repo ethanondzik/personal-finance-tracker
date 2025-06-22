@@ -932,7 +932,7 @@ def manage_subscriptions(request):
             return redirect('manage_subscriptions')
 
         # Handle subscription addition
-        form = SubscriptionForm(request.POST)
+        form = SubscriptionForm(request.POST, user=request.user)
         form.instance.user = request.user
         if form.is_valid():
             subscription = form.save(commit=False)
@@ -943,7 +943,7 @@ def manage_subscriptions(request):
         else:
             messages.error(request, "Error adding subscription. Please try again.")
     else:
-        form = SubscriptionForm()
+        form = SubscriptionForm(user=request.user)
 
     return render(request, 'finance_tracker/manage_subscriptions.html', {
         'subscriptions': subscriptions,
@@ -966,13 +966,13 @@ def update_subscription(request, subscription_id):
     subscription = get_object_or_404(Subscription, id=subscription_id, user=request.user)
 
     if request.method == 'POST':
-        form = SubscriptionForm(request.POST, instance=subscription)
+        form = SubscriptionForm(request.POST, instance=subscription, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "Subscription updated successfully!")
             return redirect('manage_subscriptions')
     else:
-        form = SubscriptionForm(instance=subscription)
+        form = SubscriptionForm(instance=subscription, user=request.user)
 
     return render(request, 'finance_tracker/update_subscription.html', {
         'form': form,
