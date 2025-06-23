@@ -23,21 +23,99 @@
     <!-- End plugin css for this page -->
     <!-- inject:css -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/custom_base_styles.css' %}">
     <!-- endinject -->
     <link rel="shortcut icon" href="{% static 'images/favicon-32x32.png' %}" />
     
 
     
     {% block extra_css %}{% endblock %}
+
+  
   </head>
   <body class="with-welcome-text {{ request.theme }}-theme">
-    <a href="{% url 'dashboard' %}" class="btn btn-outline-primary position-fixed" style="top: 20px; left: 20px; z-index: 1050;">
-      <i class="mdi mdi-arrow-left me-2"></i>Dashboard
-    </a>
     <div class="container-scroller">
-      {% block content %}
-      {% endblock %}
+      
+      <button id="sidebarToggle" class="btn btn-link sidebar-toggle-btn">
+          <i class="mdi mdi-menu"></i>
+      </button>
+        
+      <nav class="sidebar sidebar-offcanvas floating-sidebar" id="sidebar">
+          <div id="sidebarMenu" class="sidebar-menu">
+              <ul class="nav flex-column">
+                  <li class="nav-item">
+                      <a class="nav-link" href="{% url 'dashboard' %}">
+                        <i class="mdi mdi-view-dashboard menu-icon"></i>
+                        <span class="menu-title">Dashboard</span>
+                      </a>
+                    </li>                        
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'manage_bank_accounts' %}">
+                        <i class="mdi mdi-bank menu-icon"></i>
+                        <span class="menu-title">Bank Accounts</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'manage_categories' %}">
+                        <i class="mdi mdi-grid-large menu-icon"></i>
+                        <span class="menu-title">Categories</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'query_transactions' %}">
+                        <i class="mdi mdi-magnify menu-icon"></i>
+                        <span class="menu-title">Query Transactions</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'manage_subscriptions' %}">
+                          <i class="mdi mdi-calendar-clock menu-icon"></i>
+                          <span class="menu-title">Subscriptions</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'transaction_calendar' %}">
+                          <i class="mdi mdi-calendar-month menu-icon"></i>
+                          <span class="menu-title">Calendar View</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'transaction_timeline' %}">
+                          <i class="mdi mdi-calendar-month menu-icon"></i>
+                          <span class="menu-title">Timeline View</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'notification_settings' %}">
+                        <i class="mdi mdi-bell menu-icon"></i>
+                        <span class="menu-title">Notifications</span>
+                      </a>
+                    </li> 
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'manage_budgets' %}">
+                        <i class="mdi mdi-cash-multiple menu-icon"></i>
+                        <span class="menu-title">Budgets</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="{% url 'spreadsheet_transactions' %}">
+                        <i class="mdi mdi-table-large menu-icon"></i>
+                        <span class="menu-title">Spreadsheet Entry</span>
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'visualization_hub' %}">
+                            <i class="mdi mdi-chart-multiple menu-icon"></i>
+                            <span class="menu-title">Data Visualizations</span>
+                        </a>
+                    </li>
+              </ul>
+          </div>
+      </nav>
+    {% block content %}{% endblock %}
     </div>
+    
+
     <!-- plugins:js -->
     <script src="{% static 'vendors/js/vendor.bundle.base.js' %}"></script>
     <script src="{% static 'js/jquery.cookie.js' %}"></script>
@@ -54,6 +132,13 @@
     <!-- Custom js -->
     <script src="{% static 'js/theme-toggle.js' %}"></script>
     <script src="{% static 'js/notifications.js' %}"></script>
+
+    <script>
+    // Collapse/expand sidebar
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.body.classList.toggle('sidebar-open');
+    });
+    </script>
 
     {% block extra_js %}
     {% endblock %}

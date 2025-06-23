@@ -654,3 +654,8 @@ window.addEventListener('beforeunload', () => {
         window.dashboard.destroy();
     }
 });
+
+// Collapse/expand sidebar
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    document.body.classList.toggle('sidebar-open');
+});

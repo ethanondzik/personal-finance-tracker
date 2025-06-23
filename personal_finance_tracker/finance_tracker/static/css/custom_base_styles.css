@@ -1,0 +1,53 @@
+/* When sidebar is open, push main content to the right */
+body.sidebar-open .main-panel,
+body.sidebar-open .content-wrapper { 
+    transition: margin-left 0.3s ease;
+} 
+
+/* When sidebar is closed, content uses full width */
+.main-panel,
+.content-wrapper {
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+}
+
+/* Sidebar stays fixed */
+.floating-sidebar {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    width: 220px;
+    height: 100vh;
+    z-index: 1050;
+    transition: transform 0.3s ease;
+}
+
+/* Hide sidebar by default */
+.floating-sidebar {
+    transform: translateX(-100%);
+}
+
+/* Show sidebar when open */
+body.sidebar-open .floating-sidebar {
+    transform: translateX(0);
+}
+
+
+.sidebar-toggle-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1060; /* Higher than sidebar */
+    width: 45px;
+    height: 45px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
