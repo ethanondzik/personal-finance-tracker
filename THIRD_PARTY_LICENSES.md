@@ -1,9 +1,5 @@
 # Third-Party Licenses
 
-## Star Admin 2
-- License: MIT License
-- Source: https://www.bootstrapdash.com/product/star-admin-free
-
 ## Chart.js
 - License: MIT License
 - Source: https://github.com/chartjs/Chart.js/blob/master/LICENSE.md

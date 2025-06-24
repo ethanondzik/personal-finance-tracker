@@ -18,7 +18,7 @@ The Personal Finance Tracker follows Django's MVT (Model-View-Template) architec
 
 1. Templates Layer:
 - HTML templates with Django template language
-- Static files including Star Admin 2 theme, CSS, JavaScript, and custom components
+- Static files including bootstrap themes, CSS, JavaScript, and custom components
 2. View Layer:
 - View functions that process requests and generate responses
 - Forms for data validation and processing
