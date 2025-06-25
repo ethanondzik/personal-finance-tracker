@@ -2,28 +2,47 @@
 document.addEventListener('DOMContentLoaded', function() {
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+    
     const html = document.documentElement;
     
-    // Get saved theme or default to light
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = html.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            // Apply theme immediately to prevent flash
+            html.setAttribute('data-bs-theme', newTheme);
+            document.body.className = document.body.className.replace(/\b(light-theme|dark-theme)\b/g, '');
+            document.body.classList.add(newTheme + '-theme');
+            
+            // Save to database only
+            fetch('/update-theme-preference/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: 'theme=' + encodeURIComponent(newTheme)
+            });
+        });
+    }
     
-    themeToggle.addEventListener('click', function() {
-        const currentTheme = html.getAttribute('data-bs-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-    });
-    
-    function setTheme(theme) {
-        html.setAttribute('data-bs-theme', theme);
-        localStorage.setItem('theme', theme);
-        
-        // Update icon
+    function updateThemeUI(theme) {
         if (theme === 'dark') {
-            themeIcon.className = 'bi bi-moon-fill';
+            themeIcon.className = 'bi bi-moon-fill me-2';
+            themeText.textContent = 'Switch Light Mode';
         } else {
-            themeIcon.className = 'bi bi-sun-fill';
+            themeIcon.className = 'bi bi-sun-fill me-2';
+            themeText.textContent = 'Dark Mode';
         }
+    }
+    
+    function getCSRFToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='));
+        return cookieValue ? cookieValue.split('=')[1] : '';
     }
     
     // Sidebar Toggle for Mobile

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
+<html lang="en" data-bs-theme="{{ request.theme }}"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -174,10 +174,10 @@
                             {{ user.first_name|default:user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <!-- Theme Toggle !!FIX aligment!!-->
                             <li>
-                                <button class="dropdown-item" id="themeToggle">
-                                    <i class="bi bi-sun-fill me-2" id="themeIcon"></i>  Theme
+                                <button class="dropdown-item d-flex align-items-center" id="themeToggle">
+                                    <i class="bi bi-sun-fill me-2" id="themeIcon"></i>
+                                    <span id="themeText">Switch Theme</span>
                                 </button>
                             </li>
                             <li><a class="dropdown-item" href="{% url 'manage_account' %}">

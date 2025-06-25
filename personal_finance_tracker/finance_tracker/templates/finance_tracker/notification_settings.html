@@ -138,7 +138,7 @@
               
               <div class="card-body">
                   <h6 class="card-title">Add New Custom Rule</h6>
-                  <form method="post" action="{% url 'notification_settings' %}" class="mb-4 p-3 border rounded bg-light">
+                  <form method="post" action="{% url 'notification_settings' %}" class="mb-4 p-3 border rounded">
                       {% csrf_token %}
                       {{ custom_notification_form.non_field_errors }}
                       {% for field in custom_notification_form %}

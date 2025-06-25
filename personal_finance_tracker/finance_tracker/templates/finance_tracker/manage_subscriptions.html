@@ -21,9 +21,9 @@
         <div class="card-body">
             <h5 class="card-title">Your Subscriptions</h5>
             {% if subscriptions %}
-            <div class="table-responsive">
+            <div class="table-responsive table-bordered">
                 <table class="table table-hover">
-                    <thead class="table-light">
+                    <thead class="table">
                         <tr>
                             <th>Name</th>
                             <th>Amount</th>
@@ -59,7 +59,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="card bg-light mb-4">
+            <div class="card mb-4">
                 <div class="card-body">
                     <p class="text-muted mb-0">You have no subscriptions.</p>
                 </div>

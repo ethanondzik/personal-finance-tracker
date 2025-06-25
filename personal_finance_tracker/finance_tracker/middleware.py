@@ -15,18 +15,10 @@ class ThemeMiddleware:
 
             request.theme = theme
             
-            # Add theme to request object for use in templates
-            request.theme = theme
-
-            # Add navbar-specific classes based on theme (to override navbar styling complexities within star admin 2)
-            if theme == 'dark':
-                request.navbar_class = 'navbar-dark'
-            else:
-                request.navbar_class = 'navbar-light'
         else:
             # Default theme for unauthenticated users
             request.theme = 'light'
-            request.navbar_class = 'navbar-light'
+            
 
 
         response = self.get_response(request)

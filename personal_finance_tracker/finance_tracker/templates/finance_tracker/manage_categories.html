@@ -23,8 +23,8 @@
             <h4 class="mb-4">Your Categories</h4>
             {% if categories %}
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
+                <table class="table table-hover table-bordered">
+                    <thead class="table">
                         <tr>
                             <th>Name</th>
                             <th>Type</th>
@@ -51,7 +51,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="card bg-light mb-4">
+            <div class="card mb-4">
                 <div class="card-body">
                     <p class="text-muted mb-0">You have no categories.</p>
                 </div>
