@@ -98,7 +98,7 @@
     <!-- Monthly Overview Chart -->
     <div class="col-lg-8 mb-4">
         <div class="card h-100">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                     <i class="bi bi-bar-chart me-2"></i>
                     Monthly Overview
@@ -162,7 +162,7 @@
     <!-- Recent Transactions -->
     <div class="col-lg-8 mb-4">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                     <i class="bi bi-clock-history me-2"></i>
                     Recent Transactions
@@ -180,23 +180,68 @@
     </div>
     
     <!-- Account Summary -->
-    <div class="col-lg-4 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-bank me-2"></i>
-                    Account Summary
-                </h5>
-                <a href="{% url 'manage_bank_accounts' %}" class="btn btn-sm btn-outline-primary">
-                    Manage
-                </a>
+    <div class="col-lg-4">
+        
+        <!-- Account Summary Card -->
+        <div class="card dashboard-card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Account Summary</h5>
+                <a href="{% url 'manage_bank_accounts' %}" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body" id="account-summary-list">
+                <!-- Account summary content will be loaded here by JS -->
+                <div class="text-center p-3 text-muted">Loading accounts...</div>
+            </div>
+        </div>
+
+        <!-- Budgets Card -->
+        <div class="card dashboard-card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Budget Overview</h5>
+                <a href="{% url 'manage_budgets' %}" class="btn btn-sm btn-outline-primary">Manage</a>
             </div>
             <div class="card-body">
-                <div id="account-summary">
-                    <!-- Account summary will be loaded here -->
+                <div class="budget-summary mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Spent:</span>
+                        <span class="fw-bold" id="total-spent-amount">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Budget:</span>
+                        <span class="fw-bold" id="total-budget-amount">$0.00</span>
+                    </div>
+                    <div class="progress budget-progress mb-2" style="height: 8px;">
+                        <div class="progress-bar" role="progressbar" id="budget-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="overall-budget-status">No budgets set</small>
                 </div>
+                <div id="budget-items-container">
+                    <!-- Budget items will be loaded here by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscriptions Card -->
+        <div class="card dashboard-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Active Subscriptions</h5>
+                <a href="{% url 'manage_subscriptions' %}" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush" id="subscriptions-list">
+                    <li class="list-group-item text-muted">Loading subscriptions...</li>
+                </ul>
             </div>
         </div>
     </div>
 </div>
+
+
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/custom_dashboard.js' %}"></script>
+{% endblock %}
+
 {% endblock %}
