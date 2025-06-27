@@ -1,6 +1,16 @@
-from django.urls import path
+from django.urls import include, path
 from . import views
 from django.contrib.auth import views as auth_views
+from rest_framework.routers import DefaultRouter
+from . import api_views
+
+router = DefaultRouter()
+router.register(r'transactions', api_views.TransactionViewSet, basename='transaction')
+router.register(r'accounts', api_views.AccountViewSet, basename='account')
+router.register(r'categories', api_views.CategoryViewSet, basename='category')
+router.register(r'subscriptions', api_views.SubscriptionViewSet, basename='subscription')
+router.register(r'budgets', api_views.BudgetViewSet, basename='budget')
+router.register(r'notifications', api_views.CustomNotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('', views.landing, name='landing'),
@@ -39,4 +49,5 @@ urlpatterns = [
     path('visualizations/line-chart/', views.line_chart_visualization, name='line_chart_visualization'),
     path('visualizations/pie-chart/', views.pie_chart_visualization, name='pie_chart_visualization'),
     path('visualizations/network/', views.network_visualization, name='network_visualization'),
+    path('api/', include(router.urls)),
 ]

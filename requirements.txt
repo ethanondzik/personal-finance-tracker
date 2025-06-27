@@ -3,3 +3,4 @@ Django==5.1.6
 python-decouple==3.8
 sqlparse==0.5.3
 psycopg # PostgreSQL adapter for Python
+djangorestframework
