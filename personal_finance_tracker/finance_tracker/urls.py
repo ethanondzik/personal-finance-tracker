@@ -3,6 +3,7 @@ from . import views
 from django.contrib.auth import views as auth_views
 from rest_framework.routers import DefaultRouter
 from . import api_views
+from . import dashboard_viewset
 
 router = DefaultRouter()
 router.register(r'transactions', api_views.TransactionViewSet, basename='transaction')
@@ -11,11 +12,11 @@ router.register(r'categories', api_views.CategoryViewSet, basename='category')
 router.register(r'subscriptions', api_views.SubscriptionViewSet, basename='subscription')
 router.register(r'budgets', api_views.BudgetViewSet, basename='budget')
 router.register(r'notifications', api_views.CustomNotificationViewSet, basename='notification')
+router.register(r'dashboard', dashboard_viewset.DashboardViewSet, basename='dashboard')
 
 urlpatterns = [
     path('', views.landing, name='landing'),
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('api/dashboard/', views.dashboard_api, name='dashboard_api'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='landing'), name='logout'),
     path('register/', views.register, name='register'),

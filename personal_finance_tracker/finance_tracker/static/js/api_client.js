@@ -46,49 +46,22 @@
          * API methods for Transactions.
          */
         transactions: {
-            /**
-             * Get a list of all transactions, with optional filters.
-             * @param {URLSearchParams} [params] - Optional query parameters for filtering.
-             * @returns {Promise<Array>}
-             */
             getAll: (params) => _request(`/api/transactions/?${params || ''}`),
-
-            /**
-             * Get a single transaction by its ID.
-             * @param {number} id - The transaction ID.
-             * @returns {Promise<Object>}
-             */
             get: (id) => _request(`/api/transactions/${id}/`),
-
-            /**
-             * Create a new transaction.
-             * @param {Object} data - The transaction data.
-             * @returns {Promise<Object>}
-             */
             create: (data) => _request('/api/transactions/', 'POST', data),
-
-            /**
-             * Update an existing transaction.
-             * @param {number} id - The transaction ID.
-             * @param {Object} data - The data to update.
-             * @returns {Promise<Object>}
-             */
             update: (id, data) => _request(`/api/transactions/${id}/`, 'PATCH', data),
-
-            /**
-             * Delete a transaction.
-             * @param {number} id - The transaction ID.
-             * @returns {Promise<null>}
-             */
             delete: (id) => _request(`/api/transactions/${id}/`, 'DELETE'),
         },
 
         /**
          * API methods for Accounts.
-         * (You can expand this with get, create, update, delete methods)
          */
         accounts: {
             getAll: () => _request('/api/accounts/'),
+            get: (id) => _request(`/api/accounts/${id}/`),
+            create: (data) => _request('/api/accounts/', 'POST', data),
+            update: (id, data) => _request(`/api/accounts/${id}/`, 'PATCH', data),
+            delete: (id) => _request(`/api/accounts/${id}/`, 'DELETE'),
         },
 
         /**
@@ -96,6 +69,10 @@
          */
         categories: {
             getAll: () => _request('/api/categories/'),
+            get: (id) => _request(`/api/categories/${id}/`),
+            create: (data) => _request('/api/categories/', 'POST', data),
+            update: (id, data) => _request(`/api/categories/${id}/`, 'PATCH', data),
+            delete: (id) => _request(`/api/categories/${id}/`, 'DELETE'),
         },
         
         /**
@@ -103,6 +80,10 @@
          */
         budgets: {
             getAll: () => _request('/api/budgets/'),
+            get: (id) => _request(`/api/budgets/${id}/`),
+            create: (data) => _request('/api/budgets/', 'POST', data),
+            update: (id, data) => _request(`/api/budgets/${id}/`, 'PATCH', data),
+            delete: (id) => _request(`/api/budgets/${id}/`, 'DELETE'),
         },
 
         /**
@@ -110,16 +91,20 @@
          */
         subscriptions: {
             getAll: () => _request('/api/subscriptions/'),
+            get: (id) => _request(`/api/subscriptions/${id}/`),
+            create: (data) => _request('/api/subscriptions/', 'POST', data),
+            update: (id, data) => _request(`/api/subscriptions/${id}/`, 'PATCH', data),
+            delete: (id) => _request(`/api/subscriptions/${id}/`, 'DELETE'),
         },
 
         /**
-         * Custom endpoint for aggregated dashboard data.
+         * Aggregated dashboard data using multiple API calls
          */
-        getDashboardData: (filters) => {
+        getDashboardData: async (filters = {}) => {
             const params = new URLSearchParams(filters);
-            return _request(`/api/dashboard/?${params.toString()}`);
+            return _request(`/api/dashboard/summary/?${params.toString()}`);
         }
-    };
+    }
 
     // Attach the client to the window object to make it globally accessible
     window.apiClient = apiClient;

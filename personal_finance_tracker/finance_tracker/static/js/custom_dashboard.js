@@ -1,95 +1,82 @@
-function DashboardManager() {
-    this.data = null;
-    this.chart = null;
-    this.refreshInterval = null;
-    
-    // Initialize dashboard
-    this.init = function() {
-        this.setupEventListeners();
-        this.loadDashboardData();
-        this.setupAutoRefresh();
-    };
+class Dashboard {
+    constructor() {
+        this.data = null;
+        this.chart = null;
+        this.refreshInterval = null;
+    }
 
-    this.setupEventListeners = function() {
-        var self = this;
-        
+    async init() {
+        try {
+            this.showLoading();
+            this.setupEventListeners();
+            await this.loadDashboardData();
+            this.updateDashboard();
+            this.setupAutoRefresh();
+        } catch (error) {
+            console.error('Dashboard initialization error:', error);
+            this.showError('Failed to load dashboard data');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    setupEventListeners() {
         // Refresh button
-        var refreshBtn = document.getElementById('refresh-dashboard');
+        const refreshBtn = document.getElementById('refresh-dashboard');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', function() {
-                self.loadDashboardData();
+            refreshBtn.addEventListener('click', () => {
+                this.refreshData();
             });
         }
 
         // Auto-refresh on visibility change
-        document.addEventListener('visibilitychange', function() {
+        document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
-                self.refreshData();
+                this.refreshData();
             }
         });
-    };
+    }
 
-    this.loadDashboardData = function(filters) {
-        var self = this;
-        filters = filters || {};
-        
+    async loadDashboardData(filters = {}) {
         try {
-            self.showLoading();
+            this.showLoading();
             
-            var params = new URLSearchParams(filters);
-            fetch('/api/dashboard/?' + params.toString(), {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                }
-                return response.json();
-            })
-            .then(function(result) {
-                if (result.status === 'success') {
-                    self.data = result.data;
-                    self.updateDashboard();
-                } else {
-                    throw new Error(result.message || 'Failed to load dashboard data');
-                }
-            })
-            .catch(function(error) {
-                console.error('Error loading dashboard data:', error);
-                self.showError('Failed to load dashboard data. Please try again.');
-            })
-            .finally(function() {
-                self.hideLoading();
-            });
+            // Use the API client instead of manual fetch
+            const result = await apiClient.getDashboardData(filters);
             
+            if (result.status === 'success') {
+                this.data = result.data;
+                this.updateDashboard();
+            } else {
+                throw new Error(result.message || 'Failed to load dashboard data');
+            }
         } catch (error) {
             console.error('Error loading dashboard data:', error);
-            self.showError('Failed to load dashboard data. Please try again.');
-            self.hideLoading();
+            this.showError('Failed to load dashboard data. Please try again.');
+        } finally {
+            this.hideLoading();
         }
-    };
+    }
 
-    this.updateDashboard = function() {
+    updateDashboard() {
         if (!this.data) return;
         
         this.updateOverviewCards();
         this.updateChart();
         this.updateTransactionsList();
-        this.updateSubscriptionsCard();
-        this.updateBudgetsCard();
+        this.updateAccountsList();
+        this.updateBudgets();
+        this.updateSubscriptions();
         
         // Show dashboard content
-        var dashboardContent = document.getElementById('dashboard-content');
+        const dashboardContent = document.getElementById('dashboard-content');
         if (dashboardContent) {
             dashboardContent.style.display = 'block';
         }
-    };
+    }
 
-    this.updateOverviewCards = function() {
-        var financial_summary = this.data.financial_summary;
+    updateOverviewCards() {
+        const { financial_summary } = this.data;
         
         this.updateElement('total-income', this.formatCurrency(financial_summary.total_income));
         this.updateElement('total-expenses', this.formatCurrency(financial_summary.total_expenses));
@@ -97,40 +84,39 @@ function DashboardManager() {
         this.updateElement('account-count', financial_summary.account_count);
         
         // Update balance card color
-        var balanceCard = document.querySelector('.overview-card.balance');
+        const balanceCard = document.querySelector('.overview-card.balance');
         if (balanceCard) {
             balanceCard.classList.remove('positive', 'negative');
             balanceCard.classList.add(financial_summary.net_balance >= 0 ? 'positive' : 'negative');
         }
-    };
+    }
 
-    this.updateChart = function() {
-        var ctx = document.getElementById('monthlyChart');
+    updateChart() {
+        const ctx = document.getElementById('monthlyChart');
         if (!ctx) return;
         
-        var monthly_data = this.data.chart_data.monthly_data;
+        const { monthly_data } = this.data.chart_data;
         
-        // Make sure ref to previous chart is not lost and delete it before proceeding
-        var existingChart = Chart.getChart(ctx);
+        // Destroy existing chart
+        const existingChart = Chart.getChart(ctx);
         if (existingChart) {
             existingChart.destroy();
         }
         
-        var self = this;
         this.chart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: monthly_data.map(function(item) { return item.month; }),
+                labels: monthly_data.map(item => item.month),
                 datasets: [{
                     label: 'Income',
-                    data: monthly_data.map(function(item) { return item.income; }),
+                    data: monthly_data.map(item => item.income),
                     backgroundColor: 'rgba(76, 175, 80, 0.8)',
                     borderColor: '#4CAF50',
                     borderWidth: 1,
                     borderRadius: 8,
                 }, {
                     label: 'Expenses',
-                    data: monthly_data.map(function(item) { return item.expenses; }),
+                    data: monthly_data.map(item => item.expenses),
                     backgroundColor: 'rgba(244, 67, 54, 0.8)',
                     borderColor: '#f44336',
                     borderWidth: 1,
@@ -151,9 +137,7 @@ function DashboardManager() {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return self.formatCurrency(value);
-                            }
+                            callback: (value) => this.formatCurrency(value)
                         }
                     }
                 },
@@ -167,8 +151,8 @@ function DashboardManager() {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + self.formatCurrency(context.parsed.y);
+                            label: (context) => {
+                                return context.dataset.label + ': ' + this.formatCurrency(context.parsed.y);
                             }
                         }
                     }
@@ -179,240 +163,310 @@ function DashboardManager() {
                 }
             }
         });
-    };
+    }
 
-    this.updateTransactionsList = function() {
-        var container = document.getElementById('recent-transactions-list');
+    updateTransactionsList() {
+        const container = document.getElementById('recent-transactions-list');
         if (!container) return;
 
-        var recent_transactions = this.data.recent_transactions;
-        var self = this;
+        const { recent_transactions } = this.data;
         
         if (recent_transactions.length === 0) {
-            container.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-1"></i><p class="mt-2">No recent transactions</p><a href="/add-transaction/" class="btn btn-primary btn-sm">Add Transaction</a></div>';
+            container.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox fs-1"></i>
+                    <p class="mt-2">No recent transactions</p>
+                    <a href="/add-transaction/" class="btn btn-primary btn-sm">Add Transaction</a>
+                </div>
+            `;
             return;
         }
         
-        container.innerHTML = recent_transactions.map(function(transaction) {
-            return '<div class="transaction-item d-flex align-items-center justify-content-between">' +
-                '<div class="d-flex align-items-center">' +
-                    '<div class="transaction-icon ' + transaction.transaction_type + '">' +
-                        '<i class="bi ' + (transaction.transaction_type === 'income' ? 'bi-arrow-down-left' : 'bi-arrow-up-right') + '"></i>' +
-                    '</div>' +
-                    '<div class="transaction-details ms-3">' +
-                        '<div class="transaction-description">' + transaction.description + '</div>' +
-                        '<div class="transaction-meta">' +
-                            transaction.category + ' • ' + new Date(transaction.date).toLocaleDateString() +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="d-flex align-items-center gap-2">' +
-                    '<div class="transaction-amount ' + transaction.transaction_type + '">' +
-                        (transaction.transaction_type === 'income' ? '+' : '-') + self.formatCurrency(Math.abs(transaction.amount)) +
-                    '</div>' +
-                    '<a href="/update_transaction/' + transaction.id + '/?next=/dashboard/" class="btn btn-sm btn-outline-info" title="Edit">' +
-                        '<i class="bi bi-pencil"></i>' +
-                    '</a>' +
-                    '<button class="btn btn-sm btn-outline-danger delete-transaction-btn" data-transaction-id="' + transaction.id + '" title="Delete">' +
-                        '<i class="bi bi-trash"></i>' +
-                    '</button>' +
-                '</div>' +
-            '</div>';
-        }).join('');
+        container.innerHTML = recent_transactions.map(transaction => `
+            <div class="transaction-item d-flex align-items-center justify-content-between p-3 border-bottom" data-transaction-id="${transaction.id}">
+                <div class="d-flex align-items-center">
+                    <div class="transaction-icon ${transaction.type} me-3">
+                        <i class="bi ${transaction.type === 'income' ? 'bi-arrow-down-left' : 'bi-arrow-up-right'}"></i>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-description fw-semibold">${transaction.description}</div>
+                        <div class="transaction-meta text-muted small">
+                            ${transaction.category} • ${new Date(transaction.date).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="transaction-amount ${transaction.type} fw-bold">
+                        ${transaction.type === 'income' ? '+' : '-'}${this.formatCurrency(Math.abs(transaction.amount))}
+                    </div>
+                    <button class="btn btn-sm btn-outline-info" onclick="window.location.href='/update_transaction/${transaction.id}/?next=/dashboard/'" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-transaction-btn" data-transaction-id="${transaction.id}" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
         
         // Setup delete transaction handlers
         this.setupTransactionDeleteHandlers();
-    };
+    }
 
-    this.updateSubscriptionsCard = function() {
-        var subscriptions = this.data.subscriptions;
+    updateAccountsList() {
+        const container = document.getElementById('account-summary-list');
+        if (!container) return;
+
+        const { accounts } = this.data;
         
-        this.updateElement('subscriptions-count', subscriptions ? subscriptions.total || 0 : 0);
-        
-        var nextDueElement = document.getElementById('subscriptions-next-due');
-        if (nextDueElement) {
-            if (subscriptions && subscriptions.next_due_date && subscriptions.next_due_name) {
-                var date = new Date(subscriptions.next_due_date);
-                nextDueElement.textContent = 'Next: ' + subscriptions.next_due_name + ' (' + date.toLocaleDateString() + ')';
-            } else {
-                nextDueElement.textContent = 'No upcoming payments';
-            }
+        if (accounts.length === 0) {
+            container.innerHTML = `
+                <div class="text-center p-3 text-muted">
+                    <i class="bi bi-bank"></i>
+                    <p>No accounts found</p>
+                    <a href="/manage-bank-accounts/" class="btn btn-primary btn-sm">Add Account</a>
+                </div>
+            `;
+            return;
         }
         
-        var listContainer = document.getElementById('subscriptions-list');
-        if (listContainer) {
-            if (!subscriptions || !subscriptions.preview || subscriptions.preview.length === 0) {
-                listContainer.innerHTML = '<li class="text-muted">No active subscriptions</li>';
-                return;
-            }
-            
-            var self = this;
-            listContainer.innerHTML = subscriptions.preview.map(function(sub) {
-                return '<li>' +
-                    '<div>' +
-                        '<span class="fw-semibold">' + sub.name + '</span>' +
-                        '<small class="text-muted d-block">Due: ' + new Date(sub.next_payment_date).toLocaleDateString() + '</small>' +
-                    '</div>' +
-                    '<span class="text-muted">' + self.formatCurrency(sub.amount) + '</span>' +
-                '</li>';
-            }).join('');
-        }
-    };
+        container.innerHTML = accounts.map(account => `
+            <div class="account-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                    <div class="fw-semibold">${account.account_number}</div>
+                    <small class="text-muted">${account.account_type}</small>
+                </div>
+                <div class="fw-bold">${this.formatCurrency(account.balance)}</div>
+            </div>
+        `).join('');
+    }
 
-    this.updateBudgetsCard = function() {
-        var budgets = this.data.budgets;
+    updateBudgets() {
+        const { budgets } = this.data;
         
-        this.updateElement('total-budget-amount', this.formatCurrency(budgets ? budgets.total_budget_amount || 0 : 0));
-        this.updateElement('total-spent-amount', this.formatCurrency(budgets ? budgets.total_spent || 0 : 0));
+        // Update budget summary
+        this.updateElement('total-budget-amount', this.formatCurrency(budgets.total_budget_amount));
+        this.updateElement('total-spent-amount', this.formatCurrency(budgets.total_spent));
         
-        var totalBudget = budgets ? budgets.total_budget_amount || 0 : 0;
-        var totalSpent = budgets ? budgets.total_spent || 0 : 0;
-        var percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+        // Update progress bar
+        const overallPercentage = budgets.total_budget_amount > 0 
+            ? (budgets.total_spent / budgets.total_budget_amount) * 100 
+            : 0;
         
-        var progressBar = document.getElementById('budget-progress-bar');
+        const progressBar = document.getElementById('budget-progress-bar');
         if (progressBar) {
-            progressBar.style.width = Math.min(percentage, 100) + '%';
-            progressBar.setAttribute('aria-valuenow', percentage);
-            
+            progressBar.style.width = `${Math.min(overallPercentage, 100)}%`;
             progressBar.className = 'progress-bar';
-            if (percentage > 100) {
+            
+            if (overallPercentage > 100) {
                 progressBar.classList.add('bg-danger');
-            } else if (percentage > 80) {
+            } else if (overallPercentage > 80) {
                 progressBar.classList.add('bg-warning');
             } else {
                 progressBar.classList.add('bg-success');
             }
         }
-    };
+        
+        // Update budget items
+        const container = document.getElementById('budget-items-container');
+        if (container) {
+            if (budgets.budget_items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state text-center">
+                        <i class="bi bi-wallet2"></i>
+                        <p class="text-muted">No budgets set</p>
+                        <a href="/manage-budgets/" class="btn btn-primary btn-sm">Create Budget</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = budgets.budget_items.map(budget => `
+                <div class="budget-item mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-semibold">${budget.category_name}</span>
+                        <span class="text-muted">${this.formatCurrency(budget.spent)} / ${this.formatCurrency(budget.amount)}</span>
+                    </div>
+                    <div class="progress mb-1" style="height: 6px;">
+                        <div class="progress-bar ${this.getBudgetProgressClass(budget.status)}" 
+                             style="width: ${Math.min(budget.percentage_used, 100)}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">${budget.percentage_used}% used</small>
+                        <small class="text-${budget.status === 'over' ? 'danger' : 'muted'}">
+                            ${budget.remaining >= 0 ? this.formatCurrency(budget.remaining) + ' left' : this.formatCurrency(Math.abs(budget.remaining)) + ' over'}
+                        </small>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
 
-    this.setupTransactionDeleteHandlers = function() {
-        var self = this;
-        var deleteButtons = document.querySelectorAll('.delete-transaction-btn');
-        deleteButtons.forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
+    updateSubscriptions() {
+        const { subscriptions } = this.data;
+        const container = document.getElementById('subscriptions-list');
+        
+        if (!container) return;
+        
+        if (subscriptions.total === 0) {
+            container.innerHTML = '<li class="list-group-item text-muted">No active subscriptions</li>';
+            return;
+        }
+        
+        // You'll need to add subscription preview data to your API
+        container.innerHTML = `
+            <li class="list-group-item d-flex justify-content-between">
+                <span>Total Active</span>
+                <span class="fw-bold">${subscriptions.active}</span>
+            </li>
+            ${subscriptions.next_due_name ? `
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between">
+                    <span>Next Due</span>
+                    <span class="text-muted">${new Date(subscriptions.next_due_date).toLocaleDateString()}</span>
+                </div>
+                <small class="text-muted">${subscriptions.next_due_name}</small>
+            </li>
+            ` : ''}
+        `;
+    }
+
+    setupTransactionDeleteHandlers() {
+        const deleteButtons = document.querySelectorAll('.delete-transaction-btn');
+        deleteButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                var transactionId = btn.getAttribute('data-transaction-id');
-                self.confirmDeleteTransaction(transactionId);
+                const transactionId = btn.getAttribute('data-transaction-id');
+                await this.deleteTransaction(transactionId);
             });
         });
-    };
+    }
 
-    this.confirmDeleteTransaction = function(transactionId) {
-        if (confirm('Are you sure you want to delete this transaction?')) {
-            this.deleteTransaction(transactionId);
+    async deleteTransaction(transactionId) {
+        if (!confirm('Are you sure you want to delete this transaction?')) {
+            return;
         }
-    };
 
-    this.deleteTransaction = function(transactionId) {
-        var self = this;
         try {
-            fetch('/delete-transactions/', {
+            // Using the existing delete endpoint instead of the API client 
+            // since it's a custom multi-delete endpoint
+            const response = await fetch('/delete-transactions/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': getCSRFToken()
+                    'X-CSRFToken': this.getCSRFToken()
                 },
-                body: 'transaction_ids=' + transactionId + '&confirm=1'
-            })
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(result) {
-                if (result.status === 'success') {
-                    if (window.showNotification) {
-                        window.showNotification('Transaction deleted successfully', 'success');
-                    }
-                    self.loadDashboardData(); // Refresh data
-                } else {
-                    throw new Error(result.message || 'Failed to delete transaction');
-                }
-            })
-            .catch(function(error) {
-                console.error('Error deleting transaction:', error);
-                if (window.showNotification) {
-                    window.showNotification('Error deleting transaction', 'danger');
-                }
+                body: `transaction_ids=${transactionId}&confirm=1`
             });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                this.showSuccess('Transaction deleted successfully');
+                await this.loadDashboardData(); // Refresh data
+            } else {
+                throw new Error(result.message || 'Failed to delete transaction');
+            }
         } catch (error) {
             console.error('Error deleting transaction:', error);
-            if (window.showNotification) {
-                window.showNotification('Error deleting transaction', 'danger');
-            }
+            this.showError('Error deleting transaction');
         }
-    };
+    }
 
-    this.refreshData = function() {
+    async refreshData() {
         console.log('Refreshing dashboard data...');
-        this.loadDashboardData();
-    };
+        await this.loadDashboardData();
+    }
 
-    this.setupAutoRefresh = function() {
-        var self = this;
-        this.refreshInterval = setInterval(function() {
+    setupAutoRefresh() {
+        this.refreshInterval = setInterval(() => {
             if (!document.hidden) {
-                self.refreshData();
+                this.refreshData();
             }
         }, 5 * 60 * 1000); // 5 minutes
-    };
+    }
 
     // Utility methods
-    this.updateElement = function(id, value) {
-        var element = document.getElementById(id);
+    updateElement(id, value) {
+        const element = document.getElementById(id);
         if (element) {
             element.textContent = value;
         }
-    };
+    }
 
-    this.formatCurrency = function(amount) {
+    formatCurrency(amount) {
         return new Intl.NumberFormat('en-CA', {
             style: 'currency',
             currency: 'CAD'
         }).format(amount);
-    };
+    }
 
-    this.showLoading = function() {
-        var loading = document.getElementById('loading-indicator');
+    getBudgetProgressClass(status) {
+        switch(status) {
+            case 'good': return 'bg-success';
+            case 'warning': return 'bg-warning';
+            case 'over': return 'bg-danger';
+            default: return 'bg-primary';
+        }
+    }
+
+    getCSRFToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        return cookieValue || '';
+    }
+
+    showLoading() {
+        const loading = document.getElementById('loading-indicator');
         if (loading) {
             loading.style.display = 'flex';
         }
-    };
+    }
 
-    this.hideLoading = function() {
-        var loading = document.getElementById('loading-indicator');
+    hideLoading() {
+        const loading = document.getElementById('loading-indicator');
         if (loading) {
             loading.style.display = 'none';
         }
-    };
+    }
 
-    this.showError = function(message) {
-        if (window.showNotification) {
-            window.showNotification(message, 'danger');
-        }
-    };
+    showError(message) {
+        console.error(message);
+        // You can implement a toast notification system here
+        alert(message); // Temporary fallback
+    }
 
-    this.destroy = function() {
+    showSuccess(message) {
+        console.log(message);
+        // You can implement a toast notification system here
+        // Temporary fallback - could use a toast library
+    }
+
+    destroy() {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
         }
         if (this.chart) {
             this.chart.destroy();
         }
-    };
+    }
 }
 
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    if (window.dashboardManager) {
-        window.dashboardManager.destroy();
+    if (window.dashboard) {
+        window.dashboard.destroy();
     }
 
-    window.dashboardManager = new DashboardManager();
-    window.dashboardManager.init();
+    window.dashboard = new Dashboard();
+    window.dashboard.init();
 });
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', function() {
-    if (window.dashboardManager) {
-        window.dashboardManager.destroy();
+    if (window.dashboard) {
+        window.dashboard.destroy();
     }
 });
