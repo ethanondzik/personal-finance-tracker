@@ -3,7 +3,6 @@ from . import views
 from django.contrib.auth import views as auth_views
 from rest_framework.routers import DefaultRouter
 from . import api_views
-from . import dashboard_viewset
 
 router = DefaultRouter()
 router.register(r'transactions', api_views.TransactionViewSet, basename='transaction')
@@ -12,7 +11,7 @@ router.register(r'categories', api_views.CategoryViewSet, basename='category')
 router.register(r'subscriptions', api_views.SubscriptionViewSet, basename='subscription')
 router.register(r'budgets', api_views.BudgetViewSet, basename='budget')
 router.register(r'notifications', api_views.CustomNotificationViewSet, basename='notification')
-router.register(r'dashboard', dashboard_viewset.DashboardViewSet, basename='dashboard')
+router.register(r'dashboard', api_views.DashboardViewSet, basename='dashboard')
 
 urlpatterns = [
     path('', views.landing, name='landing'),
@@ -30,7 +29,7 @@ urlpatterns = [
     path("query-transactions/", views.query_transactions, name="query_transactions"),
     path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('manage-subscriptions/', views.manage_subscriptions, name='manage_subscriptions'),
-    path('api/subscriptions/', views.subscriptions_api, name='subscriptions_api'),
+    # path('api/subscriptions/', views.subscriptions_api, name='subscriptions_api'),
     path('update-subscription/<int:subscription_id>/', views.update_subscription, name='update_subscription'),
     path('update-theme-preference/', views.update_theme_preference, name='update_theme_preference'),
     path('transactions/calendar/', views.transaction_calendar, name='transaction_calendar'),
@@ -39,9 +38,9 @@ urlpatterns = [
     path('delete-custom-notification/<int:notification_id>/', views.delete_custom_notification, name='delete_custom_notification'),
     path('manage-budgets/', views.manage_budgets, name='manage_budgets'),
     path('transactions/spreadsheet/', views.spreadsheet_transactions, name='spreadsheet_transactions'),
-    path('api/spreadsheet/data/', views.spreadsheet_data_api, name='spreadsheet_data_api'),
-    path('api/spreadsheet/save/', views.spreadsheet_save_api, name='spreadsheet_save_api'),
-    path('api/spreadsheet/delete/', views.spreadsheet_delete_api, name='spreadsheet_delete_api'),
+    #path('api/spreadsheet/data/', views.spreadsheet_data_api, name='spreadsheet_data_api'),
+    #path('api/spreadsheet/save/', views.spreadsheet_save_api, name='spreadsheet_save_api'),
+    #path('api/spreadsheet/delete/', views.spreadsheet_delete_api, name='spreadsheet_delete_api'),
     path('visualizations/heatmap/', views.transaction_heatmap_view, name='transaction_heatmap'),
     path('visualizations/', views.visualization_hub, name='visualization_hub'),
     path('visualizations/sankey/', views.sankey_visualization, name='sankey_visualization'),

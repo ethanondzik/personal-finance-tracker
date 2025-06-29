@@ -17,6 +17,7 @@
     <!-- Custom CSS -->
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/bootstrap_dashboard.css' %}">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     
     {% block extra_css %}{% endblock %}
 </head>
@@ -44,6 +45,13 @@
                        href="{% url 'query_transactions' %}">
                         <i class="bi bi-list-ul me-2"></i>
                         <span class="nav-text">Transactions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'add_transaction' %}active{% endif %}" 
+                       href="{% url 'add_transaction' %}">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        <span class="nav-text">Add Transaction</span>
                     </a>
                 </li>
                 <li class="nav-item">

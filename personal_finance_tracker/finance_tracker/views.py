@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_http_methods, require_GET
 from .models import Transaction, Account, Category, Subscription, Budget, CustomNotification
 from .forms import TransactionForm, CSVUploadForm, BankAccountForm, CategoryForm, UserCreationForm, TransactionQueryForm, AccountManagementForm, SubscriptionForm, BudgetForm, CustomNotificationForm, DateRangeForm
+from .serializers import TransactionSerializer
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
@@ -16,12 +17,13 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from datetime import datetime
 from django.db.models import Count
+from rest_framework.response import Response
 import json
 import calendar
 
 
 
-
+####################### Landing, Registration and User Views #########################
 
 def landing(request):
     """
@@ -36,222 +38,114 @@ def landing(request):
     return render(request, 'finance_tracker/landing.html')
 
 
-@login_required
-@require_GET
-def spreadsheet_data_api(request):
+def register(request):
     """
-    Returns all spreadsheet data as JSON for AJAX loading.
+    Handles user registration.
+
+    - If the request method is POST, validates the submitted form data and creates a new user.
+    - If the request method is GET, displays the registration form.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered registration page with the form.
+        HttpResponseRedirect: Redirects to the dashboard if registration is successful.
     """
-    user = request.user
-    accounts = Account.objects.filter(user=user)
-    categories = Category.objects.filter(user=user)
-    transactions = Transaction.objects.filter(user=user).select_related('account', 'category').order_by('-date', '-id')
-
-    accounts_json = [
-        {
-            'id': acc.id,
-            'account_number': acc.account_number,
-            'account_type': acc.account_type,
-            'balance': float(acc.balance)
-        } for acc in accounts
-    ]
-    categories_json = list(categories.values('id', 'name', 'type'))
-    transaction_types_json = [{'id': 'expense', 'name': 'Expense'}, {'id': 'income', 'name': 'Income'}]
-    initial_data_json = [
-        {
-            'id': t.id,
-            'date': t.date.strftime('%Y-%m-%d') if t.date else None,
-            'account_id': t.account.id if t.account else None,
-            'account_name': f"{t.account.account_type} ({t.account.account_number})" if t.account else "",
-            'category_name': t.category.name if t.category else None,
-            'category_id': t.category.id if t.category else None,
-            'description': t.description,
-            'amount': float(t.amount) if t.amount is not None else None,
-            'transaction_type_name': t.get_transaction_type_display(),
-            'transaction_type': t.transaction_type
-        }
-        for t in transactions
-    ]
-    return JsonResponse({
-        'accounts': accounts_json,
-        'categories': categories_json,
-        'transaction_types': transaction_types_json,
-        'transactions': initial_data_json,
-    })
-
-@login_required
-@require_POST
-def spreadsheet_save_api(request):
-    """
-    Handles saving spreadsheet data via AJAX.
-    """
-    try:
-        data = json.loads(request.body)
-        transactions_to_create = []
-        transactions_to_update = []
-        updated_transaction_ids = [] 
-        errors = []
-        created_transactions_data = []
-
-        for i, row_data in enumerate(data):
-            if not row_data or not row_data.get('date') or row_data.get('amount') is None:
-                if row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
-                    pass
-                elif not row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
-                    continue
-                else:
-                    errors.append(f"Row {i+1}: Missing required fields (date, amount).")
-                    continue
-            
-            transaction_id = row_data.get('id')
-            try:
-                account_id = row_data.get('account_id')
-                category_id = row_data.get('category_id')
-                account = Account.objects.get(id=account_id, user=request.user) if account_id else None
-                category = Category.objects.get(id=category_id, user=request.user) if category_id else None
-                transaction_date_str = row_data.get('date')
-                if isinstance(transaction_date_str, str):
-                    try:
-                        transaction_date = datetime.strptime(transaction_date_str, '%Y-%m-%d').date()
-                    except ValueError:
-                        errors.append(f"Row {i+1}: Invalid date format '{transaction_date_str}'. Expected YYYY-MM-DD.")
-                        continue
-                else:
-                    transaction_date = transaction_date_str
-
-                description = row_data.get('description', '')
-                amount = Decimal(row_data.get('amount'))
-                transaction_type = row_data.get('transaction_type', 'expense').lower()
-
-                if transaction_id:
-                    updated_transaction_ids.append(transaction_id)
-                    try:
-                        t_instance = Transaction.objects.get(id=transaction_id, user=request.user)
-                        if (str(t_instance.date) != str(transaction_date) or
-                            t_instance.account_id != account_id or
-                            t_instance.category_id != category_id or
-                            t_instance.description != description or
-                            t_instance.amount != amount or
-                            t_instance.transaction_type != transaction_type):
-                            if t_instance.account:
-                                if t_instance.transaction_type == "income":
-                                    t_instance.account.balance -= t_instance.amount
-                                else:
-                                    t_instance.account.balance += t_instance.amount
-                            t_instance.date = transaction_date
-                            t_instance.account = account
-                            t_instance.category = category
-                            t_instance.description = description
-                            t_instance.amount = amount
-                            t_instance.transaction_type = transaction_type
-                            transactions_to_update.append(t_instance) 
-                    except Transaction.DoesNotExist:
-                        errors.append(f"Row {i+1}: Transaction ID '{transaction_id}' not found for update.")
-                        continue
-                else:
-                    transactions_to_create.append(Transaction(
-                        user=request.user, date=transaction_date, account=account, category=category,
-                        description=description, amount=amount, transaction_type=transaction_type
-                    ))
-
-            except Account.DoesNotExist:
-                errors.append(f"Row {i+1}: Account ID '{account_id}' not found or does not belong to you.")
-            except Category.DoesNotExist:
-                errors.append(f"Row {i+1}: Category ID '{category_id}' not found or does not belong to you.")
-            except (ValueError, TypeError) as e:
-                errors.append(f"Row {i+1}: Invalid data - {str(e)} for data: {row_data}")
-            except Exception as e:
-                errors.append(f"Row {i+1}: An unexpected error occurred processing this row - {str(e)}")
-
-        if errors:
-            return JsonResponse({'status': 'error', 'errors': errors}, status=400)
-
-        created_count = 0
-        if transactions_to_create:
-            for t_new in transactions_to_create:
-                t_new.save()
-                created_count += 1
-                created_transactions_data.append({
-                    'id': t_new.id,
-                    'date': t_new.date.strftime('%Y-%m-%d') if hasattr(t_new.date, 'strftime') else str(t_new.date),
-                    'amount': float(t_new.amount),
-                    'description': t_new.description
-                })
-
-        updated_count = 0
-        if transactions_to_update:
-            for t_upd in transactions_to_update:
-                t_upd.save()
-                updated_count += 1
-
-        message_parts = []
-        if created_count > 0:
-            message_parts.append(f"{created_count} new transaction(s) saved.")
-        if updated_count > 0:
-            message_parts.append(f"{updated_count} transaction(s) updated.")
-        if not message_parts:
-            final_message = "No changes detected or no valid transactions to save."
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data["password"])
+            user.save()
+            login(request, user)
+            messages.success(request, "Registration successful! Welcome to your dashboard.")
+            return redirect("dashboard")
         else:
-            final_message = " ".join(message_parts)
+            print(f'Invalid form: {form.errors}')
+            messages.error(request, "Error registering user. Please try again.")
+    else:
+        form = UserCreationForm()
+    return render(request, 'finance_tracker/register.html', {'form': form})
 
-        return JsonResponse({
-            'status': 'success', 
-            'message': final_message,
-            'created_transactions': created_transactions_data
-        })
 
-    except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'Invalid JSON data.'}, status=400)
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'}, status=500)
+@login_required
+def manage_account(request):
+    """
+    Handles account management for the logged-in user.
+
+    - Allows the user to update their account details, change their password, or delete their account.
+    - Displays the appropriate forms for each action.
+    - If the user deletes their account they are redirected to the landing page, otherwise
+      they are redireccted to the manage account page.
+    - Displays success or error messages based on the actions taken.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered manage account page with the forms.
+        HttpResponseRedirect: Redirects to the appropriate page after processing the user's action.
+    """
+
+    user = request.user
+
+    if request.method == "POST":
+        if "update_account" in request.POST:
+            form = AccountManagementForm(request.POST, instance=user)
+            password_form = PasswordChangeForm(user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Account details updated successfully!")
+                return redirect("manage_account")
+            else:
+                messages.error(request, "Error updating account details. Please try again.")
+        elif "change_password" in request.POST:
+            form = AccountManagementForm(instance=user)
+            password_form = PasswordChangeForm(user, request.POST)
+            if password_form.is_valid():
+                password_form.save()
+                update_session_auth_hash(request, user)  # Prevents logout after password change
+                messages.success(request, "Password changed successfully!")
+                return redirect("manage_account")
+            else:
+                messages.error(request, "Error changing password. Please try again.")
+        elif "delete_account" in request.POST:
+            user.delete()
+            messages.success(request, "Your account and all associated data have been deleted.")
+            return redirect("landing")
+    else:
+        form = AccountManagementForm(instance=user)
+        password_form = PasswordChangeForm(user)
+
+    return render(request, "finance_tracker/manage_account.html", {
+        "form": form,
+        "password_form": password_form,
+    })
+    
 
 @login_required
 @require_POST
-def spreadsheet_delete_api(request):
+def update_theme_preference(request):
     """
-    Handles deleting transactions via AJAX.
+    Updates the user's theme preference.
+    
+    Args:
+        request (HttpRequest): The HTTP request containing the theme preference.
+        
+    Returns:
+        JsonResponse: A response indicating whether the operation was successful.
     """
-    try:
-        data = json.loads(request.body)
-        ids = data.get('transaction_ids', [])
-        if not ids:
-            return JsonResponse({'status': 'error', 'message': 'No transaction IDs provided.'}, status=400)
-        transactions = Transaction.objects.filter(id__in=ids, user=request.user)
-        count = transactions.count()
-        transactions.delete()
-        return JsonResponse({'status': 'success', 'message': f'{count} transaction(s) deleted.'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'An error occurred: {str(e)}'}, status=500)
-
-@login_required
-def subscriptions_api(request):
-    user = request.user
-    subscriptions = Subscription.objects.filter(user=user, is_active=True)
-    today = date.today()
-    preview = []
-    for sub in subscriptions:
-        # Recalculate next payment date if needed
-        if sub.next_payment_date < today:
-            sub.calculate_next_payment_date()
-            sub.save(update_fields=['next_payment_date'])
-        preview.append({
-            'name': sub.name,
-            'amount': float(sub.amount),
-            'next_payment_date': sub.next_payment_date.isoformat(),
-        })
-    
-    #get next due subscription
-    next_due_sub = min(subscriptions, key=lambda s: s.next_payment_date, default=None)
-    data = {
-        'total': subscriptions.count(),
-        'next_due_date': next_due_sub.next_payment_date.isoformat() if next_due_sub else None,
-        'next_due_name': next_due_sub.name if next_due_sub else None,
-        'preview': sorted(preview, key=lambda s: s['next_payment_date'])[:5],
-    }
-    return JsonResponse({'status': 'success', 'data': data})
+    theme = request.POST.get('theme')
+    if theme in ['light', 'dark']:
+        request.user.theme = theme
+        request.user.save()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid theme'}, status=400)
 
 
-    
+
+############### Main View - Dashboard #######################
 @login_required
 def dashboard(request):
     """
@@ -274,6 +168,10 @@ def dashboard(request):
     
     return render(request, 'finance_tracker/dashboard.html', context)
 
+
+
+
+########################### Transaction Views #####################################
 @login_required
 def add_transaction(request):
     """
@@ -321,38 +219,6 @@ def add_transaction(request):
     else:
         form = TransactionForm(user=request.user, initial=initial)
     return render(request, 'finance_tracker/add_transaction.html', {'form': form, 'next': next_url})
-    
-
-def register(request):
-    """
-    Handles user registration.
-
-    - If the request method is POST, validates the submitted form data and creates a new user.
-    - If the request method is GET, displays the registration form.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The rendered registration page with the form.
-        HttpResponseRedirect: Redirects to the dashboard if registration is successful.
-    """
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.set_password(form.cleaned_data["password"])
-            user.save()
-            login(request, user)
-            messages.success(request, "Registration successful! Welcome to your dashboard.")
-            return redirect("dashboard")
-        else:
-            print(f'Invalid form: {form.errors}')
-            messages.error(request, "Error registering user. Please try again.")
-    else:
-        form = UserCreationForm()
-    return render(request, 'finance_tracker/register.html', {'form': form})
-
 
 @login_required
 def update_transaction(request, transaction_id):
@@ -386,8 +252,6 @@ def update_transaction(request, transaction_id):
         form = TransactionForm(instance=transaction)
 
     return render(request, 'finance_tracker/update_transaction.html', {'form': form, 'transaction': transaction, 'next': next_url})
-
-
 
 
 @login_required
@@ -515,8 +379,82 @@ def upload_transactions(request):
         form = CSVUploadForm(user=request.user)
 
     return render(request, "finance_tracker/upload_transactions.html", {"form": form})
-    
 
+    
+@login_required
+def query_transactions(request):
+    """
+    Handles querying transactions based on user input.
+
+    - Filters transactions based on keyword, date range, amount range, transaction type, and method.
+    - Displays the filtered transactions in a table.
+
+    Args:
+        request (HttpRequest): The HTTP request object.
+
+    Returns:
+        HttpResponse: The rendered query transactions page with the form and results.
+    """
+    form = TransactionQueryForm(request.GET or None)
+    transactions = Transaction.objects.filter(user=request.user)
+
+    if form.is_valid():
+        # Keyword Search
+        keyword = form.cleaned_data.get("keyword")
+        if keyword:
+            transactions = transactions.filter(
+                Q(description__icontains=keyword) | Q(category__name__icontains=keyword)
+            )
+
+        # Date Range
+        date_range = form.cleaned_data.get("date_range")
+        if date_range == "4weeks":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=4))
+        elif date_range == "3m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=12))
+        elif date_range == "6m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=24))
+        elif date_range == "12m":
+            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=48))
+        elif date_range == "custom":
+            start_date = form.cleaned_data.get("start_date")
+            end_date = form.cleaned_data.get("end_date")
+            if start_date and end_date:
+                transactions = transactions.filter(date__range=(start_date, end_date))
+
+
+        # Amount Range
+        min_amount = form.cleaned_data.get("min_amount")
+        max_amount = form.cleaned_data.get("max_amount")
+        if min_amount is not None:
+            transactions = transactions.filter(amount__gte=min_amount)
+        if max_amount is not None:
+            transactions = transactions.filter(amount__lte=max_amount)
+
+        # Transaction Type
+        transaction_type = form.cleaned_data.get("transaction_type")
+        if transaction_type and transaction_type != "all":
+            transactions = transactions.filter(transaction_type=transaction_type)
+        # Transaction Method
+        transaction_method = form.cleaned_data.get("transaction_method")
+        if transaction_method and transaction_method != "all":
+            transactions = transactions.filter(method=transaction_method)
+        
+
+    # Pagination
+    transactions = transactions.order_by('-date', '-id')
+
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
+    return render(request, "finance_tracker/query_transactions.html", {
+        "form": form,
+        "transactions": transactions_page,
+    })
+
+
+
+################## Management Views ##########################################
 @login_required
 def manage_bank_accounts(request):
     """
@@ -608,133 +546,32 @@ def manage_categories(request):
         'add_category_form': form,
     })
 
-
 @login_required
-def query_transactions(request):
-    """
-    Handles querying transactions based on user input.
-
-    - Filters transactions based on keyword, date range, amount range, transaction type, and method.
-    - Displays the filtered transactions in a table.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The rendered query transactions page with the form and results.
-    """
-    form = TransactionQueryForm(request.GET or None)
-    transactions = Transaction.objects.filter(user=request.user)
-
-    if form.is_valid():
-        # Keyword Search
-        keyword = form.cleaned_data.get("keyword")
-        if keyword:
-            transactions = transactions.filter(
-                Q(description__icontains=keyword) | Q(category__name__icontains=keyword)
-            )
-
-        # Date Range
-        date_range = form.cleaned_data.get("date_range")
-        if date_range == "4weeks":
-            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=4))
-        elif date_range == "3m":
-            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=12))
-        elif date_range == "6m":
-            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=24))
-        elif date_range == "12m":
-            transactions = transactions.filter(date__gte=date.today() - timedelta(weeks=48))
-        elif date_range == "custom":
-            start_date = form.cleaned_data.get("start_date")
-            end_date = form.cleaned_data.get("end_date")
-            if start_date and end_date:
-                transactions = transactions.filter(date__range=(start_date, end_date))
-
-
-        # Amount Range
-        min_amount = form.cleaned_data.get("min_amount")
-        max_amount = form.cleaned_data.get("max_amount")
-        if min_amount is not None:
-            transactions = transactions.filter(amount__gte=min_amount)
-        if max_amount is not None:
-            transactions = transactions.filter(amount__lte=max_amount)
-
-        # Transaction Type
-        transaction_type = form.cleaned_data.get("transaction_type")
-        if transaction_type and transaction_type != "all":
-            transactions = transactions.filter(transaction_type=transaction_type)
-        # Transaction Method
-        transaction_method = form.cleaned_data.get("transaction_method")
-        if transaction_method and transaction_method != "all":
-            transactions = transactions.filter(method=transaction_method)
-        
-
-    # Pagination
-    transactions = transactions.order_by('-date', '-id')
-
-    paginator = Paginator(transactions, 20)
-    page_number = request.GET.get('page')
-    transactions_page = paginator.get_page(page_number)
-    return render(request, "finance_tracker/query_transactions.html", {
-        "form": form,
-        "transactions": transactions_page,
-    })
-
-
-@login_required
-def manage_account(request):
-    """
-    Handles account management for the logged-in user.
-
-    - Allows the user to update their account details, change their password, or delete their account.
-    - Displays the appropriate forms for each action.
-    - If the user deletes their account they are redirected to the landing page, otherwise
-      they are redireccted to the manage account page.
-    - Displays success or error messages based on the actions taken.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The rendered manage account page with the forms.
-        HttpResponseRedirect: Redirects to the appropriate page after processing the user's action.
-    """
-
-    user = request.user
-
-    if request.method == "POST":
-        if "update_account" in request.POST:
-            form = AccountManagementForm(request.POST, instance=user)
-            password_form = PasswordChangeForm(user)
+def manage_budgets(request):
+    budgets = Budget.objects.filter(user=request.user).select_related('category')
+    if request.method == 'POST':
+        if 'delete_budget' in request.POST:
+            budget_id = request.POST.get('budget_id')
+            Budget.objects.filter(id=budget_id, user=request.user).delete()
+            messages.success(request, "Budget deleted successfully!")
+            return redirect('manage_budgets')
+        else:
+            form = BudgetForm(request.POST, user=request.user)
+            form.instance.user = request.user
             if form.is_valid():
                 form.save()
-                messages.success(request, "Account details updated successfully!")
-                return redirect("manage_account")
-            else:
-                messages.error(request, "Error updating account details. Please try again.")
-        elif "change_password" in request.POST:
-            form = AccountManagementForm(instance=user)
-            password_form = PasswordChangeForm(user, request.POST)
-            if password_form.is_valid():
-                password_form.save()
-                update_session_auth_hash(request, user)  # Prevents logout after password change
-                messages.success(request, "Password changed successfully!")
-                return redirect("manage_account")
-            else:
-                messages.error(request, "Error changing password. Please try again.")
-        elif "delete_account" in request.POST:
-            user.delete()
-            messages.success(request, "Your account and all associated data have been deleted.")
-            return redirect("landing")
+                messages.success(request, "Budget saved successfully!")
+                return redirect('manage_budgets')
     else:
-        form = AccountManagementForm(instance=user)
-        password_form = PasswordChangeForm(user)
-
-    return render(request, "finance_tracker/manage_account.html", {
-        "form": form,
-        "password_form": password_form,
+        form = BudgetForm(user=request.user)
+    return render(request, 'finance_tracker/manage_budgets.html', {
+        'budgets': budgets,
+        'form': form,
     })
 
+
+
+###### Subscription Management Views ##########
 
 @login_required
 def manage_subscriptions(request):
@@ -781,6 +618,7 @@ def manage_subscriptions(request):
         'add_subscription_form': form,
     })
 
+
 @login_required
 def update_subscription(request, subscription_id):
     """
@@ -811,26 +649,66 @@ def update_subscription(request, subscription_id):
     })
 
 
+
+####### Notification Views ##########
 @login_required
-@require_POST
-def update_theme_preference(request):
+def notification_settings(request):
     """
-    Updates the user's theme preference.
+    Renders the notification settings page.
+    
+    Allows the user to configure their notification preferences.
     
     Args:
-        request (HttpRequest): The HTTP request containing the theme preference.
+        request (HttpRequest): The HTTP request object.
         
     Returns:
-        JsonResponse: A response indicating whether the operation was successful.
+        HttpResponse: The rendered notification settings page.
     """
-    theme = request.POST.get('theme')
-    if theme in ['light', 'dark']:
-        request.user.theme = theme
-        request.user.save()
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error', 'message': 'Invalid theme'}, status=400)
+    custom_notifications_list = CustomNotification.objects.filter(user=request.user).order_by('-created_at')
+    
+    if request.method == 'POST':
+        # Check if this POST request is for the custom notification form
+        if 'form_type' in request.POST and request.POST['form_type'] == 'custom_notification':
+            custom_form = CustomNotificationForm(request.POST, user=request.user)
+            if custom_form.is_valid():
+                notif = custom_form.save(commit=False)
+                notif.user = request.user
+                notif.save()
+                messages.success(request, 'Custom notification rule added successfully.')
+                return redirect('notification_settings') # Redirect to the same page
+            else:
+                messages.error(request, 'Please correct the errors in the custom rule form.')
+                # Pass the form with errors back to the template
+                return render(request, 'finance_tracker/notification_settings.html', {
+                    'custom_notification_form': custom_form, # form with errors
+                    'custom_notifications_list': custom_notifications_list
+                })
 
-        
+    else:
+        custom_form = CustomNotificationForm(user=request.user)
+
+    return render(request, 'finance_tracker/notification_settings.html', {
+        'custom_notification_form': custom_form,
+        'custom_notifications_list': custom_notifications_list
+    })
+
+
+@login_required
+def delete_custom_notification(request, notification_id):
+    notification = get_object_or_404(CustomNotification, id=notification_id, user=request.user)
+    if request.method == 'POST':
+        notification.delete()
+        messages.success(request, 'Custom notification rule deleted.')
+    return redirect('notification_settings')
+
+
+####### Spreadshetsheet Views ##########
+@login_required
+def spreadsheet_transactions(request):
+    return render(request, 'finance_tracker/spreadsheet_transactions.html')
+
+
+############################ Visualization Views #####################################        
 @login_required
 def transaction_calendar(request):
     """
@@ -903,82 +781,12 @@ def transaction_timeline(request):
 
 
 @login_required
-def notification_settings(request):
+def visualization_hub(request):
     """
-    Renders the notification settings page.
-    
-    Allows the user to configure their notification preferences.
-    
-    Args:
-        request (HttpRequest): The HTTP request object.
-        
-    Returns:
-        HttpResponse: The rendered notification settings page.
+    Main hub for all financial data visualizations.
+    Provides links to different visualization types.
     """
-    custom_notifications_list = CustomNotification.objects.filter(user=request.user).order_by('-created_at')
-    
-    if request.method == 'POST':
-        # Check if this POST request is for the custom notification form
-        if 'form_type' in request.POST and request.POST['form_type'] == 'custom_notification':
-            custom_form = CustomNotificationForm(request.POST, user=request.user)
-            if custom_form.is_valid():
-                notif = custom_form.save(commit=False)
-                notif.user = request.user
-                notif.save()
-                messages.success(request, 'Custom notification rule added successfully.')
-                return redirect('notification_settings') # Redirect to the same page
-            else:
-                messages.error(request, 'Please correct the errors in the custom rule form.')
-                # Pass the form with errors back to the template
-                return render(request, 'finance_tracker/notification_settings.html', {
-                    'custom_notification_form': custom_form, # form with errors
-                    'custom_notifications_list': custom_notifications_list
-                })
-
-    else:
-        custom_form = CustomNotificationForm(user=request.user)
-
-    return render(request, 'finance_tracker/notification_settings.html', {
-        'custom_notification_form': custom_form,
-        'custom_notifications_list': custom_notifications_list
-    })
-
-
-@login_required
-def delete_custom_notification(request, notification_id):
-    notification = get_object_or_404(CustomNotification, id=notification_id, user=request.user)
-    if request.method == 'POST':
-        notification.delete()
-        messages.success(request, 'Custom notification rule deleted.')
-    return redirect('notification_settings')
-
-@login_required
-def manage_budgets(request):
-    budgets = Budget.objects.filter(user=request.user).select_related('category')
-    if request.method == 'POST':
-        if 'delete_budget' in request.POST:
-            budget_id = request.POST.get('budget_id')
-            Budget.objects.filter(id=budget_id, user=request.user).delete()
-            messages.success(request, "Budget deleted successfully!")
-            return redirect('manage_budgets')
-        else:
-            form = BudgetForm(request.POST, user=request.user)
-            form.instance.user = request.user
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Budget saved successfully!")
-                return redirect('manage_budgets')
-    else:
-        form = BudgetForm(user=request.user)
-    return render(request, 'finance_tracker/manage_budgets.html', {
-        'budgets': budgets,
-        'form': form,
-    })
-
-
-@login_required
-def spreadsheet_transactions(request):
-    return render(request, 'finance_tracker/spreadsheet_transactions.html')
+    return render(request, 'finance_tracker/visualization_hub.html')
 
 
 @login_required
@@ -1015,14 +823,6 @@ def transaction_heatmap_view(request):
     }
     
     return render(request, 'finance_tracker/visualizations/heatmap.html', context)
-
-@login_required
-def visualization_hub(request):
-    """
-    Main hub for all financial data visualizations.
-    Provides links to different visualization types.
-    """
-    return render(request, 'finance_tracker/visualization_hub.html')
 
 @login_required
 def sankey_visualization(request):

@@ -202,15 +202,13 @@ class Dashboard {
                     <button class="btn btn-sm btn-outline-info" onclick="window.location.href='/update_transaction/${transaction.id}/?next=/dashboard/'" title="Edit">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger delete-transaction-btn" data-transaction-id="${transaction.id}" title="Delete">
+                    <button class="btn btn-sm btn-outline-danger" onclick="window.dashboard.deleteTransaction(${transaction.id})" title="Delete">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
             </div>
         `).join('');
         
-        // Setup delete transaction handlers
-        this.setupTransactionDeleteHandlers();
     }
 
     updateAccountsList() {
@@ -313,7 +311,6 @@ class Dashboard {
             return;
         }
         
-        // You'll need to add subscription preview data to your API
         container.innerHTML = `
             <li class="list-group-item d-flex justify-content-between">
                 <span>Total Active</span>
@@ -331,16 +328,7 @@ class Dashboard {
         `;
     }
 
-    setupTransactionDeleteHandlers() {
-        const deleteButtons = document.querySelectorAll('.delete-transaction-btn');
-        deleteButtons.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const transactionId = btn.getAttribute('data-transaction-id');
-                await this.deleteTransaction(transactionId);
-            });
-        });
-    }
+    
 
     async deleteTransaction(transactionId) {
         if (!confirm('Are you sure you want to delete this transaction?')) {
@@ -350,19 +338,17 @@ class Dashboard {
         try {
             // Using the existing delete endpoint instead of the API client 
             // since it's a custom multi-delete endpoint
-            const response = await fetch('/delete-transactions/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': this.getCSRFToken()
-                },
-                body: `transaction_ids=${transactionId}&confirm=1`
-            });
-
-            const result = await response.json();
-            
-            if (result.status === 'success') {
+            const response = await apiClient.transactions.delete(transactionId);
+            console.log(response);
+            // Handle the null response (successful DELETE returns null)
+            if (response === null) {
                 this.showSuccess('Transaction deleted successfully');
+                
+                // Remove the transaction from the UI immediately
+                const transactionElement = document.querySelector(`[data-transaction-id="${transactionId}"]`);
+                if (transactionElement) {
+                    transactionElement.remove();
+                }
                 await this.loadDashboardData(); // Refresh data
             } else {
                 throw new Error(result.message || 'Failed to delete transaction');
@@ -434,14 +420,13 @@ class Dashboard {
 
     showError(message) {
         console.error(message);
-        // You can implement a toast notification system here
+        // maybe implement a toast notification system here
         alert(message); // Temporary fallback
     }
 
     showSuccess(message) {
         console.log(message);
-        // You can implement a toast notification system here
-        // Temporary fallback - could use a toast library
+        // maybe implement a toast notification system here
     }
 
     destroy() {

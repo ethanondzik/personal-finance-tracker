@@ -167,9 +167,11 @@
                     <i class="bi bi-clock-history me-2"></i>
                     Recent Transactions
                 </h5>
-                <a href="{% url 'query_transactions' %}" class="btn btn-sm btn-outline-primary">
-                    View All
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'query_transactions' %}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div id="recent-transactions-list">
@@ -235,6 +237,8 @@
         </div>
     </div>
 </div>
+
+
 
 
 
