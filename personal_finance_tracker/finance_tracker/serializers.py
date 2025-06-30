@@ -6,7 +6,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Account
-        fields = ['id', 'user', 'account_number', 'account_type', 'balance', 'is_active']
+        fields = ['id', 'user', 'account_number', 'account_type', 'balance']
 
 class CategorySerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')

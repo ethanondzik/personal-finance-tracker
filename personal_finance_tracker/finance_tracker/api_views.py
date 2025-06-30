@@ -6,10 +6,12 @@ from .serializers import (
 )
 
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from datetime import datetime, timedelta
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
+
 
 class IsOwner(permissions.BasePermission):
     """
@@ -342,6 +344,53 @@ class DashboardViewSet(viewsets.ViewSet):
         }
 
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_notifications(request):
+    """
+    Checks for due notifications, sends them, and reschedules recurring ones.
+    """
+    now = timezone.now()
+    
+    # Find notifications that are enabled and whose time is due.
+    due_notifications = CustomNotification.objects.filter(
+        user=request.user,
+        enabled=True,
+        notification_datetime__lte=now
+    )
+    
+    if not due_notifications.exists():
+        return Response([])
+
+    notifications_to_send = []
+    
+    for notif in due_notifications:
+        notifications_to_send.append(notif)
+
+        # Reschedule or disable based on recurrence
+        if notif.recurrence_interval == 'NONE':
+            # It's a one-time notification, so disable it after sending.
+            notif.enabled = False
+        else:
+            # It's a recurring notification, so calculate the next due date.
+            if notif.recurrence_interval == 'DAILY':
+                next_due += timedelta(days=1)
+            elif notif.recurrence_interval == 'WEEKLY':
+                next_due += timedelta(weeks=1)
+            elif notif.recurrence_interval == 'MONTHLY':
+                # This is a simplification; proper month addition is more complex.
+                # For this project, adding 30 days is a reasonable approximation.
+                next_due += timedelta(days=30)
+            elif notif.recurrence_interval == 'YEARLY':
+                next_due += timedelta(days=365)
+            
+            notif.notification_datetime = next_due
+        
+        notif.save()
+
+    serializer = CustomNotificationSerializer(notifications_to_send, many=True)
+    return Response(serializer.data)
 
 
 '''

@@ -3,7 +3,41 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeThemeToggle();
     initializeSidebar();
     initializeNotifications();
+    initializeNotificationPolling();
 });
+
+/**
+ * Periodically checks the server for any due notifications.
+ */
+function initializeNotificationPolling() {
+    const checkInterval = 60000; // Check every 60 seconds
+
+    const checkForNotifications = async () => {
+        try {
+            // manual fetch
+            const response = await fetch('/api/notifications/check/');
+            if (!response.ok) {
+                console.error('Notification check failed with status:', response.status);
+                return;
+            }
+            
+            const notifications = await response.json();
+            if (notifications && notifications.length > 0) {
+                notifications.forEach(notification => {
+                    // Use the existing global toast function to show the notification
+                    window.showNotification(notification.message, 'info', 10000); // Show for 10 seconds
+                });
+            }
+        } catch (error) {
+            console.error('Error during notification poll:', error);
+        }
+    };
+
+    // Check immediately on page load, then start the interval
+    checkForNotifications();
+    setInterval(checkForNotifications, checkInterval);
+}
+
 
 // Theme Management
 function initializeThemeToggle() {

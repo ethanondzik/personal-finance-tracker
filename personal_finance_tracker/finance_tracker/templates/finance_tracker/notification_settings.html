@@ -2,244 +2,126 @@
 {% load static %}
 
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 <style>
-  .form-conditional-field { display: none; } /* Initially hide conditional fields */
+  /* Initially hide fields that are conditional */
+  .form-conditional-field { display: none; }
   .list-group-item p { margin-bottom: 0.25rem; }
-  .custom-rules-section { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #dee2e6;}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-scroller">
-  <div class="container-fluid page-body-wrapper">
-    <div class="main-panel">
-      <div class="content-wrapper">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h2 class="card-title mb-0">Notification Settings</h2>
-            </div>
-
-            <div class="alert alert-info mb-4">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 class="mb-1">Browser Notifications</h5>
-                  <p class="mb-0">Enable notifications to stay informed about important financial events.</p>
-                </div>
-                <button id="enable-notifications" class="btn btn-outline-primary">Loading...</button>
+<div class="container-fluid page-body-wrapper">
+  <div class="main-panel">
+    <div class="content-wrapper">
+      
+      {% if messages %}
+          {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               </div>
-            </div>
+          {% endfor %}
+      {% endif %}
 
-            <div class="card border-primary mb-4">
-              <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">General Notification Preferences</h5>
-              </div>
-              <div class="card-body">
-                <p class="text-muted mb-4">Choose which built-in notifications you want to receive:</p>
+      <div class="card">
+        <div class="card-body">
+          <h2 class="card-title mb-4">Notification Rules</h2>
+          <p class="card-description">Create and manage all your notifications here. Set up reminders, low balance alerts, or warnings for large purchases.</p>
+
+          <!-- Add/Edit Notification Rule Form -->
+          <div class="card border-primary mb-4">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Add New Rule</h5>
+            </div>
+            <div class="card-body">
+              <form method="post" action="{% url 'notification_settings' %}" class="p-3">
+                  {% csrf_token %}
+                  {{ custom_notification_form.non_field_errors }}
+                  
+                  {% for field in custom_notification_form %}
+                  <div class="mb-3 field-{{ field.name }} {% if field.name in 'threshold,category,notification_datetime,recurrence_interval' %}form-conditional-field{% endif %}">
+                      <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                      {{ field }}
+                      {% if field.help_text %}
+                      <small class="form-text text-muted">{{ field.help_text }}</small>
+                      {% endif %}
+                      {% for error in field.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                      {% endfor %}
+                  </div>
+                  {% endfor %}
+                  
+                  <input type="hidden" name="form_type" value="custom_notification">
+                  <button type="submit" class="btn btn-success"><i class="mdi mdi-plus-circle-outline"></i> Add Rule</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Existing Notification Rules -->
+          <h4 class="mt-5">Your Active Rules</h4>
+          {% if custom_notifications_list %}
+          <div class="list-group">
+              {% for notif in custom_notifications_list %}
+              <div class="list-group-item list-group-item-action flex-column align-items-start mb-2">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ notif.title }}</h6>
+                    <small class="text-muted">{{ notif.created_at|date:"M d, Y H:i" }}</small>
+                </div>
+                <p><span class="badge bg-info">{{ notif.get_type_display }}</span></p>
+                <p class="mb-1">{{ notif.message }}</p>
                 
-                <div class="list-group">
-                  <!-- Subscription notifications -->
-                  <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 class="mb-1">Subscription Payment Reminders</h6>
-                        <p class="text-muted mb-0 small">Get notified when subscription payments are due soon</p>
-                      </div>
-                      <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="subscription-notifications" checked>
-                      </div>
-                    </div>
-                    <div class="mt-3">
-                      <label class="form-label">Days before to notify:</label>
-                      <select id="subscription-days" class="form-select">
-                        <option value="1">1 day before</option>
-                        <option value="3" selected>3 days before</option>
-                        <option value="5">5 days before</option>
-                        <option value="7">7 days before</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- Low balance notifications -->
-                  <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 class="mb-1">Low Balance Alerts</h6>
-                        <p class="text-muted mb-0 small">Get notified when your account balance falls below a threshold</p>
-                      </div>
-                      <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="balance-notifications" checked>
-                      </div>
-                    </div>
-                    <div class="mt-3">
-                      <label class="form-label">Threshold amount:</label>
-                      <div class="input-group">
-                        <span class="input-group-text">$</span>
-                        <input type="number" id="balance-threshold" class="form-control" value="100" min="0" step="10">
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Budget limit notifications -->
-                  <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 class="mb-1">Budget Limit Alerts</h6>
-                        <p class="text-muted mb-0 small">Get notified when you're approaching your category spending limits</p>
-                      </div>
-                      <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="budget-notifications" checked>
-                      </div>
-                    </div>
-                    <div class="mt-3">
-                      <label class="form-label">Notify when reaching:</label>
-                      <select id="budget-percentage" class="form-select">
-                        <option value="50">50% of budget</option>
-                        <option value="75" selected>75% of budget</option>
-                        <option value="90">90% of budget</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- Transaction notifications -->
-                  <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 class="mb-1">New Large Transaction Alerts</h6>
-                        <p class="text-muted mb-0 small">Get notified when a new large transaction is added</p>
-                      </div>
-                      <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="transaction-notifications" checked>
-                      </div>
-                    </div>
-                    <div class="mt-3">
-                      <label class="form-label">Minimum amount for "large" transaction:</label>
-                      <div class="input-group">
-                        <span class="input-group-text">$</span>
-                        <input type="number" id="transaction-threshold" class="form-control" value="100" min="0" step="10">
-                      </div>
-                    </div>
-                  </div>
+                {% if notif.threshold is not None %}
+                <p><span class="badge bg-secondary">
+                    {% if notif.type == 'budget' %}Threshold: {{ notif.threshold|floatformat:0 }}% of budget
+                    {% else %}Threshold: ${{ notif.threshold|floatformat:2 }}{% endif %}
+                </span></p>
+                {% endif %}
+                
+                {% if notif.category %}<p><span class="badge bg-warning text-dark">Category: {{ notif.category.name }}</span></p>{% endif %}
+                
+                {% if notif.notification_datetime %}
+                <p><span class="badge bg-primary">
+                    Starts: {{ notif.notification_datetime|date:"M d, Y P" }}
+                    {% if notif.recurrence_interval != 'NONE' and notif.recurrence_interval %} (Repeats: {{ notif.get_recurrence_interval_display }}){% endif %}
+                </span></p>
+                {% endif %}
+                
+                <div class="mt-2 d-flex justify-content-between align-items-center">
+                    <span class="badge {% if notif.enabled %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ notif.enabled|yesno:"Enabled,Disabled" }}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            data-bs-toggle="modal" data-bs-target="#deleteRuleModal"
+                            data-rule-id="{{ notif.id }}" data-rule-title="{{ notif.title|escapejs }}">
+                        <i class="mdi mdi-delete"></i> Delete
+                    </button>
                 </div>
               </div>
-            </div>
-
-            <!-- Custom Notification Rules Section -->
-            <div class="custom-rules-section card border-success">
-              
-              <div class="card-body">
-                  <h6 class="card-title">Add New Custom Rule</h6>
-                  <form method="post" action="{% url 'notification_settings' %}" class="mb-4 p-3 border rounded">
-                      {% csrf_token %}
-                      {{ custom_notification_form.non_field_errors }}
-                      {% for field in custom_notification_form %}
-                      <div class="mb-3 field-{{ field.name }} {% if field.name == 'threshold' or field.name == 'category' or field.name == 'notification_datetime' or field.name == 'recurrence_interval' %}form-conditional-field{% endif %}">
-                          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                          {{ field }}
-                          {% if field.help_text %}
-                          <small class="form-text text-muted">{{ field.help_text }}</small>
-                          {% endif %}
-                          {% for error in field.errors %}
-                          <div class="invalid-feedback d-block">{{ error }}</div>
-                          {% endfor %}
-                      </div>
-                      {% endfor %}
-                      <input type="hidden" name="form_type" value="custom_notification">
-                      <button type="submit" class="btn btn-success"><i class="mdi mdi-plus-circle-outline"></i> Add Custom Rule</button>
-                  </form>
-
-                  <hr>
-
-                  <h6 class="card-title">Your Custom Rules</h6>
-                  {% if custom_notifications_list %}
-                  <div class="list-group">
-                      {% for notif in custom_notifications_list %}
-                      <div class="list-group-item list-group-item-action flex-column align-items-start mb-2">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ notif.title }}</h6>
-                            <small class="text-muted">{{ notif.created_at|date:"M d, Y H:i" }}</small>
-                        </div>
-                        <p><span class="badge bg-info">{{ notif.get_type_display }}</span></p>
-                        <p class="mb-1">{{ notif.message }}</p>
-                        {% if notif.threshold is not None %}
-                        <p><span class="badge bg-secondary">
-                            {% if notif.type == 'budget' %}
-                                Threshold: {{ notif.threshold|floatformat:0 }}% of budget
-                            {% else %}
-                                Threshold: ${{ notif.threshold|floatformat:2 }}
-                            {% endif %}
-                        </span></p>
-                        {% endif %}
-                        {% if notif.category %}
-                        <p><span class="badge bg-warning text-dark">Category: {{ notif.category.name }}</span></p>
-                        {% endif %}
-                        {% if notif.notification_datetime %}
-                        <p><span class="badge bg-primary">
-                            Starts: {{ notif.notification_datetime|date:"M d, Y P" }}
-                            {% if notif.recurrence_interval != 'NONE' and notif.recurrence_interval %}
-                                (Repeats: {{ notif.get_recurrence_interval_display }})
-                            {% endif %}
-                        </span></p>
-                        {% endif %}
-                        <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <span class="badge {% if notif.enabled %}bg-success{% else %}bg-secondary{% endif %}">
-                                {{ notif.enabled|yesno:"Enabled,Disabled" }}
-                            </span>
-                            <div>
-                                <button type="button" class="btn btn-sm btn-outline-danger"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#deleteCustomRuleModal"
-                                        data-rule-id="{{ notif.id }}"
-                                        data-rule-title="{{ notif.title|escapejs }}">
-                                    <i class="mdi mdi-delete"></i> Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                      {% endfor %}
-                  </div>
-                  {% else %}
-                  <p class="text-muted">You haven't set up any custom notification rules yet.</p>
-                  {% endif %}
-              </div>
+              {% endfor %}
           </div>
-
-
-            <div class="mt-4">
-              <button id="save-settings" class="btn btn-primary">Save General Preferences</button>
-              <button id="test-notification" class="btn btn-secondary ms-2">Test Notification</button>
-              <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary ms-2">Back to Dashboard</a>
-            </div>
-          </div>
+          {% else %}
+          <p class="text-muted">You haven't set up any notification rules yet.</p>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Delete Custom Rule Confirmation Modal -->
-<div class="modal fade" id="deleteCustomRuleModal" tabindex="-1" aria-labelledby="deleteCustomRuleModalLabel" aria-hidden="true">
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteRuleModal" tabindex="-1" aria-labelledby="deleteRuleModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="deleteCustomRuleModalLabel">Confirm Deletion</h5>
+        <h5 class="modal-title" id="deleteRuleModalLabel">Confirm Deletion</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to delete the custom rule: <strong id="customRuleNameToDelete"></strong>?</p>
+        <p>Are you sure you want to delete the rule: <strong id="ruleNameToDelete"></strong>?</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <form method="post" id="deleteCustomRuleForm" action="" style="display: inline;">
+        <form method="post" id="deleteRuleForm" action="" style="display: inline;">
           {% csrf_token %}
           <button type="submit" class="btn btn-danger">Delete</button>
         </form>
@@ -247,203 +129,58 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+{% block extra_js %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // --- General Notification Preferences Logic (from original notification_settings.html) ---
-    const notificationBtn = document.getElementById('enable-notifications');
-    const testBtn = document.getElementById('test-notification');
-    const saveBtn = document.getElementById('save-settings');
-    
-    loadNotificationSettings(); // For general preferences
-    
-    if (!window.NotificationManager || !window.NotificationManager.isSupported()) {
-      notificationBtn.textContent = 'Notifications Not Supported';
-      notificationBtn.disabled = true;
-      testBtn.disabled = true;
-      // saveBtn might still be enabled if other settings are present
-      // return; // Don't return, custom notification form JS might still be needed
-    } else {
-        updateNotificationButtonState();
-    }
-    
-    notificationBtn.addEventListener('click', function() {
-      if (!window.NotificationManager) return;
-      window.NotificationManager.requestPermission(function(granted) {
-        updateNotificationButtonState();
-        if (granted) {
-          window.NotificationManager.show('Notifications Enabled', {
-            body: 'You will now receive notifications for important financial events.',
-            icon: "{% static 'images/favicon.png' %}"
-          });
-        }
-      });
-    });
-    
-    testBtn.addEventListener('click', function() {
-      if (window.NotificationManager && Notification.permission === 'granted') {
-        window.NotificationManager.show('Test Notification', {
-          body: 'This is a test notification from Personal Finance Tracker.',
-          icon: "{% static 'images/favicon.png' %}"
-        });
-      } else {
-        alert('Please enable browser notifications first via the button above.');
-      }
-    });
-    
-    saveBtn.addEventListener('click', function() {
-      saveNotificationSettings(); // For general preferences
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-      });
-      Toast.fire({
-        icon: 'success',
-        title: 'General notification preferences saved!'
-      });
-    });
-    
-    function updateNotificationButtonState() {
-      if (!window.NotificationManager || !notificationBtn) return;
-      if (Notification.permission === 'granted') {
-        notificationBtn.textContent = 'Browser Notifications Enabled';
-        notificationBtn.classList.remove('btn-outline-primary');
-        notificationBtn.classList.add('btn-success');
-        notificationBtn.disabled = true; // Or false if you want them to re-trigger
-      } else if (Notification.permission === 'denied') {
-        notificationBtn.textContent = 'Browser Notifications Blocked';
-        notificationBtn.classList.remove('btn-outline-primary');
-        notificationBtn.classList.add('btn-danger');
-        notificationBtn.disabled = true;
-      } else {
-        notificationBtn.textContent = 'Enable Browser Notifications';
-        notificationBtn.classList.remove('btn-success', 'btn-danger');
-        notificationBtn.classList.add('btn-outline-primary');
-        notificationBtn.disabled = false;
-      }
-    }
-    
-    function saveNotificationSettings() { // For general preferences
-      if (!window.NotificationManager) return;
-      window.NotificationManager.setNotificationPreference('subscription', 
-        document.getElementById('subscription-notifications').checked);
-      localStorage.setItem('subscription_days', 
-        document.getElementById('subscription-days').value);
-      
-      window.NotificationManager.setNotificationPreference('balance', 
-        document.getElementById('balance-notifications').checked);
-      localStorage.setItem('balance_threshold', 
-        document.getElementById('balance-threshold').value);
-      
-      window.NotificationManager.setNotificationPreference('budget', 
-        document.getElementById('budget-notifications').checked);
-      localStorage.setItem('budget_percentage', 
-        document.getElementById('budget-percentage').value);
-      
-      window.NotificationManager.setNotificationPreference('transaction', 
-        document.getElementById('transaction-notifications').checked);
-      localStorage.setItem('transaction_threshold', 
-        document.getElementById('transaction-threshold').value);
-    }
-    
-    function loadNotificationSettings() { // For general preferences
-      if (!window.NotificationManager) return;
-      document.getElementById('subscription-notifications').checked = 
-        window.NotificationManager.isNotificationEnabled('subscription');
-      document.getElementById('subscription-days').value = localStorage.getItem('subscription_days') || '3';
-      
-      document.getElementById('balance-notifications').checked = 
-        window.NotificationManager.isNotificationEnabled('balance');
-      document.getElementById('balance-threshold').value = localStorage.getItem('balance_threshold') || '100';
-      
-      document.getElementById('budget-notifications').checked = 
-        window.NotificationManager.isNotificationEnabled('budget');
-      document.getElementById('budget-percentage').value = localStorage.getItem('budget_percentage') || '75';
-      
-      document.getElementById('transaction-notifications').checked = 
-        window.NotificationManager.isNotificationEnabled('transaction');
-      document.getElementById('transaction-threshold').value = localStorage.getItem('transaction_threshold') || '100';
-    }
-
-     // --- Custom Notification Form Logic ---
-     const typeField = document.getElementById('{{ custom_notification_form.type.id_for_label }}');
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Logic for the 'Add New Rule' form ---
+    const typeField = document.getElementById('{{ custom_notification_form.type.id_for_label }}');
     const thresholdFieldContainer = document.querySelector('.field-threshold');
     const categoryFieldContainer = document.querySelector('.field-category');
     const dateTimeFieldContainer = document.querySelector('.field-notification_datetime');
-    const recurrenceFieldContainer = document.querySelector('.field-recurrence_interval'); // New field
+    const recurrenceFieldContainer = document.querySelector('.field-recurrence_interval');
 
-    function toggleCustomNotificationConditionalFields() {
+    function toggleConditionalFields() {
         if (!typeField) return;
         const selectedType = typeField.value;
 
-        // Threshold field
-        if (thresholdFieldContainer) {
-            if (['purchase', 'balance', 'budget'].includes(selectedType)) {
-                thresholdFieldContainer.style.display = 'block';
-                thresholdFieldContainer.querySelector('input, select')?.setAttribute('required', 'required');
-            } else {
-                thresholdFieldContainer.style.display = 'none';
-                thresholdFieldContainer.querySelector('input, select')?.removeAttribute('required');
-            }
-        }
-        // Category field
-        if (categoryFieldContainer) {
-            if (['purchase', 'budget'].includes(selectedType)) {
-                categoryFieldContainer.style.display = 'block';
-            } else {
-                categoryFieldContainer.style.display = 'none';
-            }
-        }
-        // DateTime and Recurrence fields
-        if (dateTimeFieldContainer && recurrenceFieldContainer) {
-            if (['generic', 'reminder'].includes(selectedType)) {
-                dateTimeFieldContainer.style.display = 'block';
-                dateTimeFieldContainer.querySelector('input, select')?.setAttribute('required', 'required');
-                recurrenceFieldContainer.style.display = 'block';
-                recurrenceFieldContainer.querySelector('input, select')?.setAttribute('required', 'required'); // Or default to 'NONE'
-            } else {
-                dateTimeFieldContainer.style.display = 'none';
-                dateTimeFieldContainer.querySelector('input, select')?.removeAttribute('required');
-                recurrenceFieldContainer.style.display = 'none';
-                recurrenceFieldContainer.querySelector('input, select')?.removeAttribute('required');
-            }
-        }
+        // Show/hide Threshold field
+        const needsThreshold = ['purchase', 'balance', 'budget'].includes(selectedType);
+        thresholdFieldContainer.style.display = needsThreshold ? 'block' : 'none';
+        thresholdFieldContainer.querySelector('input, select')?.toggleAttribute('required', needsThreshold);
+
+        // Show/hide Category field
+        const needsCategory = ['purchase', 'budget'].includes(selectedType);
+        categoryFieldContainer.style.display = needsCategory ? 'block' : 'none';
+
+        // Show/hide DateTime and Recurrence fields
+        const isTimed = ['generic', 'reminder'].includes(selectedType);
+        dateTimeFieldContainer.style.display = isTimed ? 'block' : 'none';
+        dateTimeFieldContainer.querySelector('input')?.toggleAttribute('required', isTimed);
+        recurrenceFieldContainer.style.display = isTimed ? 'block' : 'none';
     }
 
     if (typeField) {
-        typeField.addEventListener('change', toggleCustomNotificationConditionalFields);
-        toggleCustomNotificationConditionalFields(); // Initial call
+        typeField.addEventListener('change', toggleConditionalFields);
+        toggleConditionalFields(); // Initial call to set form state
     }
-  
 
-  // --- Delete Custom Rule Modal Logic ---
-    const deleteCustomRuleModalElement = document.getElementById('deleteCustomRuleModal');
-    if (deleteCustomRuleModalElement) {
-        const customRuleNameToDeleteSpan = document.getElementById('customRuleNameToDelete'); // Use this if using the <strong> tag
-        // const customRuleNameToDeleteLi = document.getElementById('customRuleNameToDelete'); // Use this if using the <li> tag from commented out HTML
-        const deleteCustomRuleForm = document.getElementById('deleteCustomRuleForm');
-
-        deleteCustomRuleModalElement.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget; // Button that triggered the modal
+    // --- Logic for the Delete Confirmation Modal ---
+    const deleteModal = document.getElementById('deleteRuleModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
             const ruleId = button.getAttribute('data-rule-id');
             const ruleTitle = button.getAttribute('data-rule-title');
+            
+            const ruleNameSpan = document.getElementById('ruleNameToDelete');
+            ruleNameSpan.textContent = ruleTitle;
 
-            if (customRuleNameToDeleteSpan) { // Adjust if using the <li> version
-                customRuleNameToDeleteSpan.textContent = ruleTitle;
-            }
-
-            if (deleteCustomRuleForm) {
-                // Construct the URL for the specific rule.
-                // This assumes your URL for deleting a custom notification is something like '/notifications/custom/delete/<id>/'
-                // Adjust the base path if your URL structure is different.
-                deleteCustomRuleForm.action = `/delete-custom-notification/${ruleId}/`;
-            }
+            const deleteForm = document.getElementById('deleteRuleForm');
+            deleteForm.action = `/delete-custom-notification/${ruleId}/`;
         });
     }
-  });
+});
 </script>
 {% endblock %}
