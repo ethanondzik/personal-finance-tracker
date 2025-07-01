@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'finance_tracker',
     'rest_framework',
+    'django_filters',
 
 ]
 
@@ -194,3 +195,18 @@ LOGGING = {
 
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000  # Increase the limit to handle more fields
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'finance_tracker.pagination.TransactionPagination',
+    'PAGE_SIZE': 25,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+}

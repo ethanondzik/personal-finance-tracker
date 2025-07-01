@@ -38,30 +38,49 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     account_details = serializers.StringRelatedField(source='account', read_only=True)
     category_name = serializers.StringRelatedField(source='category', read_only=True)
+    account_number = serializers.CharField(source='account.account_number', read_only=True)
+    account_type = serializers.CharField(source='account.account_type', read_only=True)
+    account_balance = serializers.DecimalField(source='account.balance', max_digits=20, decimal_places=2, read_only=True)
+    category_type = serializers.CharField(source='category.type', read_only=True)
+
+    # Computed fields
+    formatted_amount = serializers.SerializerMethodField()
+    age_days = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaction
         fields = [
-            'id', 'user', 'date', 'amount', 'transaction_type', 'description',
-            'account', 'category', 'account_details', 'category_name', 'method', 
+            'id', 'date', 'amount', 'transaction_type', 'description',
+            'account', 'category', 'method', 'created_at', 'updated_at',
+            # Related field details
+            'account_details', 'category_name', 'account_number', 
+            'account_type', 'account_balance', 'category_type',
+            # Computed fields
+            'formatted_amount', 'age_days'
         ]
-        read_only_fields = ('user',)
+        read_only_fields = ('user', 'created_at', 'updated_at')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # Get the current user from the request context
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            user = request.user
-            # Filter querysets to only show current user's data
-            self.fields['account'].queryset = Account.objects.filter(user=user)
-            self.fields['category'].queryset = Category.objects.filter(user=user)
-        else:
-            # Fallback: empty querysets if no user context
-            self.fields['account'].queryset = Account.objects.none()
-            self.fields['category'].queryset = Category.objects.none()
+        # Support field selection via query parameter
+        fields = self.context.get('request', {}).query_params.get('fields')
+        if fields:
+            fields = fields.split(',')
+            allowed = set(fields)
+            existing = set(self.fields)
+            for field_name in existing - allowed:
+                self.fields.pop(field_name)
 
+        
+
+    def get_formatted_amount(self, obj):
+        """Return formatted amount with currency"""
+        return f"${obj.amount:,.2f}"
+
+    def get_age_days(self, obj):
+        """Return how many days ago this transaction occurred"""
+        from datetime import date
+        return (date.today() - obj.date).days
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')

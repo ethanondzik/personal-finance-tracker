@@ -174,6 +174,9 @@ class Transaction(models.Model):
     date = models.DateField(default=timezone.now, editable=True)
     description = models.TextField(max_length=255, null=True, blank=True)
 
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def save(self, *args, **kwargs):
         """
         Extends the default save method.

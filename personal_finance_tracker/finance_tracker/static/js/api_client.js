@@ -46,7 +46,91 @@
          * API methods for Transactions.
          */
         transactions: {
-            getAll: (params) => _request(`/api/transactions/?${params || ''}`),
+            getAll: (options = {}) => {
+                const {
+                    // Pagination
+                    page = 1,
+                    page_size = 25,
+                    
+                    // Ordering
+                    ordering = '-date',
+                    
+                    // Search
+                    search = '',
+                    
+                    // Date filtering
+                    start_date = '',
+                    end_date = '',
+                    date_range = '',
+                    date_year = '',
+                    date_month = '',
+                    
+                    // Amount filtering
+                    min_amount = '',
+                    max_amount = '',
+                    amount_range = '',
+                    
+                    // Category/Account filtering
+                    category = '',
+                    category_type = '',
+                    account = '',
+                    account_type = '',
+                    
+                    // Transaction specifics
+                    transaction_type = '',
+                    method = '',
+                    
+                    // Field selection
+                    fields = '',
+                    
+                    // Boolean filters
+                    has_category = '',
+                    has_account = ''
+                } = options;
+                
+                const params = new URLSearchParams();
+                
+                // Add all parameters if they have values
+                if (page) params.append('page', page);
+                if (page_size) params.append('page_size', page_size);
+                if (ordering) params.append('ordering', ordering);
+                if (search) params.append('search', search);
+                if (start_date) params.append('start_date', start_date);
+                if (end_date) params.append('end_date', end_date);
+                if (date_range) params.append('date_range', date_range);
+                if (date_year) params.append('date_year', date_year);
+                if (date_month) params.append('date_month', date_month);
+                if (min_amount) params.append('min_amount', min_amount);
+                if (max_amount) params.append('max_amount', max_amount);
+                if (amount_range) params.append('amount_range', amount_range);
+                if (category) params.append('category', category);
+                if (category_type) params.append('category_type', category_type);
+                if (account) params.append('account', account);
+                if (account_type) params.append('account_type', account_type);
+                if (transaction_type) params.append('transaction_type', transaction_type);
+                if (method) params.append('method', method);
+                if (fields) params.append('fields', fields);
+                if (has_category !== '') params.append('has_category', has_category);
+                if (has_account !== '') params.append('has_account', has_account);
+                
+                return _request(`/api/transactions/?${params.toString()}`);
+            },
+
+            // Get summary statistics
+            getSummary: (filters = {}) => {
+                const params = new URLSearchParams(filters);
+                return _request(`/api/transactions/summary/?${params.toString()}`);
+            },
+
+            // Export transactions
+            export: (filters = {}) => {
+                const params = new URLSearchParams(filters);
+                window.open(`/api/transactions/export/?${params.toString()}`);
+            },
+
+            // Get available fields
+            getFields: () => _request('/api/transactions/fields/'),
+
             get: (id) => _request(`/api/transactions/${id}/`),
             create: (data) => _request('/api/transactions/', 'POST', data),
             update: (id, data) => _request(`/api/transactions/${id}/`, 'PATCH', data),

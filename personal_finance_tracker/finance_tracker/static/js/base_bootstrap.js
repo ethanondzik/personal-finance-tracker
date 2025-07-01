@@ -14,14 +14,9 @@ function initializeNotificationPolling() {
 
     const checkForNotifications = async () => {
         try {
-            // manual fetch
-            const response = await fetch('/api/notifications/check/');
-            if (!response.ok) {
-                console.error('Notification check failed with status:', response.status);
-                return;
-            }
-            
-            const notifications = await response.json();
+            // The API client already handles response parsing and error checking
+            const notifications = await apiClient.notifications.check();
+
             if (notifications && notifications.length > 0) {
                 notifications.forEach(notification => {
                     // Use the existing global toast function to show the notification

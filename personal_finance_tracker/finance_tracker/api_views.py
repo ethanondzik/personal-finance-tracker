@@ -5,13 +5,18 @@ from .serializers import (
     SubscriptionSerializer, BudgetSerializer, CustomNotificationSerializer
 )
 
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.filters import SearchFilter, OrderingFilter
 from datetime import datetime, timedelta
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, Min, Max
 from django.utils import timezone
 from zoneinfo import ZoneInfo
+
+from .filters import TransactionFilter
+from .pagination import TransactionPagination
 
 
 class IsOwner(permissions.BasePermission):
@@ -48,45 +53,91 @@ class UserScopedViewSet(viewsets.ModelViewSet):
 class TransactionViewSet(UserScopedViewSet):
     queryset = Transaction.objects.all().select_related('account', 'category')
     serializer_class = TransactionSerializer
+    filterset_class = TransactionFilter
+    pagination_class = TransactionPagination
 
-    def list(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    def create(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+    # Search fields for the SearchFilter
+    search_fields = ['description', 'category__name', 'account__account_number']
+    
+    # Ordering fields
+    ordering_fields = [
+        'date', 'amount', 'transaction_type', 'created_at', 
+        'account__account_number', 'category__name', 'method'
+    ]
+    ordering = ['-date', '-id']  # Default ordering
 
-    def retrieve(self, request, pk=None):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+    def get_queryset(self):
+        """Enhanced queryset with optimizations"""
+        queryset = super().get_queryset()
+        
+        queryset = queryset.select_related('account', 'category')
+        
+        return queryset
 
-    def update(self, request, pk=None):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        if serializer.is_valid():
-            self.perform_update(serializer)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Get transaction summary statistics"""
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        total_count = queryset.count()
+        income_total = queryset.filter(transaction_type='income').aggregate(
+            total=Sum('amount'))['total'] or 0
+        expense_total = queryset.filter(transaction_type='expense').aggregate(
+            total=Sum('amount'))['total'] or 0
+        
+        return Response({
+            'total_transactions': total_count,
+            'total_income': income_total,
+            'total_expenses': expense_total,
+            'net_amount': income_total - expense_total,
+            'date_range': {
+                'earliest': queryset.aggregate(Min('date'))['date__min'],
+                'latest': queryset.aggregate(Max('date'))['date__max'],
+            }
+        })
 
-    def partial_update(self, request, pk=None):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        if serializer.is_valid():
-            self.perform_update(serializer)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        """Export filtered transactions as CSV"""
+        import csv
+        from django.http import HttpResponse
+        
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="transactions.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Date', 'Description', 'Amount', 'Type', 'Category', 
+            'Account', 'Method'
+        ])
+        
+        for transaction in queryset:
+            writer.writerow([
+                transaction.date,
+                transaction.description,
+                transaction.amount,
+                transaction.transaction_type,
+                transaction.category.name if transaction.category else '',
+                transaction.account.account_number if transaction.account else '',
+                transaction.method or ''
+            ])
+        
+        return response
 
-    def destroy(self, request, pk=None):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(status=204)
-
+    @action(detail=False, methods=['get'])
+    def fields(self, request):
+        """Get available fields for field selection"""
+        serializer = self.get_serializer(context=self.get_serializer_context())
+        return Response({
+            'available_fields': list(serializer.fields.keys()),
+            'required_fields': ['id', 'date', 'amount', 'transaction_type'],
+            'computed_fields': ['formatted_amount', 'age_days'],
+            'related_fields': ['account_details', 'category_name', 'account_number', 'account_type']
+        })
 
 class AccountViewSet(UserScopedViewSet):
     queryset = Account.objects.all()
