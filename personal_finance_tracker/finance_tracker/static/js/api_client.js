@@ -98,6 +98,19 @@
         },
 
         /**
+         * API methods for notifications
+         */
+        notifications: {
+            getAll: () => _request('/api/notifications/'),
+            get: (id) => _request(`/api/notifications/${id}/`),
+            create: (data) => _request('/api/notifications/', 'POST', data),
+            update: (id, data) => _request(`/api/notifications/${id}/`, 'PATCH', data),
+            delete: (id) => _request(`/api/notifications/${id}/`, 'DELETE'),
+            check: () => _request(`/api/notifications/check/`),
+        },
+        
+
+        /**
          * Aggregated dashboard data using multiple API calls
          */
         getDashboardData: async (filters = {}) => {
