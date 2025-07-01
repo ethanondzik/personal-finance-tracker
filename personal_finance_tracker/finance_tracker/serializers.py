@@ -1,24 +1,40 @@
 from rest_framework import serializers
 from .models import Transaction, Account, Category, Subscription, Budget, CustomNotification, User
 
+
+class UserScopedPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    """Custom field that automatically filters queryset by current user"""
+    
+    def get_queryset(self):
+        request = self.context.get('request', None)
+        queryset = super().get_queryset()
+        if not request or not queryset:
+            return queryset
+        return queryset.filter(user=request.user)   
+
+
 class AccountSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
 
     class Meta:
         model = Account
-        fields = ['id', 'user', 'account_number', 'account_type', 'balance']
+        fields = ['id', 'user', 'account_number', 'account_type', 'balance', 'created_at', 'transit_number', 'institution_number']
+        read_only_fields = ('user',)
+
 
 class CategorySerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
 
     class Meta:
         model = Category
         fields = ['id', 'user', 'name', 'type']
+        read_only_fields = ('user',)
 
 class TransactionSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
-    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+    account = UserScopedPrimaryKeyRelatedField(queryset=Account.objects.all())
+    category = UserScopedPrimaryKeyRelatedField(
+        queryset=Category.objects.all(), 
+        allow_null=True, 
+        required=False
+    )
 
     account_details = serializers.StringRelatedField(source='account', read_only=True)
     category_name = serializers.StringRelatedField(source='category', read_only=True)
@@ -27,26 +43,38 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = [
             'id', 'user', 'date', 'amount', 'transaction_type', 'description',
-            'account', 'category', 'account_details', 'category_name'
+            'account', 'category', 'account_details', 'category_name', 'method', 
         ]
+        read_only_fields = ('user',)
 
-    def validate(self, data):
-        """
-        Check that the account and category belong to the current user.
-        """
-        request = self.context.get("request")
-        if request and hasattr(request, "user"):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Get the current user from the request context
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
             user = request.user
-            if 'account' in data and data['account'].user != user:
-                raise serializers.ValidationError("The selected account does not belong to you.")
-            if 'category' in data and data['category'].user != user:
-                raise serializers.ValidationError("The selected category does not belong to you.")
-        return data
+            # Filter querysets to only show current user's data
+            self.fields['account'].queryset = Account.objects.filter(user=user)
+            self.fields['category'].queryset = Category.objects.filter(user=user)
+        else:
+            # Fallback: empty querysets if no user context
+            self.fields['account'].queryset = Account.objects.none()
+            self.fields['category'].queryset = Category.objects.none()
+
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
-    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+    account = UserScopedPrimaryKeyRelatedField(
+        queryset=Account.objects.all(), 
+        allow_null=True, 
+        required=False
+    )
+    category = UserScopedPrimaryKeyRelatedField(
+        queryset=Category.objects.filter(type='expense'),  # Only expense categories for subscriptions
+        allow_null=True, 
+        required=False
+    )
 
     class Meta:
         model = Subscription
@@ -54,8 +82,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         read_only_fields = ('user',)
 
 class BudgetSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
+    category = UserScopedPrimaryKeyRelatedField(queryset=Category.objects.all())
     category_name = serializers.StringRelatedField(source='category', read_only=True)
 
     class Meta:
