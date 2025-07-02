@@ -1,7 +1,7 @@
 import django_filters
 from datetime import date, timedelta
 from django.db.models import Q
-from .models import Transaction, Account, Category
+from .models import Transaction, Account, Category, Subscription, Budget, CustomNotification
 
 class TransactionFilter(django_filters.FilterSet):
     # Date filtering
@@ -162,3 +162,47 @@ class TransactionFilter(django_filters.FilterSet):
             return queryset.filter(account__isnull=False)
         else:
             return queryset.filter(account__isnull=True)
+        
+
+class AccountFilter(django_filters.FilterSet):
+    balance_gte = django_filters.NumberFilter(field_name='balance', lookup_expr='gte', label='Balance Greater Than or Equal To')
+    balance_lte = django_filters.NumberFilter(field_name='balance', lookup_expr='lte', label='Balance Less Than or Equal To')
+    
+    class Meta:
+        model = Account
+        exclude = ['user']
+
+
+class CategoryFilter(django_filters.FilterSet):
+    class Meta:
+        model = Category
+        exclude = ['user']
+
+
+class SubscriptionFilter(django_filters.FilterSet):
+    min_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='gte')
+    max_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
+    next_payment_date_after = django_filters.DateFilter(field_name='next_payment_date', lookup_expr='gte')
+    next_payment_date_before = django_filters.DateFilter(field_name='next_payment_date', lookup_expr='lte')
+
+    class Meta:
+        model = Subscription
+        exclude = ['user']
+
+
+class BudgetFilter(django_filters.FilterSet):
+    min_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='gte')
+    max_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
+    
+    class Meta:
+        model = Budget
+        exclude = ['user']
+
+
+class CustomNotificationFilter(django_filters.FilterSet):
+    notification_date_after = django_filters.DateTimeFilter(field_name='notification_datetime', lookup_expr='gte')
+    notification_date_before = django_filters.DateTimeFilter(field_name='notification_datetime', lookup_expr='lte')
+
+    class Meta:
+        model = CustomNotification
+        exclude = ['user']

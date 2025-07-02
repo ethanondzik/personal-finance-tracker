@@ -15,7 +15,7 @@ from django.db.models import Sum, Count, Q, Min, Max
 from django.utils import timezone
 from zoneinfo import ZoneInfo
 
-from .filters import TransactionFilter
+from .filters import TransactionFilter, AccountFilter, CategoryFilter, BudgetFilter, SubscriptionFilter, CustomNotificationFilter
 from .pagination import TransactionPagination
 
 
@@ -46,11 +46,18 @@ class UserScopedViewSet(viewsets.ModelViewSet):
         """
         serializer.save(user=self.request.user)
 
+class EnhancedUserScopedViewSet(UserScopedViewSet):
+    """
+    A base ViewSet that adds pagination, filtering, searching, and ordering
+    to the UserScopedViewSet.
+    """
+    pagination_class = TransactionPagination
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
 
 # --- ViewSets for each model ---
 
-class TransactionViewSet(UserScopedViewSet):
+class TransactionViewSet(EnhancedUserScopedViewSet):
     queryset = Transaction.objects.all().select_related('account', 'category')
     serializer_class = TransactionSerializer
     filterset_class = TransactionFilter
@@ -139,25 +146,45 @@ class TransactionViewSet(UserScopedViewSet):
             'related_fields': ['account_details', 'category_name', 'account_number', 'account_type']
         })
 
-class AccountViewSet(UserScopedViewSet):
+class AccountViewSet(EnhancedUserScopedViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
+    filterset_class = AccountFilter
+    search_fields = ['account_number', 'account_type']
+    ordering_fields = ['balance', 'account_type', 'created_at']
+    ordering = ['-balance']
 
-class CategoryViewSet(UserScopedViewSet):
+class CategoryViewSet(EnhancedUserScopedViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    filterset_class = CategoryFilter
+    search_fields = ['name']
+    ordering_fields = ['name', 'type']
+    ordering = ['name']
 
-class SubscriptionViewSet(UserScopedViewSet):
+class SubscriptionViewSet(EnhancedUserScopedViewSet):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
+    filterset_class = SubscriptionFilter
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'amount', 'next_payment_date', 'start_date']
+    ordering = ['next_payment_date']
 
-class BudgetViewSet(UserScopedViewSet):
+class BudgetViewSet(EnhancedUserScopedViewSet):
     queryset = Budget.objects.all().select_related('category')
     serializer_class = BudgetSerializer
+    filterset_class = BudgetFilter
+    search_fields = ['category__name']
+    ordering_fields = ['amount', 'period']
+    ordering = ['-amount']
 
-class CustomNotificationViewSet(UserScopedViewSet):
+class CustomNotificationViewSet(EnhancedUserScopedViewSet):
     queryset = CustomNotification.objects.all()
     serializer_class = CustomNotificationSerializer
+    filterset_class = CustomNotificationFilter
+    search_fields = ['title', 'message']
+    ordering_fields = ['notification_datetime', 'type', 'created_at']
+    ordering = ['-notification_datetime']
 
     @action(detail=False, methods=['get'], url_path='check')
     def check_due_notifications(self, request):
@@ -449,221 +476,3 @@ class DashboardViewSet(viewsets.ViewSet):
             'next_due_date': next_due.next_payment_date.isoformat() if next_due and next_due.next_payment_date else None,
             'next_due_name': next_due.name if next_due else None
         }
-
-
-
-'''
-@login_required
-@require_GET
-def spreadsheet_data_api(request):
-    """
-    Returns all spreadsheet data as JSON for AJAX loading.
-    """
-    user = request.user
-    accounts = Account.objects.filter(user=user)
-    categories = Category.objects.filter(user=user)
-    transactions = Transaction.objects.filter(user=user).select_related('account', 'category').order_by('-date', '-id')
-
-    accounts_json = [
-        {
-            'id': acc.id,
-            'account_number': acc.account_number,
-            'account_type': acc.account_type,
-            'balance': float(acc.balance)
-        } for acc in accounts
-    ]
-    categories_json = list(categories.values('id', 'name', 'type'))
-    transaction_types_json = [{'id': 'expense', 'name': 'Expense'}, {'id': 'income', 'name': 'Income'}]
-    initial_data_json = [
-        {
-            'id': t.id,
-            'date': t.date.strftime('%Y-%m-%d') if t.date else None,
-            'account_id': t.account.id if t.account else None,
-            'account_name': f"{t.account.account_type} ({t.account.account_number})" if t.account else "",
-            'category_name': t.category.name if t.category else None,
-            'category_id': t.category.id if t.category else None,
-            'description': t.description,
-            'amount': float(t.amount) if t.amount is not None else None,
-            'transaction_type_name': t.get_transaction_type_display(),
-            'transaction_type': t.transaction_type
-        }
-        for t in transactions
-    ]
-    return JsonResponse({
-        'accounts': accounts_json,
-        'categories': categories_json,
-        'transaction_types': transaction_types_json,
-        'transactions': initial_data_json,
-    })
-
-@login_required
-@require_POST
-def spreadsheet_save_api(request):
-    """
-    Handles saving spreadsheet data via AJAX.
-    """
-    try:
-        data = json.loads(request.body)
-        transactions_to_create = []
-        transactions_to_update = []
-        updated_transaction_ids = [] 
-        errors = []
-        created_transactions_data = []
-
-        for i, row_data in enumerate(data):
-            if not row_data or not row_data.get('date') or row_data.get('amount') is None:
-                if row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
-                    pass
-                elif not row_data.get('id') and not (row_data.get('date') or row_data.get('amount') is not None):
-                    continue
-                else:
-                    errors.append(f"Row {i+1}: Missing required fields (date, amount).")
-                    continue
-            
-            transaction_id = row_data.get('id')
-            try:
-                account_id = row_data.get('account_id')
-                category_id = row_data.get('category_id')
-                account = Account.objects.get(id=account_id, user=request.user) if account_id else None
-                category = Category.objects.get(id=category_id, user=request.user) if category_id else None
-                transaction_date_str = row_data.get('date')
-                if isinstance(transaction_date_str, str):
-                    try:
-                        transaction_date = datetime.strptime(transaction_date_str, '%Y-%m-%d').date()
-                    except ValueError:
-                        errors.append(f"Row {i+1}: Invalid date format '{transaction_date_str}'. Expected YYYY-MM-DD.")
-                        continue
-                else:
-                    transaction_date = transaction_date_str
-
-                description = row_data.get('description', '')
-                amount = Decimal(row_data.get('amount'))
-                transaction_type = row_data.get('transaction_type', 'expense').lower()
-
-                if transaction_id:
-                    updated_transaction_ids.append(transaction_id)
-                    try:
-                        t_instance = Transaction.objects.get(id=transaction_id, user=request.user)
-                        if (str(t_instance.date) != str(transaction_date) or
-                            t_instance.account_id != account_id or
-                            t_instance.category_id != category_id or
-                            t_instance.description != description or
-                            t_instance.amount != amount or
-                            t_instance.transaction_type != transaction_type):
-                            if t_instance.account:
-                                if t_instance.transaction_type == "income":
-                                    t_instance.account.balance -= t_instance.amount
-                                else:
-                                    t_instance.account.balance += t_instance.amount
-                            t_instance.date = transaction_date
-                            t_instance.account = account
-                            t_instance.category = category
-                            t_instance.description = description
-                            t_instance.amount = amount
-                            t_instance.transaction_type = transaction_type
-                            transactions_to_update.append(t_instance) 
-                    except Transaction.DoesNotExist:
-                        errors.append(f"Row {i+1}: Transaction ID '{transaction_id}' not found for update.")
-                        continue
-                else:
-                    transactions_to_create.append(Transaction(
-                        user=request.user, date=transaction_date, account=account, category=category,
-                        description=description, amount=amount, transaction_type=transaction_type
-                    ))
-
-            except Account.DoesNotExist:
-                errors.append(f"Row {i+1}: Account ID '{account_id}' not found or does not belong to you.")
-            except Category.DoesNotExist:
-                errors.append(f"Row {i+1}: Category ID '{category_id}' not found or does not belong to you.")
-            except (ValueError, TypeError) as e:
-                errors.append(f"Row {i+1}: Invalid data - {str(e)} for data: {row_data}")
-            except Exception as e:
-                errors.append(f"Row {i+1}: An unexpected error occurred processing this row - {str(e)}")
-
-        if errors:
-            return JsonResponse({'status': 'error', 'errors': errors}, status=400)
-
-        created_count = 0
-        if transactions_to_create:
-            for t_new in transactions_to_create:
-                t_new.save()
-                created_count += 1
-                created_transactions_data.append({
-                    'id': t_new.id,
-                    'date': t_new.date.strftime('%Y-%m-%d') if hasattr(t_new.date, 'strftime') else str(t_new.date),
-                    'amount': float(t_new.amount),
-                    'description': t_new.description
-                })
-
-        updated_count = 0
-        if transactions_to_update:
-            for t_upd in transactions_to_update:
-                t_upd.save()
-                updated_count += 1
-
-        message_parts = []
-        if created_count > 0:
-            message_parts.append(f"{created_count} new transaction(s) saved.")
-        if updated_count > 0:
-            message_parts.append(f"{updated_count} transaction(s) updated.")
-        if not message_parts:
-            final_message = "No changes detected or no valid transactions to save."
-        else:
-            final_message = " ".join(message_parts)
-
-        return JsonResponse({
-            'status': 'success', 
-            'message': final_message,
-            'created_transactions': created_transactions_data
-        })
-
-    except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'Invalid JSON data.'}, status=400)
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'}, status=500)
-
-@login_required
-@require_POST
-def spreadsheet_delete_api(request):
-    """
-    Handles deleting transactions via AJAX.
-    """
-    try:
-        data = json.loads(request.body)
-        ids = data.get('transaction_ids', [])
-        if not ids:
-            return JsonResponse({'status': 'error', 'message': 'No transaction IDs provided.'}, status=400)
-        transactions = Transaction.objects.filter(id__in=ids, user=request.user)
-        count = transactions.count()
-        transactions.delete()
-        return JsonResponse({'status': 'success', 'message': f'{count} transaction(s) deleted.'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'An error occurred: {str(e)}'}, status=500)
-
-@login_required
-def subscriptions_api(request):
-    user = request.user
-    subscriptions = Subscription.objects.filter(user=user, is_active=True)
-    today = date.today()
-    preview = []
-    for sub in subscriptions:
-        # Recalculate next payment date if needed
-        if sub.next_payment_date < today:
-            sub.calculate_next_payment_date()
-            sub.save(update_fields=['next_payment_date'])
-        preview.append({
-            'name': sub.name,
-            'amount': float(sub.amount),
-            'next_payment_date': sub.next_payment_date.isoformat(),
-        })
-    
-    #get next due subscription
-    next_due_sub = min(subscriptions, key=lambda s: s.next_payment_date, default=None)
-    data = {
-        'total': subscriptions.count(),
-        'next_due_date': next_due_sub.next_payment_date.isoformat() if next_due_sub else None,
-        'next_due_name': next_due_sub.name if next_due_sub else None,
-        'preview': sorted(preview, key=lambda s: s['next_payment_date'])[:5],
-    }
-    return JsonResponse({'status': 'success', 'data': data})
-    '''
