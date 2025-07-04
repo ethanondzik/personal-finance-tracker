@@ -220,3 +220,16 @@ window.hideGlobalLoading = function() {
         loadingOverlay.remove();
     }
 };
+
+
+// Auto-hide toast messages after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const toasts = document.querySelectorAll('.toast');
+    toasts.forEach(toast => {
+        const bsToast = new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: 5000
+        });
+        bsToast.show();
+    });
+});

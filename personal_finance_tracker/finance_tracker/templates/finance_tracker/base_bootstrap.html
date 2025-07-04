@@ -204,6 +204,26 @@
             </div>
         </nav>
 
+        <!-- Toast Container for Messages, js will remove them after 5 seconds in base_bootstrap.js -->
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <div class="rounded me-2 bg-{{ message.tags }}" style="width: 12px; height: 12px;"></div>
+                        <strong class="me-auto">
+                            {% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Warning{% else %}Info{% endif %}
+                        </strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        {{ message }}
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
         <!-- Page Content -->
         <div class="content-wrapper">
             {% block content %}{% endblock %}

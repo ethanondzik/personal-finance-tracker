@@ -13,15 +13,6 @@
 <div class="container-fluid page-body-wrapper">
   <div class="main-panel">
     <div class="content-wrapper">
-      
-      {% if messages %}
-          {% for message in messages %}
-              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                  {{ message }}
-                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-          {% endfor %}
-      {% endif %}
 
       <div class="card">
         <div class="card-body">
