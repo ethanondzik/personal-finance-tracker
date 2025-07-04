@@ -5,3 +5,6 @@ sqlparse==0.5.3
 psycopg # PostgreSQL adapter for Python
 djangorestframework
 django-filter
+pytest
+pytest-django
+factory-boy
